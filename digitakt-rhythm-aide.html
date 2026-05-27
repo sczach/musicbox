@@ -1,0 +1,1222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Digitakt II • Rhythm Aide</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+      background-color: #080d18;
+      color: #e2e8f0;
+      min-height: 100vh;
+    }
+
+    .mono { font-family: 'JetBrains Mono', 'Courier New', monospace; }
+
+    /* ---- Track cards ---- */
+    .track-card {
+      transition: border-color 0.1s ease, box-shadow 0.1s ease, transform 0.1s ease;
+      cursor: pointer;
+    }
+    .track-card:hover {
+      border-color: #22d3ee !important;
+      box-shadow: 0 0 18px rgba(34, 211, 238, 0.12);
+      transform: translateY(-1px);
+    }
+    .track-card:active { transform: translateY(0); }
+
+    /* ---- Step buttons ---- */
+    .step-btn {
+      aspect-ratio: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.6rem;
+      font-weight: 500;
+      border-radius: 5px;
+      border: 1px solid #1e293b;
+      background: #131b2e;
+      color: #334155;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.06s ease, color 0.06s ease, box-shadow 0.06s ease;
+    }
+    .step-btn:hover:not(.active) {
+      background: #1e2d45 !important;
+      color: #64748b !important;
+      border-color: #334155 !important;
+    }
+    .step-btn.active {
+      background: #22d3ee !important;
+      color: #030912 !important;
+      font-weight: 700;
+      border-color: #0891b2 !important;
+      box-shadow: 0 0 7px rgba(34, 211, 238, 0.45);
+    }
+    .step-btn.beat1 { border-color: #2a3d57; }
+
+    /* ---- Mini step viz in track card ---- */
+    .mini-step {
+      flex-shrink: 0;
+      width: 5px;
+      height: 11px;
+      border-radius: 2px;
+      background: #1a2438;
+    }
+    .mini-step.on { background: #22d3ee; }
+
+    /* ---- Modal animation ---- */
+    @keyframes modalIn {
+      from { opacity: 0; transform: scale(0.96) translateY(10px); }
+      to   { opacity: 1; transform: scale(1)    translateY(0);   }
+    }
+    .modal-box { animation: modalIn 0.18s ease-out forwards; }
+
+    /* ---- Label style ---- */
+    .lbl {
+      font-size: 0.62rem;
+      letter-spacing: 0.08em;
+      font-weight: 700;
+      color: #475569;
+      text-transform: uppercase;
+    }
+
+    /* ---- Length buttons ---- */
+    .len-btn {
+      padding: 0.3rem 0.9rem;
+      font-size: 0.78rem;
+      font-weight: 600;
+      background: #131b2e;
+      border: 1px solid #1e293b;
+      color: #64748b;
+      cursor: pointer;
+      transition: background 0.1s, color 0.1s;
+    }
+    .len-btn:hover:not(.len-active) { background: #1e293b; color: #94a3b8; }
+    .len-btn.len-active {
+      background: #0c4a6e;
+      border-color: #0891b2;
+      color: #22d3ee;
+    }
+
+    /* ---- Genre select ---- */
+    #genreSelect {
+      background: #0d1626;
+      color: #e2e8f0;
+      border-color: #1e293b;
+    }
+    #genreSelect option { background: #0d1626; }
+
+    /* ---- Export textarea ---- */
+    #exportOut {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      line-height: 1.65;
+      background: #040810;
+      color: #7dd3fc;
+      border: 1px solid #1e293b;
+      resize: vertical;
+    }
+
+    /* ---- Scrollbar ---- */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: #080d18; }
+    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 3px; }
+
+    /* ---- Tip card ---- */
+    .tip-card {
+      background: #0a1121;
+      border: 1px solid #1a2744;
+      border-radius: 12px;
+      padding: 1rem 1.1rem;
+    }
+
+    /* ---- Step grid rows: group every 4 with a subtle gap ---- */
+    .step-grid-wrap {
+      display: grid;
+      grid-template-columns: repeat(16, minmax(0, 1fr));
+      gap: 3px;
+    }
+
+    select option { background: #0d1626; color: #e2e8f0; }
+  </style>
+</head>
+<body>
+
+<!-- ================================================================
+     MAIN LAYOUT
+================================================================ -->
+<div class="max-w-6xl mx-auto px-4 py-8">
+
+  <!-- HEADER -->
+  <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-5">
+    <div>
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center">
+          <i class="fas fa-drum text-cyan-400 text-sm"></i>
+        </div>
+        <h1 class="text-2xl font-bold tracking-tight text-white">Digitakt II</h1>
+      </div>
+      <p class="text-slate-500 text-sm mt-0.5 ml-12">Rhythm Aide — 16-track pattern companion</p>
+    </div>
+
+    <div class="flex items-center gap-3 flex-wrap">
+      <div>
+        <div class="lbl mb-1.5">Genre</div>
+        <select id="genreSelect"
+                class="rounded-xl px-3 py-2.5 text-sm border focus:outline-none focus:border-cyan-500 w-48">
+        </select>
+      </div>
+      <div class="bg-slate-900/80 border border-slate-800 rounded-xl px-4 py-2 text-center min-w-[84px]">
+        <div class="lbl">BPM</div>
+        <div id="bpmDisplay" class="text-xl font-bold text-cyan-400 mono leading-tight mt-0.5">—</div>
+      </div>
+      <div class="bg-slate-900/80 border border-slate-800 rounded-xl px-4 py-2 text-center min-w-[84px]">
+        <div class="lbl">Def. Len</div>
+        <div id="defLenDisplay" class="text-xl font-bold text-slate-300 mono leading-tight mt-0.5">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOOLBAR -->
+  <div class="flex items-center justify-between mb-3">
+    <div>
+      <h2 class="font-semibold text-slate-200">Track Palette</h2>
+      <p class="text-xs text-slate-600 mt-0.5">Click any track to edit its rhythm pattern</p>
+    </div>
+    <div class="flex gap-2">
+      <button onclick="loadRecommendedDefaults()"
+              class="px-3 py-1.5 text-xs bg-slate-900 hover:bg-slate-800 border border-slate-700 rounded-lg flex items-center gap-1.5 transition-colors">
+        <i class="fas fa-rotate-left text-slate-400"></i>
+        <span>Load Recommended</span>
+      </button>
+      <button onclick="exportAllPatterns()"
+              class="px-3 py-1.5 text-xs bg-cyan-950/60 hover:bg-cyan-900/60 border border-cyan-800/50 text-cyan-300 rounded-lg flex items-center gap-1.5 transition-colors">
+        <i class="fas fa-file-export"></i>
+        <span>Export All</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- TRACK GRID (8 cols) -->
+  <div id="trackGrid" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2 mb-8"></div>
+
+  <!-- EXPORT PANEL -->
+  <div id="exportPanel" class="hidden mb-8">
+    <div class="bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden">
+      <div class="flex items-center justify-between px-4 py-3 border-b border-slate-800">
+        <h3 class="font-semibold text-sm">
+          Export — <span id="exportGenreLabel" class="text-cyan-400"></span>
+        </h3>
+        <div class="flex gap-2">
+          <button onclick="doCopy()"
+                  class="px-3 py-1 text-xs bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors">
+            <i class="fas fa-copy mr-1"></i><span id="copyBtnLabel">Copy</span>
+          </button>
+          <button onclick="document.getElementById('exportPanel').classList.add('hidden')"
+                  class="text-slate-500 hover:text-white px-2 text-lg leading-none">×</button>
+        </div>
+      </div>
+      <textarea id="exportOut" class="w-full h-72 p-4 focus:outline-none" readonly></textarea>
+    </div>
+  </div>
+
+  <!-- TIPS SECTION -->
+  <div class="mt-10 mb-6">
+    <h2 class="font-semibold text-slate-300 mb-1">Digitakt II Workflow Tips</h2>
+    <p class="text-xs text-slate-600 mb-4">Ambient, atmospheric, and cinematic approaches — with Sequential Pro 3 notes</p>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+
+      <div class="tip-card">
+        <div class="flex items-center gap-2 mb-2">
+          <i class="fas fa-water text-cyan-500 text-sm"></i>
+          <span class="text-sm font-semibold">Sparse Patterns for Ambient</span>
+        </div>
+        <p class="text-xs text-slate-400 leading-relaxed">Use 32–64 step patterns with only 2–4 active trigs per track. Let the empty steps breathe. At 70 BPM a 64-step pattern is ~27 seconds — long enough to feel like an event rather than a loop.</p>
+      </div>
+
+      <div class="tip-card">
+        <div class="flex items-center gap-2 mb-2">
+          <i class="fas fa-lock text-cyan-500 text-sm"></i>
+          <span class="text-sm font-semibold">Parameter Locks (P-Locks)</span>
+        </div>
+        <p class="text-xs text-slate-400 leading-relaxed">Hold any trig button and turn a knob to add a p-lock. Lock the filter cutoff, reverb send, or sample start point per-step. In ambient work this is your primary tool for making patterns feel alive and evolving.</p>
+      </div>
+
+      <div class="tip-card">
+        <div class="flex items-center gap-2 mb-2">
+          <i class="fas fa-shuffle text-cyan-500 text-sm"></i>
+          <span class="text-sm font-semibold">Conditional Trigs</span>
+        </div>
+        <p class="text-xs text-slate-400 leading-relaxed">Hold a trig and press the right arrow to add conditions: 1:2 fires every other loop, 1:4 every fourth. Use PRE/NEI for probability-linked chains. This makes a simple pattern feel like it never repeats.</p>
+      </div>
+
+      <div class="tip-card">
+        <div class="flex items-center gap-2 mb-2">
+          <i class="fas fa-link text-cyan-500 text-sm"></i>
+          <span class="text-sm font-semibold">Song Mode for Long-Form</span>
+        </div>
+        <p class="text-xs text-slate-400 leading-relaxed">Chain A01 → A02 → A03 in Song Mode with subtle track-level variation in each slot. One pattern changes the pad trig; the next adds a distant hi-hat. This builds slow arc over minutes without programming thousands of steps.</p>
+      </div>
+
+      <div class="tip-card">
+        <div class="flex items-center gap-2 mb-2">
+          <i class="fas fa-copy text-cyan-500 text-sm"></i>
+          <span class="text-sm font-semibold">Copy → Paste → Vary</span>
+        </div>
+        <p class="text-xs text-slate-400 leading-relaxed">Copy an ambient pattern (FUNC+COPY), move to the next slot (FUNC+PASTE), then manually edit 1–2 trigs. This is faster than programming from scratch and keeps musical continuity across your song chain.</p>
+      </div>
+
+      <div class="tip-card">
+        <div class="flex items-center gap-2 mb-2">
+          <i class="fas fa-circle-nodes text-cyan-500 text-sm"></i>
+          <span class="text-sm font-semibold">Euclidean Rhythms</span>
+        </div>
+        <p class="text-xs text-slate-400 leading-relaxed">E(3,8), E(5,13), E(7,16) — try these in the Euclidean Generator above. They distribute pulses as evenly as possible, creating patterns that feel musical but irregular. Excellent for IDM, ambient percussion, and polyrhythmic layers.</p>
+      </div>
+
+      <div class="tip-card">
+        <div class="flex items-center gap-2 mb-2">
+          <i class="fas fa-wave-square text-cyan-500 text-sm"></i>
+          <span class="text-sm font-semibold">LFO → Breathing Pads</span>
+        </div>
+        <p class="text-xs text-slate-400 leading-relaxed">Assign the Digitakt's LFO to FLTR CUTOFF with a very slow triangle wave (speed 1–4). Target a single pad track and the filter will slowly open and close independent of any trig. Creates a breathing, living texture without any extra programming.</p>
+      </div>
+
+      <div class="tip-card">
+        <div class="flex items-center gap-2 mb-2">
+          <i class="fas fa-satellite-dish text-cyan-500 text-sm"></i>
+          <span class="text-sm font-semibold">FX Send Automation</span>
+        </div>
+        <p class="text-xs text-slate-400 leading-relaxed">On Digitakt II the master reverb and delay are send-based. P-lock the SEND knob on individual steps so a hit at step 1 is dry but the same hit at step 33 is drenched in reverb — instant evolution without extra samples.</p>
+      </div>
+
+      <div class="tip-card">
+        <div class="flex items-center gap-2 mb-2">
+          <i class="fas fa-music text-cyan-500 text-sm"></i>
+          <span class="text-sm font-semibold">Pro 3 Integration</span>
+        </div>
+        <p class="text-xs text-slate-400 leading-relaxed">Set Digitakt Track 16 as a MIDI track, output channel 1, to gate the Sequential Pro 3. Use the Digitakt arpeggiator or chord mode to drive harmonic progressions. Lock the Pro 3 to a slow filter-sweep patch — instant modular-style atmosphere with sequenced notes.</p>
+      </div>
+
+    </div>
+  </div>
+
+  <p class="text-center text-xs text-slate-700 pb-6">
+    Euclidean engine adapted from <span class="text-slate-600">dbkaplun/euclidean-rhythm</span> ·
+    UI inspired by <span class="text-slate-600">hisschemoller/music-pattern-generator</span>
+  </p>
+
+</div><!-- /main -->
+
+
+<!-- ================================================================
+     PATTERN MODAL
+================================================================ -->
+<div id="patternModal"
+     class="hidden fixed inset-0 bg-black/85 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
+  <div class="modal-box bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-3xl my-auto">
+
+    <!-- Modal header -->
+    <div class="flex items-start justify-between px-5 py-4 border-b border-slate-800">
+      <div class="flex-1 min-w-0 pr-4">
+        <div id="modalTrackNum" class="lbl text-cyan-600 mb-1"></div>
+        <input id="modalTrackName"
+               class="bg-transparent text-xl font-bold focus:outline-none text-white w-full truncate"
+               type="text"
+               onchange="updateTrackName(this.value)">
+      </div>
+      <button onclick="closeModal()" class="text-slate-500 hover:text-white text-2xl leading-none mt-1 flex-shrink-0">×</button>
+    </div>
+
+    <!-- Modal body -->
+    <div class="p-5 space-y-5">
+
+      <!-- Controls row -->
+      <div class="flex flex-wrap items-end gap-4">
+
+        <!-- Pattern length -->
+        <div>
+          <div class="lbl mb-1.5">Pattern Length</div>
+          <div class="flex rounded-lg overflow-hidden border border-slate-800">
+            <button onclick="setPatLen(16)"  class="len-btn"                              data-len="16">16</button>
+            <button onclick="setPatLen(32)"  class="len-btn border-l border-slate-800"   data-len="32">32</button>
+            <button onclick="setPatLen(64)"  class="len-btn border-l border-slate-800"   data-len="64">64</button>
+            <button onclick="setPatLen(128)" class="len-btn border-l border-slate-800"   data-len="128">128</button>
+          </div>
+        </div>
+
+        <!-- Euclidean -->
+        <div>
+          <div class="lbl mb-1.5">Euclidean Generator</div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <div class="flex items-center gap-1.5">
+              <span class="text-xs text-slate-500">Pulses</span>
+              <input id="euclidPulses" type="number" value="4" min="1" max="128"
+                     class="w-14 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-sm text-center text-white focus:outline-none focus:border-cyan-600 mono">
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span class="text-xs text-slate-500">Offset</span>
+              <input id="euclidOffset" type="number" value="0" min="0" max="127"
+                     class="w-14 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-sm text-center text-white focus:outline-none focus:border-cyan-600 mono">
+            </div>
+            <button onclick="applyEuclidean()"
+                    class="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg flex items-center gap-1.5 transition-colors">
+              <i class="fas fa-circle-nodes text-cyan-500"></i>
+              <span>Generate</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Step grid -->
+      <div>
+        <div class="flex items-center justify-between mb-2">
+          <div class="lbl">Steps</div>
+          <div class="flex items-center gap-3">
+            <span id="stepCountDisplay" class="text-xs text-slate-500 mono"></span>
+            <span id="densityDisplay"   class="text-xs text-slate-700 mono"></span>
+          </div>
+        </div>
+        <div id="stepGridWrap" class="p-3 bg-slate-950 rounded-xl border border-slate-800/80">
+          <div id="stepGrid" class="step-grid-wrap"></div>
+        </div>
+      </div>
+
+      <!-- Active steps list -->
+      <div class="flex items-baseline gap-2 flex-wrap">
+        <span class="lbl whitespace-nowrap">Active Steps:</span>
+        <span id="activeStepsList" class="mono text-cyan-400 text-xs leading-relaxed break-all"></span>
+      </div>
+
+      <!-- Pattern description -->
+      <div id="patternDesc" class="text-xs text-slate-400 bg-slate-950 rounded-xl p-3 border border-slate-800/80 leading-relaxed"></div>
+
+    </div>
+
+    <!-- Modal footer -->
+    <div class="flex items-center justify-between px-5 py-3 border-t border-slate-800 bg-slate-950 rounded-b-2xl">
+      <div class="flex gap-2">
+        <button onclick="resetToRecommended()"
+                class="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg flex items-center gap-1.5 transition-colors">
+          <i class="fas fa-rotate-left text-slate-400"></i>
+          <span>Reset to Recommended</span>
+        </button>
+        <button onclick="clearPattern()"
+                class="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-slate-300 transition-colors">
+          Clear
+        </button>
+      </div>
+      <button onclick="closeModal()"
+              class="px-6 py-1.5 text-sm bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold rounded-lg transition-colors">
+        Done
+      </button>
+    </div>
+
+  </div>
+</div><!-- /modal -->
+
+
+<!-- ================================================================
+     JAVASCRIPT
+================================================================ -->
+<script>
+// ============================================================
+// GENRE DATA — 10 genres × 16 tracks
+// ============================================================
+const GENRES = {
+
+  /* ---- 1. AMBIENT ---- */
+  "Ambient": {
+    bpm: "60–90", defaultLen: 64,
+    tracks: [
+      { id:1,  icon:"🥁", name:"Sub Kick",        role:"Deep foundation",      steps:[1],
+        desc:"Single sub-bass kick on beat 1. Set long decay, high reverb send. Use a p-lock to lower velocity by step 33 for a long-arc fade. In ambient work, less is everything — this may be the only kick you need for 64 steps." },
+      { id:2,  icon:"🪘", name:"Soft Percussion",  role:"Textural accent",      steps:[17, 49],
+        desc:"Two gentle hits spread across the 64-step pattern. Low velocity (around 60–70). Heavy reverb tail. Consider a 1:2 conditional trig so one of them skips every other loop for variation." },
+      { id:3,  icon:"🌫️", name:"Shaker Texture",   role:"Implied movement",     steps:[5, 21, 37, 53],
+        desc:"Four-point spread across 64 steps — one per 16-step quadrant. Use a soft brush or shaker sample at low velocity. Creates implied pulse without locking in a beat. Keep well below the noise floor." },
+      { id:4,  icon:"🎩", name:"Distant Hats",     role:"Space filler",         steps:[9, 41],
+        desc:"Two far-away hat hits with heavy reverb and long tail. The gap of 32 steps between them (at 60–70 BPM) is about 14 seconds — long enough to feel like an event. Try conditional trigs 1:3 or 1:4." },
+      { id:5,  icon:"⚡", name:"Glitch Element",   role:"Textural surprise",    steps:[13, 51],
+        desc:"Occasional digital noise or a short reversed cymbal fragment. Low velocity, one-shot. The irregularity of these two positions (13 and 51) against the 16-step grid creates gentle polyrhythmic tension." },
+      { id:6,  icon:"🎹", name:"Pad Trigger",      role:"Harmonic pulse",       steps:[1, 33],
+        desc:"Two long pad hits at the start and midpoint of the 64-step cycle. On hardware: set long filter attack, maximum reverb send, and sample LOOP on. If using a Pro 3, gate it here with a slow-attack patch." },
+      { id:7,  icon:"🌿", name:"Field Recording",  role:"Atmospheric layer",    steps:[],
+        desc:"Left empty by default. Load an environmental texture (rain, wind, room tone). Either let it loop continuously with no trigs, or trig once at step 1 with a very long sample. Best as a looping background layer." },
+      { id:8,  icon:"🌌", name:"Drone Layer",      role:"Sustained bed",        steps:[1],
+        desc:"Single trig at step 1 with sample LOOP enabled. Assign the Digitakt's LFO to FLTR CUTOFF at very slow speed (rate 1–4) with a triangle wave — the filter opens and closes over minutes, entirely automatically." },
+      { id:9,  icon:"🥁", name:"Soft Kick 2",      role:"Mid-pattern weight",   steps:[33],
+        desc:"A softer secondary kick at the exact halfway point. Helps articulate the shape of a long 64-step pattern without adding rhythmic density. Use a lower-pitched sample than your main kick." },
+      { id:10, icon:"🔄", name:"Reversed Hit",     role:"Pre-beat tension",     steps:[32, 64],
+        desc:"Reversed cymbal or reversed vocal hit landing at the very last step of each 16-step block. Creates forward motion and anticipation. Use with 1:2 conditional for further variation." },
+      { id:11, icon:"✨", name:"High Texture",     role:"Delicate movement",    steps:[3, 19, 35, 51],
+        desc:"Light high-frequency element — a triangle, brush, or delicate digital ping. Four-point spread in the 64-step grid, each offset from the shaker. Keep these almost inaudible; they live in the upper texture layer." },
+      { id:12, icon:"🔊", name:"Bass Drone",       role:"Low harmonic bed",     steps:[],
+        desc:"A sustained low-mid sound. Best left empty and looping, or triggered once at step 1. Apply a very slow amp or filter LFO for subtle movement. Do not retrig this — let it decay naturally over the full pattern." },
+      { id:13, icon:"•",  name:"Micro Clicks",     role:"Rhythmic detail",      steps:[7, 23, 39, 55],
+        desc:"Tiny percussive clicks or grain-like sounds at very low velocity (40–50). These create subliminal rhythm that listeners feel more than hear. Excellent as the only 'percussion' on a pure drone ambient piece." },
+      { id:14, icon:"🪐", name:"Space Perc",       role:"Wide stereo accent",   steps:[25],
+        desc:"A single atmospheric percussion hit at step 25 — the 'interesting' position in the first half. Pan hard left or hard right. Use stereo width and pre-delay reverb for maximum spatial depth." },
+      { id:15, icon:"🌬️", name:"Evolving Noise",   role:"Textural arc",         steps:[],
+        desc:"Noise burst or wind texture. Best as a looping layer with no trigs. Assign a slow LFO to amplitude or filter for movement. Alternatively, program a single trig at step 1 with a very long amp attack (use AMP ATK p-lock)." },
+      { id:16, icon:"🎹", name:"MIDI: Pro 3",      role:"External synth gate",  steps:[1, 17, 33, 49],
+        desc:"MIDI track driving the Sequential Pro 3 (or any external synth/module). Gate pulses at each 16-step quadrant. On the Pro 3, use a slow filter attack patch with long reverb. The Digitakt chord mode can send chords via this track." }
+    ]
+  },
+
+  /* ---- 2. DARK AMBIENT ---- */
+  "Dark Ambient": {
+    bpm: "50–75", defaultLen: 64,
+    tracks: [
+      { id:1,  icon:"🥁", name:"Deep Thud",       role:"Sparse foundation",    steps:[1],
+        desc:"A single heavy low-end impact. Tuned low, very long reverb decay. At 50–60 BPM this is almost a sub-bass event rather than a drum hit. Can be omitted entirely for pure drone work — silence here is equally valid." },
+      { id:2,  icon:"🪘", name:"Metal Impact",    role:"Tension accent",        steps:[33],
+        desc:"A metallic or industrial percussive hit at the exact midpoint. Processed with heavy reverb and filtered low to remove harsh highs. Feels like a distant structure under stress." },
+      { id:3,  icon:"💀", name:"Bone Rattle",     role:"Textural grain",        steps:[17, 51],
+        desc:"A rough granular texture — a shaker processed with distortion, or granular resynthesis of noise. Two sparse hits at the quarter-points between the main impacts. Very low velocity." },
+      { id:4,  icon:"🌑", name:"Shadow Pad",      role:"Ominous harmony",      steps:[1],
+        desc:"Long dark pad. Single trig at step 1 with looping on. Layer with Pro 3 for deep, sustained dread. Use minor 2nd or tritone intervals between the Digitakt sample pitch and the Pro 3 note for maximum tension." },
+      { id:5,  icon:"⚡", name:"Harsh Glitch",    role:"Distortion burst",     steps:[7, 23],
+        desc:"Harsh digital noise burst — bit-crushed, clipped, or granularly shredded. Use conditional trigs 1:3 or 1:4 so it only fires occasionally. When it does fire, it should feel like a system error or structural failure." },
+      { id:6,  icon:"🔈", name:"Sub Rumble",      role:"Low-frequency drone",  steps:[1, 49],
+        desc:"Very low sub-bass hit or rumble. Two per pattern — the second one at step 49 (near the end) creates a sense of building pressure before the loop resets." },
+      { id:7,  icon:"🌿", name:"Wind",            role:"Environmental",         steps:[],
+        desc:"Wind or environmental atmosphere. Loop it continuously. No trigs needed. Layer under everything else as the foundational texture. Use the filter to shape the tonal character." },
+      { id:8,  icon:"🦇", name:"Dark Texture",    role:"Unsettling layer",     steps:[29],
+        desc:"An unsettling processed sound — reversed processed scream, granular voice, metal scrape, or glass resonance. Single trig at a non-obvious position. Should feel accidental when it appears." },
+      { id:9,  icon:"🪐", name:"Space Hit",       role:"Distant impact",       steps:[9, 41],
+        desc:"A far-away atmospheric impact — like a very distant explosion heard through concrete. Heavy reverb, long pre-delay, low-pass filtered. Two hits spread irregularly through the pattern." },
+      { id:10, icon:"🔔", name:"Bell Tone",       role:"Harmonic accent",      steps:[21],
+        desc:"A single singing bowl or bell tone, detuned slightly. Processed with reverb so the tail is several seconds long. Should feel like a warning or a moment of horrible clarity within the drone." },
+      { id:11, icon:"💧", name:"Drip",            role:"Micro detail",         steps:[13, 45],
+        desc:"A tiny drip or click. Creates organic micro-rhythm within the texture. Very low in the mix — ideally only audible on headphones. Two hits at irregular positions add subliminal unease." },
+      { id:12, icon:"🌊", name:"Water Layer",     role:"Flow",                 steps:[],
+        desc:"Water or flowing texture. Keep empty and loop. Complements other textures without adding rhythm. Use the filter to darken it — no bright highs in dark ambient." },
+      { id:13, icon:"⚫", name:"Void Noise",      role:"Negative space filler", steps:[5, 37],
+        desc:"White noise filtered very heavily — below 200Hz, sounds like breath or distant static. Two quiet hits. The filtered noise creates the sense of pressure or presence without a clear rhythmic identity." },
+      { id:14, icon:"🎭", name:"Voice Fragment",  role:"Human element",         steps:[25],
+        desc:"A processed vocal fragment — reversed, pitch-shifted down, or granular. Single rare appearance at the midpoint. Should be barely recognizable as a voice. The human element in an inhuman landscape." },
+      { id:15, icon:"🌑", name:"Dark Drone",      role:"Bass layer",           steps:[1],
+        desc:"A sustained dark bass drone. Single trig with sample looping. All reverb send. No amp attack or very slow amp attack p-locked — fades in over the first seconds of the pattern, completely invisible." },
+      { id:16, icon:"🎹", name:"MIDI: Pro 3",     role:"Dark synth gate",      steps:[1, 33],
+        desc:"Two gate pulses for the external synth. Program a dark evolving patch on the Pro 3 — long filter attack (FATTK at max), resonant low-pass, slow LFO on filter. The two pulses create two separate fade-in events per loop." }
+    ]
+  },
+
+  /* ---- 3. AMBIENT DUB ---- */
+  "Ambient Dub": {
+    bpm: "75–95", defaultLen: 32,
+    tracks: [
+      { id:1,  icon:"🥁", name:"Dub Kick",        role:"Downbeat anchor",      steps:[1, 21],
+        desc:"Kick on beat 1 and an off-beat variation at step 21. Deep and roomy, spring reverb echo. In ambient dub the kick floats in space rather than driving a strict four-on-the-floor." },
+      { id:2,  icon:"🥁", name:"Snare / Rim",     role:"Backbeat",             steps:[9, 25],
+        desc:"Snare on beats 3 and a dub-style rim shot. Heavy reverb, let the decay tail fully. The reverb IS the groove in dub — the dry hit is almost irrelevant." },
+      { id:3,  icon:"🌿", name:"Off-beat Hats",   role:"Dub groove",           steps:[3,7,11,19,27,31],
+        desc:"Off-beat hat pattern gives the dub groove feel. Use micro-timing nudges (hold TRIG + turn encoder) to push these slightly behind the beat for maximum laziness." },
+      { id:4,  icon:"🎸", name:"Bass Sample",     role:"Bass groove",          steps:[1, 5, 17, 25],
+        desc:"Deep dub bass sample. The foundation of the groove. Use p-locks to vary the pitch per-step — a simple 1-5-1-5 root-fifth motion is classic dub. Long sub tail, no top-end." },
+      { id:5,  icon:"🎹", name:"Chord Stab",      role:"Harmonic accent",      steps:[5, 21],
+        desc:"Classic dub chord stab. Short dry hit immediately followed by a long echo/reverb tail — the echo is the musical content. Set the Digitakt delay to a long note value (dotted eighth or quarter)." },
+      { id:6,  icon:"🎩", name:"Hat Fill",        role:"Textural fill",        steps:[15, 16],
+        desc:"A quick hat roll just before the downbeat. Creates anticipation and forward motion into bar 2. Can also be programmed as a retrig at step 15 with short interval." },
+      { id:7,  icon:"🌊", name:"Dub Siren",       role:"Classic dub element",  steps:[13],
+        desc:"A classic dub siren hit or melodic stab. Let the reverb/delay tail carry it through the remaining steps. Should feel like it's dissolving into the atmospheric background." },
+      { id:8,  icon:"🎺", name:"Horn Sample",     role:"One-shot accent",      steps:[17],
+        desc:"Rare horn or brass sample hit in the second half. Heavily reverbed, low in the mix. Should feel like it's arriving from another room." },
+      { id:9,  icon:"🥁", name:"Ghost Kick",      role:"Syncopated groove",    steps:[13, 29],
+        desc:"Softer secondary kick hits for syncopation. Lower velocity than the main kick. Creates the rolling, loping feel of classic reggae-influenced rhythms." },
+      { id:10, icon:"🔔", name:"Bell",            role:"Melodic texture",      steps:[7],
+        desc:"Warm bell or marimba hit. One per pattern. The echo trail creates a melodic focal point — essentially a one-note dub melody via the delay." },
+      { id:11, icon:"🌫️", name:"Shaker",          role:"Continuous motion",   steps:[1,3,5,7,9,11,13,15,17,19,21,23,25,27,29,31],
+        desc:"Steady shaker on every odd step (all 8th notes). Mix very low in the track — this is texture, not percussion. It should barely be audible in the full mix." },
+      { id:12, icon:"🎵", name:"Melody Perc",     role:"Tuned accent",         steps:[3, 19],
+        desc:"A tuned percussive melodic sample — steel drum, kalimba, or pitched woodblock. Sparse two-hit melody over the 32-step cycle. Let the delay create the repetition." },
+      { id:13, icon:"🌬️", name:"Atmosphere",     role:"Background texture",   steps:[],
+        desc:"A sustained atmospheric texture looping in the background. No trigs needed. This is the ambient in ambient dub — the pad layer that floats above and below everything else." },
+      { id:14, icon:"💧", name:"Delay Echo FX",   role:"Echo send trig",       steps:[9, 25],
+        desc:"A separate echo-effect hit or a track dedicated to delay trail management. Can also represent a deliberately programmed delay send at these positions — use p-locks on the SEND knob." },
+      { id:15, icon:"🥁", name:"Rim Shot",        role:"Dub accent",           steps:[11, 27],
+        desc:"Dry rim shot with a touch of spring reverb. Classic in dub production for off-beat accents that punctuate the groove without adding to the kick/snare weight." },
+      { id:16, icon:"🎹", name:"MIDI: Pro 3",     role:"External melodic",     steps:[1, 9, 17, 25],
+        desc:"Gate pulses for the Pro 3 on each beat. Set a warm padded bass or melodic lead patch. Use the Pro 3's built-in FX (reverb/delay) for extra dub texture layered over the Digitakt's own sends." }
+    ]
+  },
+
+  /* ---- 4. DnB ---- */
+  "DnB": {
+    bpm: "174–178", defaultLen: 32,
+    tracks: [
+      { id:1,  icon:"🥁", name:"Main Kick",       role:"DnB kick",             steps:[1, 9, 17, 19],
+        desc:"Classic DnB kick placement. Beat 1, and-of-2 (step 9), plus ghost variations at 17 and 19 for the rolling feel. Punchy, short tail, slightly distorted sub. The kick in DnB is sparse — not four-on-the-floor." },
+      { id:2,  icon:"🥁", name:"Snare",           role:"Backbeat",             steps:[5, 13],
+        desc:"Snare on beats 2 and 4 (steps 5 and 13 in a 32-step pattern at 2-bar resolution). Tight, punchy, minimal room. Layered clap or high crack on top. The snare is the anchor — everything else swings around it." },
+      { id:3,  icon:"👻", name:"Ghost Snare",     role:"Feel and groove",      steps:[7, 11, 15],
+        desc:"Low velocity ghost snare hits — these are the 'feel' of the break. Very low volume (30–50), slightly behind the beat via micro-timing. They fill the space between the main kick and snare hits." },
+      { id:4,  icon:"🎩", name:"Closed Hats",     role:"Rolling hats",         steps:[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16],
+        desc:"16th note rolling hats on the first 16 steps. The backbone of the DnB groove. Use shuffle/swing in Digitakt settings to humanize. Apply velocity p-locks to accent beats 1, 3, 5, 7 of the bar." },
+      { id:5,  icon:"🎩", name:"Open Hat",        role:"Accent",               steps:[3, 11],
+        desc:"Open hat accent on the 'and' of beats 1 and 3. Keep brief and crisp — these should cut through but not dominate. Layer with a short reverb tail for depth." },
+      { id:6,  icon:"🪘", name:"Percussion",      role:"Syncopated layer",     steps:[3, 7, 11, 19, 23, 29],
+        desc:"Syncopated percussive hits — rim shots, cowbells, or other sounds at irregular positions. Creates the 'busy' feel of DnB that sits above the main beat without fighting with it." },
+      { id:7,  icon:"🎵", name:"Amen Slice",      role:"Break element",        steps:[1, 3, 9, 13, 17, 21, 25],
+        desc:"Trigger individual Amen break slices at these positions. Each step can be p-locked to a different slice number for classic jungle/DnB break-chopping. Use 32 steps for a full two-bar break." },
+      { id:8,  icon:"🔊", name:"Sub Bass",        role:"Bass foundation",      steps:[1, 5, 9, 13, 17, 21, 25, 29],
+        desc:"Sub bass hits on every beat. In DnB the bass is often melodic — use p-locks to change the pitch of each hit. Classic Reese bass or filtered sine wave sub. Compress heavily, sidechain to kick." },
+      { id:9,  icon:"🥁", name:"Kick Layer",      role:"Extra punch",          steps:[1, 17],
+        desc:"A layered transient enhancer or clicky sub sample adding attack to the main kick hits. High-pass to only catch 200Hz–1kHz range — it adds the 'click' at the start of the kick without adding sub." },
+      { id:10, icon:"💥", name:"Snare Top",       role:"Snare transient",      steps:[5, 13],
+        desc:"A crispy high-end snare layer on the main snare hits for extra crack. High-pass filtered above 3kHz. Layering allows independent control of the low body and the high crack." },
+      { id:11, icon:"🌊", name:"Synth Hook",      role:"Melodic hook",         steps:[1, 9, 17],
+        desc:"Short melodic synth stab or vocal chop at key beats. Use p-locks to vary the pitch — a simple 3-note motif repeating is enough for a DnB hook." },
+      { id:12, icon:"🪐", name:"FX Hit",          role:"Phrase accent",        steps:[13, 29],
+        desc:"A synth stab, vocal hit, or DJ tool at the end of phrases. Creates anticipation for the loop reset. Use high reverb and delay sends — these should trail into the start of the next bar." },
+      { id:13, icon:"⚡", name:"Reese Bass",      role:"Bass texture",         steps:[1,3,5,7,9,11,13,15],
+        desc:"Rolling Reese bass on the first half. Very heavy low-mids, detuned square or saw wave. Compress heavily and sidechain to kick. This layer adds texture on top of the sub bass rather than replacing it." },
+      { id:14, icon:"🎹", name:"Pad Wash",        role:"Harmonic texture",     steps:[1, 17],
+        desc:"Long pad hit at bars 1 and 3. Wide stereo, heavy reverb. Provides harmonic context behind the drums. Keep level low — this is felt more than heard in a dense DnB mix." },
+      { id:15, icon:"🌫️", name:"FX Riser",        role:"Bar-end build",        steps:[29, 30, 31],
+        desc:"A riser or sweep effect in the last three steps of the 32-step pattern. Creates the classic DnB build into the next bar or the drop. Use velocity p-locks to crescendo across these three steps." },
+      { id:16, icon:"🎹", name:"MIDI: Pro 3",     role:"Lead/bass melody",     steps:[1, 5, 9, 13, 17],
+        desc:"Gate the Pro 3 on main DnB beat positions. Use a bright lead or Reese-style bass patch. P-lock the MIDI note value per step for melodic variation. The Pro 3 filter envelope adds the aggressive DnB bass character." }
+    ]
+  },
+
+  /* ---- 5. TECHNO ---- */
+  "Techno": {
+    bpm: "130–140", defaultLen: 16,
+    tracks: [
+      { id:1,  icon:"🥁", name:"Kick",            role:"Four-on-the-floor",    steps:[1,5,9,13],
+        desc:"Classic four-on-the-floor kick. Punchy, slightly distorted, strong sub. On Digitakt: use a kick sample with good transient. Add a small amount of dist/compression to give it industrial edge." },
+      { id:2,  icon:"👏", name:"Clap / Snare",    role:"Backbeat",             steps:[5, 13],
+        desc:"Layered clap or industrial snare on beats 2 and 4. Can be a harsh metal crack, industrial clap, or processed rimshot. The harder the better for driving techno." },
+      { id:3,  icon:"🎩", name:"Closed Hat",      role:"Eighth notes",         steps:[1,3,5,7,9,11,13,15],
+        desc:"Off-beat eighth note hats. The classic techno groove driver. Keep crisp and dry. Use velocity variation — accent beats 1, 3, 5, 7 (the even-numbered 8th notes). Slight shuffle makes it less robotic." },
+      { id:4,  icon:"🎩", name:"Open Hat",        role:"Groove accent",        steps:[7, 15],
+        desc:"Open hat on the and-of-2 and and-of-4. Slightly longer decay, very slight reverb. Creates the push/pull that makes techno feel like it wants to move forward." },
+      { id:5,  icon:"🪘", name:"Clave / Metal",   role:"Polyrhythmic texture", steps:[3, 7, 11],
+        desc:"A clave, woodblock, or metallic percussion hit. Three-hit pattern creates a 3-against-4 polyrhythm against the kick. Very common in minimal and industrial techno." },
+      { id:6,  icon:"🔔", name:"Cowbell",         role:"Melodic accent",       steps:[9],
+        desc:"A single cowbell or metallic hit at step 9 (beat 3). Classic minimal techno touch. Keep it dry, at medium-high velocity. The cowbell is the personality of a techno pattern." },
+      { id:7,  icon:"⚡", name:"Industrial FX",   role:"Noise texture",        steps:[2, 10, 14],
+        desc:"Short noise bursts or industrial texture hits. Create the harsh mechanical character of techno. These land on off-beats to add constant rhythmic agitation between the main hits." },
+      { id:8,  icon:"🔊", name:"Bassline",        role:"Acid sequence",        steps:[1,3,5,9,13,15],
+        desc:"TB-303-style bassline pattern. Six hits per bar at syncopated positions. Use p-locks to vary pitch and filter cutoff per step for acid variation. The rhythm is as important as the pitch in techno bass." },
+      { id:9,  icon:"💥", name:"Sub Layer",       role:"Low reinforcement",    steps:[1,5,9,13],
+        desc:"Sub-only kick layer doubling the main kick. Filter to below 80Hz for extra sub punch. Layering allows independent control of the click transient and the sub weight." },
+      { id:10, icon:"🌊", name:"Synth Stab",      role:"Harmonic tension",     steps:[1, 9],
+        desc:"A short stabby chord hit at beats 1 and 3. Use a detuned or dissonant chord — minor 2nds or tritones work well in techno. Add filter p-locks for slight movement per repetition." },
+      { id:11, icon:"🌫️", name:"Noise Hit",       role:"High agitation",       steps:[3,7,11,15],
+        desc:"White noise burst on off-beats. High-pass filtered. Gives the pattern a driven, agitated feel. Keep velocity moderate — this is texture, not percussion." },
+      { id:12, icon:"🪐", name:"Atmos Sweep",     role:"Long sweep",           steps:[1],
+        desc:"A slow filter sweep sample or rising noise that loops across the whole pattern. Single trig with loop on. Provides macro movement and evolution over multiple bar repetitions." },
+      { id:13, icon:"🎵", name:"Lead Hook",       role:"Melodic anchor",       steps:[5, 13],
+        desc:"A melodic synth line or hook triggered at the backbeat positions. Use p-locks for pitch variation — a 2-note motif is enough. Heavy reverb and delay for depth." },
+      { id:14, icon:"🥁", name:"Clap Layer",      role:"Snare top",            steps:[5, 13],
+        desc:"Second clap sample layered for extra crack on the backbeat. Higher-pitched than the main clap. High-pass filtered. Same position as the main clap for maximum weight." },
+      { id:15, icon:"🌀", name:"FX Sweep",        role:"Bar-end tension",      steps:[15, 16],
+        desc:"A sweep or riser in the final two steps. Creates tension just before the loop point. Use a rising filter sweep or a short noise burst with a strong upward pitch envelope." },
+      { id:16, icon:"🎹", name:"MIDI: Pro 3",     role:"Synth sequence",       steps:[1, 3, 5, 9, 13],
+        desc:"Gate the Pro 3 on key techno positions. Use a gritty mono synth or a driving techno bass patch. The Pro 3's filter and oscillator character adds analogue warmth to a digital Digitakt mix." }
+    ]
+  },
+
+  /* ---- 6. HOUSE ---- */
+  "House": {
+    bpm: "122–128", defaultLen: 16,
+    tracks: [
+      { id:1,  icon:"🥁", name:"Kick",            role:"Four-on-the-floor",    steps:[1,5,9,13],
+        desc:"Classic house kick. Boomy, round, with long sub. 808-style or sampled. Four-on-the-floor is non-negotiable in house. The kick should feel warm and inviting, not harsh." },
+      { id:2,  icon:"🥁", name:"Clap",            role:"Backbeat",             steps:[5, 13],
+        desc:"Classic house clap on beats 2 and 4. Layered clap samples, slightly reverbed. The humanizing element — should sound like a real room clap. Slight velocity variation between the two hits." },
+      { id:3,  icon:"🎩", name:"Closed Hat",      role:"16th groove driver",   steps:[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16],
+        desc:"Sixteenth note hats — the house groove driver. Use shuffle/swing. Velocity pattern: accent every 2nd 16th (the 8th notes). The swing amount defines whether it's deep house (heavy) or tech house (light)." },
+      { id:4,  icon:"🎩", name:"Open Hat",        role:"Groove accent",        steps:[3, 11],
+        desc:"Open hat on the and-of-1 and and-of-3. Creates the signature house push. Keep the velocity slightly lower than the closed hats — it accents without dominating." },
+      { id:5,  icon:"🪘", name:"Shaker",          role:"Smooth motion",        steps:[2,4,6,8,10,12,14,16],
+        desc:"Steady shaker on all off-beats (even steps — the 8th off-beats). Smooth and high-pitched. Keep well below the hat level. Provides continuous smooth motion between hat hits." },
+      { id:6,  icon:"🎸", name:"Bass",            role:"Deep house bass",      steps:[1, 3, 9, 11],
+        desc:"Deep house bass. Rolling sub with rounded attack. Use p-locks for subtle pitch variation — root-root-fifth-seventh is a classic deep house move. Keep it deep, warm, and felt in the body." },
+      { id:7,  icon:"🎵", name:"Chord Stab",      role:"Soulful harmony",      steps:[5, 13],
+        desc:"A punchy piano or organ chord stab on beats 2 and 4. The soulful heart of house music. Use minor 7th, major 7th, or extended chords. Layer two samples (piano + organ) for classic Chicago house sound." },
+      { id:8,  icon:"🎹", name:"Piano Riff",      role:"Melodic hook",         steps:[3, 7, 11],
+        desc:"A simple piano riff or hook. Three notes per bar in a syncopated pattern. Keep it minimal — one or two notes at a time. The space between notes defines the groove." },
+      { id:9,  icon:"🎺", name:"Brass Stab",      role:"Classic house element", steps:[7, 15],
+        desc:"A classic house brass stab. Short, punchy, warm. Use a sax or trumpet sample for authentic feel. These land on the and-of-2 and and-of-4 — reinforcing the backbeat groove." },
+      { id:10, icon:"🔔", name:"Percussion",      role:"Afro-Latin texture",   steps:[3, 7, 13],
+        desc:"Congas, bongos, or shakers in a traditional house rhythmic pattern. Three hits per bar at syncopated positions. Adds organic texture and Latin groove influence." },
+      { id:11, icon:"🌊", name:"Vocal Chop",      role:"Rhythmic vocal",       steps:[5, 9, 13],
+        desc:"Short vocal chops or stabs at syncopated positions. Classic deep and progressive house element. Use short, one-syllable samples — 'hey', 'yeah', 'uh'. Let the energy of the chop do the work." },
+      { id:12, icon:"🌫️", name:"Synth Pad",       role:"Harmonic backdrop",    steps:[1],
+        desc:"A sustained synth pad or string sound. Single trig with looping — provides the harmonic backdrop. Keep it warm and slightly detuned for a lush, analog-feeling house pad." },
+      { id:13, icon:"🥁", name:"Rim Shot",        role:"Syncopated accent",    steps:[4, 12],
+        desc:"Rim shot on the 'e' of beats 1 and 3. Adds syncopation and Latin flavor. A very light velocity here — this is felt more than heard but it's what makes the groove feel alive." },
+      { id:14, icon:"🪐", name:"FX Hit",          role:"Phrase marker",        steps:[13],
+        desc:"A swoosh, riser, or DJ effect hit at beat 4. Marks the phrase end and keeps energy. The FX hit into beat 1 of the next bar is a classic house DJ move." },
+      { id:15, icon:"🎵", name:"Lead Melody",     role:"Hook",                 steps:[1, 5, 9],
+        desc:"Simple, memorable lead melody. Three notes per bar — keep it soulful and singable. A good house melody sounds like it could have come from an old soul or gospel record." },
+      { id:16, icon:"🎹", name:"MIDI: Pro 3",     role:"Bass / lead ext.",     steps:[1, 5, 9, 13],
+        desc:"Gate the Pro 3 on kick positions for a classic house bass line — or use for lead melody on the offbeats. The Pro 3's analogue warmth is perfect for house music character." }
+    ]
+  },
+
+  /* ---- 7. TRAP ---- */
+  "Trap": {
+    bpm: "130–145", defaultLen: 32,
+    tracks: [
+      { id:1,  icon:"🥁", name:"808 Kick",        role:"Main kick / bass",     steps:[1, 11, 17],
+        desc:"Heavy 808 kick — in trap, the 808 IS the bass. Pitch it melodically via p-locks. Steps 1, 11, 17 give classic trap syncopation. Long sub tail, heavy compression. Let it decay into the next hit." },
+      { id:2,  icon:"🥁", name:"Snare",           role:"Beat 3",               steps:[9, 25],
+        desc:"Crispy trap snare on beat 3 (and optionally beat 3.5 via step 25 in the 32-step grid). Heavily compressed, short decay. In trap, the snare is a punctuation mark — not a backbeat groove driver." },
+      { id:3,  icon:"🎩", name:"HH: 8ths Base",   role:"Hat foundation",       steps:[1,3,5,7,9,11,13,15,17,19,21,23,25,27,29,31],
+        desc:"Eighth note hat grid — the base of the trap hat pattern. Keep moderate velocity across all 16 hits in the 32-step view. These are the 'resting state' of the hi-hat before rolls and accents are added." },
+      { id:4,  icon:"🎩", name:"HH: 16th Roll",   role:"Fast fill",            steps:[17,18,19,20,21,22,23,24],
+        desc:"Fast 16th hat roll in the second half of the bar. Classic trap fill. Gradually increase velocity across steps 17–24 (use velocity p-locks: 40→50→65→80→90→100→110→127). The crescendo is the effect." },
+      { id:5,  icon:"🎩", name:"HH: Triplets",    role:"Trap triplet feel",    steps:[5,6,7,13,14,15],
+        desc:"Triplet hat hits at positions 5-6-7 and 13-14-15. The characteristic trap triplet subdivision. These create the 'machine gun' triplet feel that defines the genre. Use retrig or manual step placement." },
+      { id:6,  icon:"👏", name:"Ghost Clap",      role:"Subtle texture",       steps:[5, 13, 21, 29],
+        desc:"Ghost clap hits on the offbeats. Very low velocity (20–40) — felt more than heard. Adds subliminal texture behind the main snare. Do not let these compete with the main snare." },
+      { id:7,  icon:"💥", name:"808 Sub",         role:"Sub bass layer",       steps:[1, 17],
+        desc:"A pure sine sub-bass layer under the 808 kick hits. Adds depth and roundness. Use p-locks to match the pitch of the 808 hits exactly. Two hits per 32 steps — bars 1 and 3." },
+      { id:8,  icon:"🎵", name:"Melody Loop",     role:"Melodic sample",       steps:[1],
+        desc:"A melodic sample loop triggered at step 1. Let it loop for the full 32 steps. Use p-locks to retrig at phrase break points (step 17 or 25) for subtle variation." },
+      { id:9,  icon:"🥁", name:"Ghost Kick",      role:"Extra syncopation",    steps:[7, 23],
+        desc:"Secondary kick hit adding syncopation. Lower velocity than the main 808 hits. Helps define the off-beat push of the pattern and adds rhythmic complexity without adding sub weight." },
+      { id:10, icon:"🔔", name:"Bell / Keys",     role:"Melodic accent",       steps:[3, 11, 27],
+        desc:"Short bell, piano, or keyboard stab at three points in the 32-step pattern. A three-hit melodic accent spread across the bar. Use p-locks for subtle pitch variation." },
+      { id:11, icon:"🌫️", name:"Perc Layer",      role:"High texture",         steps:[9, 17, 25],
+        desc:"A high-frequency percussion hit — a shaker accent, finger snap, or hi-hat accent reinforcing the snare positions. Three points per 32 steps, mixed below the main snare." },
+      { id:12, icon:"🎹", name:"Synth Stab",      role:"Chord stab",           steps:[1, 17],
+        desc:"A short trap chord stab at bars 1 and 3. Often minor, diminished, or augmented. Minor 7th or flat-5 intervals work well. Keep short and aggressive — the reverb tail does the harmonic work." },
+      { id:13, icon:"🌊", name:"Vocal Chop",      role:"Sample element",       steps:[5, 21],
+        desc:"Short vocal chop or ad-lib. Pitched-up sample is very common in trap. Two hits in slightly unexpected positions. Use a bright, short sample — 'yeah', 'aye', or an emotive vocal fragment." },
+      { id:14, icon:"⚡", name:"FX Riser",        role:"Build to drop",        steps:[29, 30, 31],
+        desc:"A riser or sweep in the last 3 steps of the 32-step pattern. Builds anticipation into the drop. Increase velocity p-locks from 70→100→127 across these three steps for a crescendo feel." },
+      { id:15, icon:"🎵", name:"Lead Hook",       role:"Melodic hook",         steps:[1, 9, 17, 25],
+        desc:"The main melodic hook. Simple, catchy melody on four beats of a 32-step bar. Use p-locks to vary pitch per hit — a 4-note melodic motif cycling over the bar is the classic trap melody approach." },
+      { id:16, icon:"🎹", name:"MIDI: Pro 3",     role:"External bass / lead", steps:[1, 11, 17, 25],
+        desc:"Gate the Pro 3 on main trap hit positions for a layered sub or lead melody. The Pro 3's oscillator stack adds harmonic richness that pure 808 samples lack. Use filter envelope for attack shape." }
+    ]
+  },
+
+  /* ---- 8. JUNGLE / BREAKBEAT ---- */
+  "Jungle / Breakbeat": {
+    bpm: "160–170", defaultLen: 32,
+    tracks: [
+      { id:1,  icon:"🥁", name:"Break: Kick",     role:"Kick slice",           steps:[1, 5, 11, 17, 21, 25],
+        desc:"Kick slices from a chopped Amen or Think break. Irregular kick placement is the hallmark of jungle — not a regular pattern, but a collection of kick events extracted from a natural break performance." },
+      { id:2,  icon:"🥁", name:"Break: Snare",    role:"Snare slice",          steps:[5, 13, 21, 29],
+        desc:"Snare slices from the same break. Syncopated, rolling, full of ghost notes. Each step should trigger a different slice if you're using a multi-sample break kit on Digitakt." },
+      { id:3,  icon:"🎩", name:"Break: Hats",     role:"Hat texture",          steps:[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16],
+        desc:"Hat slices from the break — 16 steps in the first half at high tempo creates the constant rushing hat motion of jungle. Use velocity variation heavily (p-locks on each step) for a human feel." },
+      { id:4,  icon:"🎩", name:"Break: Ghost",    role:"Ghost hits",           steps:[3, 7, 9, 15, 19, 23, 27, 31],
+        desc:"Ghost and fill slices from the break. Lower velocity (30–60), fills the rhythmic gaps between main hits. The ghost hits are what make a drum loop sound like a real drummer." },
+      { id:5,  icon:"⚡", name:"Break: Fill",     role:"End-of-bar roll",      steps:[15, 16, 29, 30, 31, 32],
+        desc:"Fast fill and flam slices at phrase endings. Creates the turbulent, energetic end-of-bar feel that defines jungle. Increase velocity dramatically across these groups (use p-locks for the crescendo)." },
+      { id:6,  icon:"🔊", name:"Reese Bass",      role:"Jungle bassline",      steps:[1, 5, 9, 17, 21, 25],
+        desc:"A classic Reese or jungle bassline. Detuned oscillators, heavy compression, rolls through the bar. Use p-locks for pitch variation — typically root, fifth, minor seventh. Compress heavily, filter the highs." },
+      { id:7,  icon:"🎵", name:"Key Loop",        role:"Melodic loop",         steps:[1],
+        desc:"A sampled keyboard or piano loop from a soul or jazz record — the melodic backbone of jungle. Triggered at step 1, loops for the full pattern. The harmonic context that gives jungle its emotional depth." },
+      { id:8,  icon:"🎺", name:"Brass Sample",    role:"Classic loop hit",     steps:[9, 25],
+        desc:"A classic brass loop hit or stab sampled from soul records. Very jungle and hip-hop in character — the 'horns' that surface at key moments in the pattern." },
+      { id:9,  icon:"🥁", name:"Break 2",         role:"Layered break",        steps:[3, 11, 19, 27],
+        desc:"A second break layer stacked on top of the main break. Different EQ and room sound for width. Blend low in the mix — it adds texture and stereo spread to the break." },
+      { id:10, icon:"🌊", name:"Vocal Chop",      role:"MC vocal sample",      steps:[5, 13, 21, 29],
+        desc:"A chopped vocal sample or ragamuffin MC phrase. Common in jungle production — vocal chops on the backbeat positions. Use short, sharp vocal fragments that punctuate rather than lead." },
+      { id:11, icon:"🔔", name:"Orch Sample",     role:"Cinematic texture",    steps:[1, 17],
+        desc:"An orchestral sample or bell hit — strings, horns, or choir. Adds the 'big' cinematic feel of classic jungle. Two hits — one at the start and one at the midpoint for long-arc structure." },
+      { id:12, icon:"🪘", name:"Percussion",      role:"Hand percussion layer", steps:[3, 7, 19, 23],
+        desc:"Additional percussion layers over the main break — bongos, congas, or hand percussion. These add organic texture and widen the stereo field of the drum mix." },
+      { id:13, icon:"💥", name:"Sub Hit",         role:"Bass accent",          steps:[1, 13, 25],
+        desc:"Short, punchy sub-bass accent hits reinforcing key beat positions. Three-hit pattern at slightly irregular positions (1, 13, 25) creates the forward-leaning feel of jungle bass." },
+      { id:14, icon:"🌫️", name:"Texture FX",      role:"Atmosphere",           steps:[],
+        desc:"An atmospheric pad or texture looping under the breaks. Loop it continuously — no trigs needed. Provides space, width, and harmonic context in the mix." },
+      { id:15, icon:"🌀", name:"Riser / FX",      role:"Drop build",           steps:[29, 30, 31, 32],
+        desc:"A riser or noise sweep leading into the next bar. Creates the classic jungle drop feel. All four final steps — crescendo via p-locked velocity from 60→80→100→127." },
+      { id:16, icon:"🎹", name:"MIDI: Pro 3",     role:"External synth",       steps:[1, 9, 17, 25],
+        desc:"Drive the Pro 3 with jungle-style melodic hits. Use a bright resonant lead or warm pad patch. The Pro 3 adds analogue character to the largely sample-based jungle palette." }
+    ]
+  },
+
+  /* ---- 9. IDM / GLITCH ---- */
+  "IDM / Glitch": {
+    bpm: "100–160", defaultLen: 32,
+    tracks: [
+      { id:1,  icon:"🥁", name:"Glitch Kick",     role:"Irregular kick",       steps:[1, 7, 13, 21],
+        desc:"An irregular kick pattern — intentionally off-grid. Four hits at non-obvious positions. Can also be a processed kick: bit-crushed, time-stretched, or granularly resynthesized. The kick in IDM is a texture as much as a beat." },
+      { id:2,  icon:"💀", name:"Glitch Snare",    role:"Distorted crack",      steps:[5, 9, 17, 25, 29],
+        desc:"A processed snare — reversed, bit-crushed, or granular. Five irregular hits per 32 steps. Intentionally unpredictable placement. Let the gaps create rhythm — the snare doesn't need to be on the beat." },
+      { id:3,  icon:"⚡", name:"Click Grid",      role:"Micro-timing anchor",  steps:[1,3,5,7,9,11,13,15,17,19,21,23,25,27,29,31],
+        desc:"A steady click or hi-hat grid at irregular velocities. The 'ticking clock' of IDM. Use p-locks to randomize the velocity across all 16 steps — alternating loud/quiet/loud/quiet creates implied polyrhythm." },
+      { id:4,  icon:"🔇", name:"Granular Perc",   role:"Granular texture",     steps:[3, 9, 11, 19, 23, 27],
+        desc:"Granular or pitch-shifted percussion fragments. The hallmark of IDM — sounds that are rhythmic but unidentifiable as a specific instrument. Use heavily processed samples at various velocities." },
+      { id:5,  icon:"🌀", name:"Polyrhythm A",    role:"8-pulse layer",        steps:[1, 5, 9, 13, 17, 21, 25, 29],
+        desc:"Every 4 steps — an 8-pulse even distribution. Against the 16th note grid this creates subtle polyrhythmic texture. This is essentially E(8,32) — the most evenly-spaced possible pattern." },
+      { id:6,  icon:"🌀", name:"Polyrhythm B",    role:"6-pulse layer",        steps:[1, 6, 11, 17, 22, 27],
+        desc:"A 6-pulse pattern over 32 steps. Combined with Polyrhythm A, creates the shifting IDM grid feel — two layers that realign every LCM(8,6)=24 steps, with a 2-step phase drift creating the illusion of movement." },
+      { id:7,  icon:"💥", name:"Noise Burst",     role:"Harsh texture",        steps:[6, 14, 22, 30],
+        desc:"White or pink noise burst hits at the end of each 8-step block. Filtered differently each time via p-locks on the filter cutoff — evolves from harsh (open) to dark (closed) over the 32 steps." },
+      { id:8,  icon:"🎵", name:"Melodic Cell",    role:"Short phrase",         steps:[1, 9, 17, 25],
+        desc:"A short 2–4 note melodic cell repeated with pitch p-locks changing the note each time. The basis of IDM melody — a repeating structure with constant small variation." },
+      { id:9,  icon:"🔔", name:"Bell Seq",        role:"Pitched sequence",     steps:[3, 7, 11, 19, 23],
+        desc:"A metallic bell or vibraphone sequence at irregular intervals. Use p-locks for slightly different pitches — no octave doubling, use whole-tone or chromatic intervals. Heavy reverb, slight detuning." },
+      { id:10, icon:"🌫️", name:"Noise Layer",     role:"Background hiss",      steps:[],
+        desc:"A sustained noise layer looping in the background. Adjust via filter LFO for slow evolution. This is the 'air' of the IDM mix — barely audible but noticeable when removed." },
+      { id:11, icon:"🎹", name:"Pad Fragment",    role:"Harmonic fragment",    steps:[1, 17],
+        desc:"Short pad fragments — 1–2 note cluster hits rather than full pads. Intentional harmonic ambiguity — use minor 2nds, tritones, or clusters. Heavy reverb so the tails overlap and create accidental chords." },
+      { id:12, icon:"🪐", name:"Dronelet",        role:"Pitch drone",          steps:[1],
+        desc:"A short droning sound with a very long tail. Triggered once per loop. Overlapping repetitions (when the tail is longer than 32 steps) create accidental stacking harmony — particularly effective at slow IDM tempos." },
+      { id:13, icon:"🔊", name:"Bass Fragment",   role:"Abstract bass",        steps:[1, 5, 13, 21],
+        desc:"Bass sounds placed irregularly — not a groove pattern, but a collection of bass events. Use p-locks for dramatic pitch variation (multiple octaves, or micro-pitch shifts for microtonal bass)." },
+      { id:14, icon:"🌊", name:"Vocal Grain",     role:"Granular voice",       steps:[7, 15, 23],
+        desc:"Granularly processed vocal material — barely recognizable as a voice. The human presence in the machine. Three irregular hits. Should feel like overheard fragments rather than performed vocals." },
+      { id:15, icon:"🎭", name:"Stutter FX",      role:"Glitch stutter",       steps:[15, 16, 31, 32],
+        desc:"Short repeated hits in the last 2 steps of each 16-step block. Creates the IDM stutter and glitch effect — the sense of the machine tripping or catching on its own rhythm." },
+      { id:16, icon:"🎹", name:"MIDI: Pro 3",     role:"External sequence",    steps:[1, 7, 13, 21],
+        desc:"Drive the Pro 3 with the irregular IDM kick pattern. Use unstable oscillator settings — slight detuning, self-oscillating filter, or feedback. The Pro 3's character adds organic instability to the digital precision." }
+    ]
+  },
+
+  /* ---- 10. DOWNTEMPO ---- */
+  "Downtempo": {
+    bpm: "75–100", defaultLen: 32,
+    tracks: [
+      { id:1,  icon:"🥁", name:"Hip-Hop Kick",   role:"Lazy kick",            steps:[1, 9, 21],
+        desc:"A laid-back hip-hop kick — slightly behind the beat via micro-timing nudge. Three hits at steps 1, 9, 21 give the classic downtempo lope and forward lean. Use a round, boomy sample with significant low-mid." },
+      { id:2,  icon:"🥁", name:"Snare",           role:"Backbeat",             steps:[5, 13, 21, 29],
+        desc:"Snare on beats 2 and 4. Warm, slightly compressed. Classic lo-fi feel — don't over-process. A slightly snappy SP-1200 or MPC-style snare character is ideal for downtempo production." },
+      { id:3,  icon:"🎩", name:"Hats",            role:"Swung 16ths",          steps:[1,3,5,7,9,11,13,15,17,19,21,23,25,27,29,31],
+        desc:"Swung 16th note hats with heavy shuffle. The shuffle amount is everything in downtempo — too tight and it loses the feel, too loose and it falls apart. Use Digitakt's swing setting as the primary groove control." },
+      { id:4,  icon:"🎩", name:"Open Hat",        role:"Breathing accent",     steps:[7, 23],
+        desc:"Open hat accent giving space to breathe. Only two per 32-step bar — let them ring out fully. The space between the open hats is what defines the downtempo character." },
+      { id:5,  icon:"💧", name:"Shaker",          role:"Smooth motion",        steps:[2,6,10,14,18,22,26,30],
+        desc:"A smooth shaker on off-beats. Subtle but essential for the rolling feel of downtempo. Keep level low — this is texture that blends with the hats, not a competing rhythmic element." },
+      { id:6,  icon:"🎸", name:"Bass",            role:"Deep bass groove",     steps:[1, 3, 7, 9, 17, 25],
+        desc:"A rich bass groove — upright bass, electric bass, or sampled Fender P-bass. Deep, warm, and organic. Use p-locks for pitch per step. Root-root-fifth-root-third-seventh is a classic jazz-influenced downtempo move." },
+      { id:7,  icon:"🎵", name:"Chord",           role:"Jazz chord",           steps:[5, 21],
+        desc:"A warm chord hit — piano, Rhodes, or organ. Minor 7ths and extended chords (9ths, 13ths) work beautifully. Two hits per 32-step bar, both landing just after the snare — riding the backbeat." },
+      { id:8,  icon:"🎹", name:"Piano Riff",      role:"Melodic hook",         steps:[3, 7, 13, 19],
+        desc:"A simple piano riff looping through the pattern. Four notes at syncopated positions. Keep it economical — one or two notes per hit is enough. The space between notes carries the downtempo feel." },
+      { id:9,  icon:"🌊", name:"Vocal Sample",    role:"Soul element",         steps:[9, 25],
+        desc:"A chopped soul or jazz vocal. The human element in downtempo production. Two hits at mid-bar positions — should feel like an answer phrase to the chord hits. Make it breathe, not mechanical." },
+      { id:10, icon:"🎺", name:"Brass",           role:"Jazz accent",          steps:[3, 19],
+        desc:"A muted trumpet or trombone stab. Short and breathy. Adds jazz flavor to the downtempo palette. Two hits at asymmetric positions across the 32-step bar — not on the beat, not exactly off it." },
+      { id:11, icon:"🪘", name:"Percussion",      role:"Organic layers",       steps:[11, 23],
+        desc:"Hand percussion — tambourine, light conga, or cabasa. Organic feel, mixed low. Two hits at irregular positions create the subtle Latin influence common in trip-hop and downtempo production." },
+      { id:12, icon:"🔔", name:"Bell / Vibe",    role:"Warm melody",          steps:[5, 13],
+        desc:"A warm vibraphone or bell hit on the backbeats. Two hits per bar, tied to the chord hit positions — adds melodic interest and reinforces the harmonic character of the chord stab." },
+      { id:13, icon:"🎻", name:"Strings",         role:"Harmonic bed",         steps:[1, 17],
+        desc:"A string pad or string sample hit at bars 1 and 3. Warm and minimal — a single sustained chord that fades into reverb. Provides harmonic depth without dominating the mix." },
+      { id:14, icon:"🌫️", name:"Atmosphere",     role:"Ambient bed",          steps:[],
+        desc:"A looping atmospheric pad or field recording. No trigs — loop it continuously under the beat. This is the downtempo 'air' layer — rain, coffee shop ambience, vinyl crackle, or a distant pad." },
+      { id:15, icon:"🎵", name:"Lead Melody",     role:"Soulful hook",         steps:[1, 7, 13, 21],
+        desc:"A simple, soulful lead melody. Four notes at syncopated positions across the 32-step bar. Could be synth, flute, or processed guitar. Minimal and expressive — fewer notes, more feeling." },
+      { id:16, icon:"🎹", name:"MIDI: Pro 3",    role:"Lead synth",           steps:[5, 13, 21, 29],
+        desc:"Drive the Pro 3 on the backbeats for a lush, warm lead or pad sound. Use the Pro 3's filter envelope for expression on each hit. The analogue character of the Pro 3 is perfectly suited to downtempo warmth." }
+    ]
+  }
+
+}; // end GENRES
+
+
+// ============================================================
+// EUCLIDEAN RHYTHM GENERATOR (Bjorklund algorithm)
+// Adapted from: https://github.com/dbkaplun/euclidean-rhythm
+// ============================================================
+function euclidean(pulses, steps, offset) {
+  offset = offset || 0;
+  pulses = Math.max(0, Math.min(pulses, steps));
+  if (pulses === 0) return [];
+  if (pulses >= steps) {
+    return Array.from({ length: steps }, (_, i) => ((i + offset) % steps) + 1);
+  }
+
+  // Build pattern via Bjorklund
+  const pattern = [];
+  const counts = [];
+  const remainders = [];
+  let divisor = steps - pulses;
+  remainders.push(pulses);
+  let level = 0;
+
+  do {
+    counts.push(Math.floor(divisor / remainders[level]));
+    remainders.push(divisor % remainders[level]);
+    divisor = remainders[level];
+    level++;
+  } while (remainders[level] > 1);
+
+  counts.push(divisor);
+
+  function build(lv) {
+    if (lv === -1) { pattern.push(0); }
+    else if (lv === -2) { pattern.push(1); }
+    else {
+      for (let i = 0; i < counts[lv]; i++) build(lv - 1);
+      if (remainders[lv] !== 0) build(lv - 2);
+    }
+  }
+  build(level);
+
+  // Rotate by offset and collect 1-based step numbers
+  const result = [];
+  for (let i = 0; i < pattern.length; i++) {
+    if (pattern[(i - offset + pattern.length) % pattern.length] === 1) {
+      result.push(i + 1);
+    }
+  }
+  return result;
+}
+
+
+// ============================================================
+// APP STATE
+// ============================================================
+let currentGenre = "Ambient";
+let currentTrackData = {};     // { genreName: [track, ...] }
+let editingTrackId = null;
+let patLen = 64;               // current modal pattern length
+
+
+// ============================================================
+// INIT
+// ============================================================
+function init() {
+  // Build genre dropdown
+  const sel = document.getElementById("genreSelect");
+  Object.keys(GENRES).forEach(g => {
+    const opt = document.createElement("option");
+    opt.value = g;
+    opt.textContent = g;
+    sel.appendChild(opt);
+  });
+  sel.value = "Ambient";
+  sel.onchange = () => loadGenre(sel.value);
+
+  // Restore from localStorage
+  try {
+    const saved = localStorage.getItem("dt2aide_v3");
+    if (saved) currentTrackData = JSON.parse(saved);
+  } catch (e) { /* ignore */ }
+
+  loadGenre("Ambient");
+
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape" && !document.getElementById("patternModal").classList.contains("hidden")) {
+      closeModal();
+    }
+  });
+}
+
+
+// ============================================================
+// LOAD GENRE
+// ============================================================
+function loadGenre(genre) {
+  currentGenre = genre;
+  const gd = GENRES[genre];
+
+  document.getElementById("bpmDisplay").textContent  = gd.bpm;
+  document.getElementById("defLenDisplay").textContent = gd.defaultLen;
+
+  if (!currentTrackData[genre]) {
+    currentTrackData[genre] = JSON.parse(JSON.stringify(gd.tracks));
+  }
+
+  renderTrackGrid();
+  save();
+}
+
+
+// ============================================================
+// TRACK GRID
+// ============================================================
+function renderTrackGrid() {
+  const grid = document.getElementById("trackGrid");
+  grid.innerHTML = "";
+  const tracks = currentTrackData[currentGenre] || [];
+
+  tracks.forEach(track => {
+    const sc = track.steps ? track.steps.length : 0;
+    const card = document.createElement("div");
+    card.className = "track-card bg-slate-900/90 border border-slate-800 rounded-xl p-3 select-none";
+
+    // mini step viz — show first 16 steps
+    let viz = "";
+    for (let i = 1; i <= 16; i++) {
+      const on = track.steps && track.steps.includes(i);
+      viz += `<div class="mini-step${on ? " on" : ""}"></div>`;
+    }
+
+    card.innerHTML = `
+      <div class="flex items-start justify-between mb-1.5">
+        <div class="flex items-center gap-1.5">
+          <span class="text-base leading-none">${track.icon}</span>
+          <span class="lbl text-slate-700">${String(track.id).padStart(2,"0")}</span>
+        </div>
+        <span class="lbl text-cyan-700 tabular-nums">${sc}</span>
+      </div>
+      <div class="font-semibold text-xs text-slate-200 mb-0.5 leading-tight truncate">${track.name}</div>
+      <div class="text-xs text-slate-600 mb-2 leading-tight truncate">${track.role}</div>
+      <div class="flex gap-0.5 flex-wrap">${viz}</div>
+    `;
+
+    card.onclick = () => openModal(track.id);
+    grid.appendChild(card);
+  });
+}
+
+
+// ============================================================
+// MODAL OPEN / CLOSE
+// ============================================================
+function openModal(trackId) {
+  const tracks = currentTrackData[currentGenre];
+  const track = tracks.find(t => t.id === trackId);
+  if (!track) return;
+
+  editingTrackId = trackId;
+
+  // Pick a sensible initial pattern length
+  const gDefault = GENRES[currentGenre].defaultLen;
+  const maxStep = track.steps && track.steps.length ? Math.max(...track.steps) : 0;
+  if      (maxStep > 64)  patLen = 128;
+  else if (maxStep > 32)  patLen = 64;
+  else if (maxStep > 16)  patLen = 32;
+  else                    patLen = gDefault;
+
+  document.getElementById("modalTrackNum").textContent =
+    `TRACK ${String(trackId).padStart(2,"0")} — ${currentGenre.toUpperCase()}`;
+  document.getElementById("modalTrackName").value = track.name;
+  document.getElementById("patternDesc").textContent = track.desc || "";
+
+  document.getElementById("patternModal").classList.remove("hidden");
+
+  syncLenButtons();
+  renderStepGrid();
+}
+
+function closeModal() {
+  document.getElementById("patternModal").classList.add("hidden");
+  renderTrackGrid();
+  save();
+}
+
+function updateTrackName(val) {
+  if (editingTrackId === null) return;
+  const t = currentTrackData[currentGenre].find(t => t.id === editingTrackId);
+  if (t) t.name = val.trim() || t.name;
+}
+
+
+// ============================================================
+// STEP GRID
+// ============================================================
+function renderStepGrid() {
+  const container = document.getElementById("stepGrid");
+  container.innerHTML = "";
+  container.style.gridTemplateColumns = "repeat(16, minmax(0, 1fr))";
+
+  const track = currentTrackData[currentGenre].find(t => t.id === editingTrackId);
+  if (!track) return;
+  const activeSteps = track.steps || [];
+
+  for (let i = 1; i <= patLen; i++) {
+    const btn = document.createElement("div");
+    const isOn   = activeSteps.includes(i);
+    const isBeat = (i - 1) % 4 === 0;
+    btn.className = `step-btn${isOn ? " active" : ""}${isBeat ? " beat1" : ""}`;
+    btn.textContent = i;
+    btn.dataset.step = String(i);
+    btn.onclick = () => toggleStep(i, btn);
+    container.appendChild(btn);
+  }
+
+  updateStepInfo(activeSteps);
+}
+
+function toggleStep(step, btn) {
+  const track = currentTrackData[currentGenre].find(t => t.id === editingTrackId);
+  if (!track) return;
+  if (!track.steps) track.steps = [];
+
+  const idx = track.steps.indexOf(step);
+  if (idx > -1) {
+    track.steps.splice(idx, 1);
+    btn.classList.remove("active");
+  } else {
+    track.steps.push(step);
+    track.steps.sort((a, b) => a - b);
+    btn.classList.add("active");
+  }
+  updateStepInfo(track.steps);
+}
+
+function updateStepInfo(steps) {
+  const density = patLen > 0 ? ((steps.length / patLen) * 100).toFixed(0) : 0;
+  document.getElementById("stepCountDisplay").textContent = `${steps.length} / ${patLen} active`;
+  document.getElementById("densityDisplay").textContent   = `${density}% density`;
+  document.getElementById("activeStepsList").textContent  = steps.length ? steps.join(", ") : "None";
+}
+
+
+// ============================================================
+// PATTERN LENGTH
+// ============================================================
+function setPatLen(len) {
+  patLen = len;
+  syncLenButtons();
+  renderStepGrid();
+}
+
+function syncLenButtons() {
+  document.querySelectorAll(".len-btn").forEach(btn => {
+    btn.classList.toggle("len-active", parseInt(btn.dataset.len) === patLen);
+  });
+}
+
+
+// ============================================================
+// EUCLIDEAN
+// ============================================================
+function applyEuclidean() {
+  const pulses = parseInt(document.getElementById("euclidPulses").value) || 4;
+  const offset = parseInt(document.getElementById("euclidOffset").value) || 0;
+  const track = currentTrackData[currentGenre].find(t => t.id === editingTrackId);
+  if (!track) return;
+  track.steps = euclidean(pulses, patLen, offset);
+  renderStepGrid();
+}
+
+
+// ============================================================
+// RESET / CLEAR
+// ============================================================
+function resetToRecommended() {
+  const orig  = GENRES[currentGenre].tracks.find(t => t.id === editingTrackId);
+  const curr  = currentTrackData[currentGenre].find(t => t.id === editingTrackId);
+  if (!orig || !curr) return;
+
+  curr.steps = [...orig.steps];
+  curr.name  = orig.name;
+  curr.desc  = orig.desc;
+
+  document.getElementById("modalTrackName").value = curr.name;
+  document.getElementById("patternDesc").textContent = curr.desc;
+
+  const maxStep = curr.steps.length ? Math.max(...curr.steps) : 0;
+  if      (maxStep > 64)  patLen = 128;
+  else if (maxStep > 32)  patLen = 64;
+  else if (maxStep > 16)  patLen = 32;
+  else                    patLen = GENRES[currentGenre].defaultLen;
+
+  syncLenButtons();
+  renderStepGrid();
+}
+
+function clearPattern() {
+  const track = currentTrackData[currentGenre].find(t => t.id === editingTrackId);
+  if (track) { track.steps = []; renderStepGrid(); }
+}
+
+function loadRecommendedDefaults() {
+  if (!confirm(`Reset all ${currentGenre} tracks to recommended patterns? Your edits will be lost.`)) return;
+  currentTrackData[currentGenre] = JSON.parse(JSON.stringify(GENRES[currentGenre].tracks));
+  renderTrackGrid();
+  save();
+}
+
+
+// ============================================================
+// EXPORT
+// ============================================================
+function exportAllPatterns() {
+  const gd     = GENRES[currentGenre];
+  const tracks = currentTrackData[currentGenre] || gd.tracks;
+  const bar    = "═".repeat(58);
+  const thin   = "─".repeat(58);
+
+  let out = `${bar}\n`;
+  out += ` DIGITAKT II RHYTHM AIDE — Pattern Export\n`;
+  out += ` Genre: ${currentGenre}   BPM: ${gd.bpm}   Default Length: ${gd.defaultLen} steps\n`;
+  out += ` Exported: ${new Date().toLocaleDateString("en-US", { year:"numeric", month:"long", day:"numeric" })}\n`;
+  out += `${bar}\n\n`;
+
+  tracks.forEach(track => {
+    const steps = track.steps || [];
+    const maxS  = steps.length ? Math.max(...steps, 16) : 16;
+    const dLen  = Math.ceil(maxS / 16) * 16;
+    const den   = dLen > 0 ? ((steps.length / dLen) * 100).toFixed(0) : 0;
+
+    out += `TRK ${String(track.id).padStart(2,"0")}  ${track.icon}  ${track.name}\n`;
+    out += `Role: ${track.role}   Active: ${steps.length} steps (${den}% density)\n`;
+    out += `Steps: ${steps.length ? steps.join(", ") : "None"}\n\n`;
+
+    // Visual grid — 16 per row, group by 4 with space
+    for (let r = 0; r < dLen && r < 128; r += 16) {
+      let row = " ";
+      for (let c = 0; c < 16; c++) {
+        const s = r + c + 1;
+        row += steps.includes(s) ? "[X]" : "[ ]";
+        if ((c + 1) % 4 === 0 && c < 15) row += " ";
+      }
+      out += row + "\n";
+    }
+
+    out += `${thin}\n\n`;
+  });
+
+  out += `${bar}\n`;
+  out += ` Digitakt II Programming Notes\n`;
+  out += `${bar}\n`;
+  out += ` • FUNC+COPY / FUNC+PASTE to duplicate and vary patterns\n`;
+  out += ` • Hold TRIG to add parameter locks (p-locks) per step\n`;
+  out += ` • Hold TRIG + right arrow to add conditional trigs\n`;
+  out += ` • Song Mode: chain patterns for long-form composition\n`;
+  out += ` • Track 16 as MIDI: gate the Sequential Pro 3 or other synth\n`;
+  out += `${bar}\n`;
+
+  document.getElementById("exportOut").value          = out;
+  document.getElementById("exportGenreLabel").textContent = currentGenre;
+  document.getElementById("exportPanel").classList.remove("hidden");
+  document.getElementById("exportPanel").scrollIntoView({ behavior: "smooth" });
+}
+
+function doCopy() {
+  const text = document.getElementById("exportOut").value;
+  navigator.clipboard.writeText(text).then(() => {
+    const lbl = document.getElementById("copyBtnLabel");
+    lbl.textContent = "Copied!";
+    setTimeout(() => lbl.textContent = "Copy", 2000);
+  }).catch(() => {
+    document.getElementById("exportOut").select();
+    document.execCommand("copy");
+  });
+}
+
+
+// ============================================================
+// PERSISTENCE
+// ============================================================
+function save() {
+  try { localStorage.setItem("dt2aide_v3", JSON.stringify(currentTrackData)); } catch (e) { /* quota */ }
+}
+
+
+// ============================================================
+// BOOT
+// ============================================================
+window.onload = init;
+</script>
+
+</body>
+</html>
