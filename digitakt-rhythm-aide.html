@@ -140,6 +140,9 @@ body{font-family:'Space Grotesk',system-ui,sans-serif;background:#070b14;color:#
       <button id="midiSendBtn" onclick="sendToDigitakt()" class="px-4 py-1.5 text-xs bg-cyan-700 hover:bg-cyan-600 text-white font-bold rounded-lg flex items-center gap-1.5 transition-colors whitespace-nowrap">
         <i class="fas fa-paper-plane"></i> Send Pattern
       </button>
+      <button onclick="openSongSend()" class="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-300 rounded-lg flex items-center gap-1.5 transition-colors whitespace-nowrap">
+        <i class="fas fa-list-ol text-purple-400"></i> Song Mode
+      </button>
       <span id="midiStatusMsg" class="text-xs text-slate-600 mono"></span>
     </div>
     <div class="text-xs text-slate-700 mt-2 leading-relaxed">
@@ -273,6 +276,73 @@ body{font-family:'Space Grotesk',system-ui,sans-serif;background:#070b14;color:#
         <div class="font-semibold text-slate-200 mb-2 text-sm">What Regenerate Does NOT Do</div>
         <p>It does not generate melody <em>sequences</em> — it generates <em>rhythm patterns</em> for melodic tracks and tells you which pitches to p-lock. You decide the actual note order. The tool gives you the rhythmic skeleton and harmonic palette; you provide the musical intention.</p>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- SONG MODE SEND MODAL -->
+<div id="songModal" class="hidden fixed inset-0 bg-black/85 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+  <div class="modal-inner bg-slate-900 border border-slate-700/70 rounded-2xl w-full max-w-lg">
+    <div class="flex items-center justify-between px-5 py-4 border-b border-slate-800">
+      <div>
+        <h2 class="font-bold text-base">Song Mode Send</h2>
+        <p id="songModalGenre" class="text-xs text-slate-500 mt-0.5"></p>
+      </div>
+      <button onclick="closeSongModal()" class="text-slate-500 hover:text-white text-2xl leading-none">×</button>
+    </div>
+
+    <!-- Step view -->
+    <div id="songStepView" class="p-5">
+      <div id="songProgress" class="flex gap-1 mb-5"></div>
+
+      <!-- Instruction callout -->
+      <div class="bg-slate-950 border border-cyan-900/40 rounded-xl px-4 py-3 mb-4 flex items-center gap-3">
+        <i class="fas fa-arrow-right text-cyan-500 flex-shrink-0"></i>
+        <div class="text-sm">Navigate Digitakt to <span id="songPatSlot" class="mono text-cyan-300 font-bold text-base"></span> · hold <span class="font-semibold text-white">REC</span> · click Send</div>
+      </div>
+
+      <!-- Section info -->
+      <div class="ccard mb-4">
+        <p id="songStepDesc" class="text-sm text-slate-300 mb-3 leading-relaxed"></p>
+        <div class="lbl mb-2">Tracks active this section:</div>
+        <div id="songActiveTracks" class="flex gap-1.5 flex-wrap"></div>
+      </div>
+
+      <!-- Send controls -->
+      <div class="flex items-center gap-3 mb-5 flex-wrap">
+        <div class="flex items-center gap-1.5">
+          <span class="lbl">BPM</span>
+          <input id="songBpm" type="number" value="120" min="20" max="300" class="w-16 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-center mono text-white focus:outline-none focus:border-cyan-600">
+        </div>
+        <div class="flex items-center gap-1.5">
+          <span class="lbl">Loops</span>
+          <input id="songLoops" type="number" value="2" min="1" max="8" class="w-12 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-center mono text-white focus:outline-none focus:border-cyan-600">
+        </div>
+        <button id="songSendBtn" onclick="sendCurrentSongStep()" class="px-4 py-1.5 text-xs bg-cyan-700 hover:bg-cyan-600 text-white font-bold rounded-lg flex items-center gap-1.5 transition-colors flex-shrink-0">
+          <i class="fas fa-paper-plane"></i> Send <span id="songSendLabel"></span>
+        </button>
+        <span id="songSendStatus" class="text-xs mono text-slate-600"></span>
+      </div>
+
+      <!-- Navigation -->
+      <div class="flex items-center justify-between">
+        <button id="songPrevBtn" onclick="moveSongStep(-1)" class="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed">← Back</button>
+        <span id="songStepCounter" class="text-xs text-slate-600 mono"></span>
+        <button id="songNextBtn" onclick="moveSongStep(1)" class="px-4 py-1.5 text-xs bg-slate-700 hover:bg-slate-600 border border-slate-600 text-slate-200 font-semibold rounded-lg transition-colors">Next →</button>
+      </div>
+    </div>
+
+    <!-- Summary view -->
+    <div id="songSummaryView" class="hidden p-5">
+      <div class="flex items-center gap-2 mb-4 text-green-400 font-semibold">
+        <i class="fas fa-check-circle"></i> All patterns sent
+      </div>
+      <div class="ccard mb-4">
+        <div class="lbl mb-3">Enter this chain in Digitakt Song Mode:</div>
+        <div id="songChainDisplay" class="space-y-1.5 text-xs"></div>
+      </div>
+      <div class="text-xs text-slate-600 mb-4">In Digitakt Song Mode: hold a row button to add a pattern slot, set repeat count, chain rows A01→A02→…</div>
+      <button onclick="closeSongModal()" class="w-full py-2 text-sm bg-cyan-700 hover:bg-cyan-600 text-white font-bold rounded-lg transition-colors">Done</button>
     </div>
   </div>
 </div>
@@ -633,61 +703,61 @@ const SUBGENRES={
 const COMPOSITION={
 "Ambient":{
 setup:["Use 64-step patterns — at 70 BPM that's ~27 seconds, long enough to feel like an event rather than a loop.","Start with only 2 tracks active. Let the pattern loop 4–5 times before adding anything.","Trust silence. A pattern with 4 active steps across 16 tracks is correct for ambient work."],
-song:[{l:"A01",a:"Drone layer only (Track 8). 4 repeats."},{l:"A02",a:"Add field recording (Track 7). 3 repeats."},{l:"A03",a:"Add micro-clicks (Track 13). 3 repeats."},{l:"A04",a:"Add soft kick (Track 1). 2 repeats — peak density."},{l:"A05",a:"Remove kick. 3 repeats. Begin receding."},{l:"A06",a:"Remove micro-clicks. 3 repeats."},{l:"A07",a:"Drone only again. 4 repeats. Fade out."}],
+song:[{l:"A01",a:"Drone layer only (Track 8). 4 repeats.",trks:[8]},{l:"A02",a:"Add field recording (Track 7). 3 repeats.",trks:[7,8]},{l:"A03",a:"Add micro-clicks (Track 13). 3 repeats.",trks:[7,8,13]},{l:"A04",a:"Add soft kick (Track 1). 2 repeats — peak density.",trks:[1,7,8,13]},{l:"A05",a:"Remove kick. 3 repeats. Begin receding.",trks:[7,8,13]},{l:"A06",a:"Remove micro-clicks. 3 repeats.",trks:[7,8]},{l:"A07",a:"Drone only again. 4 repeats. Fade out.",trks:[8]}],
 variations:"Add only one element per pattern change. Copy-paste a pattern, remove one track, save as new slot. The gap between how fast you add and how slowly you remove creates the arc.",
 pro3:"Steps 1 and 33 only. On Pro 3, set FATTK to maximum. Each gate pulse creates a separate slow filter fade-in — two evolving pads per 64-step cycle."
 },
 "Dark Ambient":{
 setup:["Start with only the drone and bass drone active. The less you program, the more disturbing the result.","Use 64-step patterns. Events should feel like rare, significant occurrences.","P-lock the reverb send to maximum on every active trig. All hits live in the wet signal only."],
-song:[{l:"A01",a:"Sub rumble + dark drone only. 5 repeats."},{l:"A02",a:"Add shadow pad (Track 4). 4 repeats."},{l:"A03",a:"Add bone rattle (Track 3). 3 repeats."},{l:"A04",a:"Add harsh glitch at 1:3 condition (Track 5). 3 repeats."},{l:"A05",a:"Add metal impact (Track 2). 2 repeats — peak tension."},{l:"A06",a:"Remove all rhythmic tracks. Return to drones only. 5 repeats."}],
+song:[{l:"A01",a:"Sub rumble + dark drone only. 5 repeats.",trks:[6,15]},{l:"A02",a:"Add shadow pad (Track 4). 4 repeats.",trks:[4,6,15]},{l:"A03",a:"Add bone rattle (Track 3). 3 repeats.",trks:[3,4,6,15]},{l:"A04",a:"Add harsh glitch at 1:3 condition (Track 5). 3 repeats.",trks:[3,4,5,6,15]},{l:"A05",a:"Add metal impact (Track 2). 2 repeats — peak tension.",trks:[2,3,4,5,6,15]},{l:"A06",a:"Remove all rhythmic tracks. Return to drones only. 5 repeats.",trks:[6,15]}],
 variations:"Use conditional trigs (1:3, 1:4) so events fire only occasionally. The unpredictability is the texture — structure through probability, not programming.",
 pro3:"Two pulses per 64-step pattern (steps 1 and 33). Pro 3 patch: resonant low-pass, filter self-oscillating at edge, long release. Creates a haunting tone that breathes twice per loop."
 },
 "Ambient Dub":{
 setup:["32-step patterns at 85 BPM = ~15 seconds — a natural dub phrase length.","The echo trail IS the music. Program every hit knowing its reverb/delay will fill the following empty steps.","Use micro-timing nudges on off-beat hats — push them slightly late for maximum laziness."],
-song:[{l:"A01",a:"Kick + bass only. 3 repeats."},{l:"A02",a:"Add off-beat hats. 3 repeats."},{l:"A03",a:"Add chord stab (Track 5). 2 repeats."},{l:"A04",a:"Add dub siren (Track 7). 2 repeats — full groove."},{l:"A05",a:"Drop chord stab. 3 repeats."},{l:"A06",a:"Return to kick + bass. 3 repeats."}],
+song:[{l:"A01",a:"Kick + bass only. 3 repeats.",trks:[1,4]},{l:"A02",a:"Add off-beat hats. 3 repeats.",trks:[1,3,4]},{l:"A03",a:"Add chord stab (Track 5). 2 repeats.",trks:[1,3,4,5]},{l:"A04",a:"Add dub siren (Track 7). 2 repeats — full groove.",trks:[1,3,4,5,7]},{l:"A05",a:"Drop chord stab. 3 repeats.",trks:[1,3,4,7]},{l:"A06",a:"Return to kick + bass. 3 repeats.",trks:[1,4]}],
 variations:"Copy a pattern, remove the chord stab, then p-lock the reverb send on the kick to maximum. The space left by the removed stab makes the kick's echo tail suddenly visible.",
 pro3:"Gate Pro 3 on beats 1, 9, 17, 25. Use a warm dub bass patch — low-pass, long release. The Digitakt delay send creates the dub echo on the Pro 3 output."
 },
 "DnB":{
 setup:["32-step patterns = 2 bars at DnB tempo. Get the kick/snare break feeling right in the first 16 steps before adding anything.","Get the ghost snare level right — barely audible. This is the difference between a groove and a drum machine.","Add swing to the hi-hats — the exact swing amount defines the sub-genre and era."],
-song:[{l:"A01",a:"Break (tracks 1–5) only. 4 repeats — establish groove."},{l:"A02",a:"Add sub bass (Track 8). 4 repeats."},{l:"A03",a:"Add Reese bass (Track 13). 4 repeats."},{l:"A04",a:"Add synth hook (Track 11). 4 repeats — main section."},{l:"A05",a:"Drop bass tracks. Keep break + synth hook. 4 repeats — breakdown."},{l:"A06",a:"Re-enter with everything. 4 repeats — main drop."}],
+song:[{l:"A01",a:"Break (tracks 1–5) only. 4 repeats — establish groove.",trks:[1,2,3,4,5]},{l:"A02",a:"Add sub bass (Track 8). 4 repeats.",trks:[1,2,3,4,5,8]},{l:"A03",a:"Add Reese bass (Track 13). 4 repeats.",trks:[1,2,3,4,5,8,13]},{l:"A04",a:"Add synth hook (Track 11). 4 repeats — main section.",trks:[1,2,3,4,5,8,11,13]},{l:"A05",a:"Drop bass tracks. Keep break + synth hook. 4 repeats — breakdown.",trks:[1,2,3,4,5,11]},{l:"A06",a:"Re-enter with everything. 4 repeats — main drop.",trks:[1,2,3,4,5,8,11,13]}],
 variations:"DnB variations focus on the break. Copy a 32-step pattern, then move one kick hit 1 step earlier or later. The groove completely changes with a single step adjustment.",
 pro3:"Gate Pro 3 on the beat positions (steps 1, 5, 9, 13, 17). Use a bright lead or Reese patch. The Pro 3's analogue warmth adds character to the digital Digitakt break."
 },
 "Techno":{
 setup:["16-step patterns are the standard — one bar of four-on-the-floor is all you need to establish the groove.","Add swing/shuffle in Digitakt global settings — even minimal amounts (~10%) make the hats feel human.","The bassline pattern is as important as the pitch. Program the rhythm first, then add pitches via p-locks."],
-song:[{l:"A01",a:"Kick + closed hats only. 8 repeats — long build."},{l:"A02",a:"Add clap/snare. 4 repeats."},{l:"A03",a:"Add bassline. 4 repeats."},{l:"A04",a:"Add clave + cowbell. 4 repeats — main groove."},{l:"A05",a:"Drop kick for 4 repeats — tension."},{l:"A06",a:"Re-enter kick + everything. 8 repeats — peak."},{l:"A07",a:"Gradually remove: bass → percussion. Return to intro."}],
+song:[{l:"A01",a:"Kick + closed hats only. 8 repeats — long build.",trks:[1,3]},{l:"A02",a:"Add clap/snare. 4 repeats.",trks:[1,2,3]},{l:"A03",a:"Add bassline. 4 repeats.",trks:[1,2,3,8]},{l:"A04",a:"Add clave + cowbell. 4 repeats — main groove.",trks:[1,2,3,5,6,8]},{l:"A05",a:"Drop kick for 4 repeats — tension.",trks:[2,3,5,6,8]},{l:"A06",a:"Re-enter kick + everything. 8 repeats — peak.",trks:[1,2,3,4,5,6,7,8]},{l:"A07",a:"Gradually remove: bass → percussion. Return to intro.",trks:[1,3]}],
 variations:"Copy the main pattern, replace the kick with a distorted noise hit on the same steps. Alternate both patterns in Song Mode for an evolving industrial feel.",
 pro3:"Gate Pro 3 on steps 1, 3, 5, 9, 13 for a driving techno sequence. Use Digitakt MIDI CC automation to sweep the Pro 3's filter over 8 bars."
 },
 "House":{
 setup:["16-step patterns define classic house — 32 steps allow for more interesting variation.","Get the kick and clap sounding right before touching anything else. They are the skeleton.","Chord stabs need space to breathe. The reverb tail of the chord is half the groove."],
-song:[{l:"A01",a:"Kick + closed hats. 4 repeats — intro."},{l:"A02",a:"Add clap + shaker. 4 repeats."},{l:"A03",a:"Add bass. 4 repeats."},{l:"A04",a:"Add chord stab. 4 repeats — first drop."},{l:"A05",a:"Piano riff + vocal chops enter. 8 repeats — main."},{l:"A06",a:"Drop to kick + bass only. 4 repeats — breakdown."},{l:"A07",a:"Full groove returns. 8 repeats — second drop."}],
+song:[{l:"A01",a:"Kick + closed hats. 4 repeats — intro.",trks:[1,3]},{l:"A02",a:"Add clap + shaker. 4 repeats.",trks:[1,2,3,5]},{l:"A03",a:"Add bass. 4 repeats.",trks:[1,2,3,5,6]},{l:"A04",a:"Add chord stab. 4 repeats — first drop.",trks:[1,2,3,5,6,7]},{l:"A05",a:"Piano riff + vocal chops enter. 8 repeats — main.",trks:[1,2,3,5,6,7,8,11]},{l:"A06",a:"Drop to kick + bass only. 4 repeats — breakdown.",trks:[1,6]},{l:"A07",a:"Full groove returns. 8 repeats — second drop.",trks:[1,2,3,5,6,7,8,11]}],
 variations:"Copy the main pattern, remove the chord stab on beats 2 and 4, replace with a single hit on beat 3. Shifts the groove from backbeat-heavy to a more hypnotic push.",
 pro3:"Gate Pro 3 on four-on-the-floor (steps 1, 5, 9, 13) for a warm house bass. Or use off-beats (3, 7, 11, 15) for a chord stab complement to the Digitakt's chord track."
 },
 "Trap":{
 setup:["32-step patterns give room for proper hi-hat rolls and 808 variations.","Program the 808 kick pitches via p-locks first — the 808 melody is the track's identity.","Hi-hat rolls should crescendo. P-lock velocity increasing across the roll: 50→70→90→110→127."],
-song:[{l:"A01",a:"808 + melody loop only. 4 repeats."},{l:"A02",a:"Add snare. 4 repeats."},{l:"A03",a:"Add hat 8ths + triplets. 4 repeats — main groove."},{l:"A04",a:"Add bell accents + synth stab. 4 repeats."},{l:"A05",a:"Drop to 808 + melody only. 2 repeats — breakdown."},{l:"A06",a:"Full pattern + hat rolls. 4 repeats — drop."}],
+song:[{l:"A01",a:"808 + melody loop only. 4 repeats.",trks:[1,8]},{l:"A02",a:"Add snare. 4 repeats.",trks:[1,2,8]},{l:"A03",a:"Add hat 8ths + triplets. 4 repeats — main groove.",trks:[1,2,3,5,8]},{l:"A04",a:"Add bell accents + synth stab. 4 repeats.",trks:[1,2,3,5,8,10,12]},{l:"A05",a:"Drop to 808 + melody only. 2 repeats — breakdown.",trks:[1,8]},{l:"A06",a:"Full pattern + hat rolls. 4 repeats — drop.",trks:[1,2,3,4,5,8,10,12]}],
 variations:"The trap breakdown: copy the main pattern, delete all hi-hat tracks and snare. Leave only 808 and melody. Loop twice — the silence is dramatic. Snare enters alone for two loops, then full drop.",
 pro3:"Gate Pro 3 on the 808 positions (steps 1, 11, 17). P-lock MIDI note to match the 808's pitch melody exactly — Pro 3 adds harmonics above the sub frequency."
 },
 "Jungle / Breakbeat":{
 setup:["32-step patterns = 2 bars of the break. It should feel slightly chaotic but always forward-moving.","Sample your break as individual slices and map them across tracks 1–5. Each track = one slice type.","The bass and orchestral sample are what make jungle emotional. Don't neglect them for complex breaks."],
-song:[{l:"A01",a:"Key loop + bass only. 4 repeats."},{l:"A02",a:"Add main break kicks + snare. 4 repeats."},{l:"A03",a:"Add hat slices. 4 repeats."},{l:"A04",a:"Add ghost hits + fills. 4 repeats — main drop."},{l:"A05",a:"Drop break to minimal. Add brass sample. 4 repeats."},{l:"A06",a:"Full drop: all tracks. 8 repeats."}],
+song:[{l:"A01",a:"Key loop + bass only. 4 repeats.",trks:[6,7]},{l:"A02",a:"Add main break kicks + snare. 4 repeats.",trks:[1,2,6,7]},{l:"A03",a:"Add hat slices. 4 repeats.",trks:[1,2,3,6,7]},{l:"A04",a:"Add ghost hits + fills. 4 repeats — main drop.",trks:[1,2,3,4,5,6,7]},{l:"A05",a:"Drop break to minimal. Add brass sample. 4 repeats.",trks:[1,2,6,7,8]},{l:"A06",a:"Full drop: all tracks. 8 repeats.",trks:[1,2,3,4,5,6,7,8,9,10,11,12,13]}],
 variations:"Copy the main pattern, remove all hat slices and replace with a single open hat on steps 3 and 11. The sudden sparseness of the hat layer dramatically changes the energy.",
 pro3:"Gate Pro 3 on steps 1, 9, 17, 25. Pro 3's arpeggiator can create rapid melodic phrases between gate pulses if set to 8th-note division."
 },
 "IDM / Glitch":{
 setup:["32-step patterns with heavy p-lock usage. Almost every step should have at least one locked parameter.","The click grid (Track 3) is your timing anchor. Build everything else relative to its irregular velocity pattern.","Use the Euclidean generator extensively — E(3,8), E(5,13), E(7,32) all produce musically interesting patterns."],
-song:[{l:"A01",a:"Click grid + granular perc only. 4 repeats."},{l:"A02",a:"Add melodic cell (Track 8). 4 repeats."},{l:"A03",a:"Add glitch kick (Track 1). 4 repeats."},{l:"A04",a:"Add polyrhythm layers. 4 repeats — full texture."},{l:"A05",a:"Remove kick + polyrhythms. Return to clicks + melody. 4 repeats."},{l:"A06",a:"Introduce bass fragment (Track 13). 4 repeats — new section."}],
+song:[{l:"A01",a:"Click grid + granular perc only. 4 repeats.",trks:[3,4]},{l:"A02",a:"Add melodic cell (Track 8). 4 repeats.",trks:[3,4,8]},{l:"A03",a:"Add glitch kick (Track 1). 4 repeats.",trks:[1,3,4,8]},{l:"A04",a:"Add polyrhythm layers. 4 repeats — full texture.",trks:[1,3,4,5,6,8]},{l:"A05",a:"Remove kick + polyrhythms. Return to clicks + melody. 4 repeats.",trks:[3,4,8]},{l:"A06",a:"Introduce bass fragment (Track 13). 4 repeats — new section.",trks:[3,4,8,13]}],
 variations:"Copy the main pattern, offset a single track by 1 step forward (shift all steps +1). Tiny offset changes produce dramatically different rhythmic feels in IDM.",
 pro3:"Gate Pro 3 on the irregular kick positions (1, 7, 13, 21). Use self-oscillating filter and slight detuning. Organic instability contrasts beautifully with the Digitakt's precision."
 },
 "Downtempo":{
 setup:["32-step patterns with heavy swing. The shuffle setting is the most important control for downtempo.","Start with kick, snare, and bass. These three define whether the groove works. Add everything else after.","Less is more. A 32-step pattern with 6–8 active tracks across all 16 is ideal downtempo density."],
-song:[{l:"A01",a:"Kick + hats only. 4 repeats."},{l:"A02",a:"Add bass + snare. 4 repeats."},{l:"A03",a:"Add chord + shaker. 4 repeats — groove established."},{l:"A04",a:"Add piano riff + vocal sample. 4 repeats — main."},{l:"A05",a:"Drop to bass + pad only. 4 repeats — breakdown."},{l:"A06",a:"Full groove returns. 8 repeats."}],
+song:[{l:"A01",a:"Kick + hats only. 4 repeats.",trks:[1,3]},{l:"A02",a:"Add bass + snare. 4 repeats.",trks:[1,2,3,6]},{l:"A03",a:"Add chord + shaker. 4 repeats — groove established.",trks:[1,2,3,5,6,7]},{l:"A04",a:"Add piano riff + vocal sample. 4 repeats — main.",trks:[1,2,3,5,6,7,8,9]},{l:"A05",a:"Drop to bass + pad only. 4 repeats — breakdown.",trks:[6,12]},{l:"A06",a:"Full groove returns. 8 repeats.",trks:[1,2,3,5,6,7,8,9]}],
 variations:"The trip-hop variation: copy the main pattern, replace the kick sample with a reversed version of itself (Digitakt sample reverse). Creates that signature Portishead-style unsettled feel.",
 pro3:"Gate Pro 3 on backbeat positions (5, 13, 21, 29) for a lush warm lead. Slow filter attack on Pro 3 — the note blooms into the reverb tail after the hit."
 }
@@ -1180,66 +1250,145 @@ function populateMidiOutputs(){
   if(match)sel.value=prev;
 }
 
-function sendToDigitakt(){
-  const statusEl=document.getElementById("midiStatusMsg");
-  if(!midiAccess){statusEl.textContent="MIDI not ready";return;}
-  const outputId=document.getElementById("midiOutput").value;
-  if(!outputId){statusEl.textContent="Select a MIDI output";return;}
-  const output=midiAccess.outputs.get(outputId);
-  if(!output){statusEl.textContent="Device not found";return;}
-
-  const bpm=Math.max(20,Math.min(300,parseFloat(document.getElementById("midiBpm").value)||120));
-  const loops=Math.max(1,Math.min(8,parseInt(document.getElementById("midiLoops").value)||2));
-  const tracks=currentTracks();
-
-  // Effective pattern length: genre default or max step, rounded to 16
+// Core MIDI send — shared by single-send and song-mode-send
+function doMidiSend(output,tracks,bpm,loops,onDone){
   let maxStep=GENRES[S.genre].defaultLen;
   tracks.forEach(t=>{if(t.steps&&t.steps.length)maxStep=Math.max(maxStep,...t.steps);});
   const patLen=Math.ceil(maxStep/16)*16;
-
-  const msPerStep=(60/bpm/4)*1000;       // ms per 16th note
-  const patDuration=msPerStep*patLen;    // ms per full pattern
+  const msPerStep=(60/bpm/4)*1000;
+  const patDuration=msPerStep*patLen;
   const totalDuration=patDuration*loops;
-  const msPerClock=(60/bpm/24)*1000;     // ms per MIDI clock pulse (24 PPQN)
+  const msPerClock=(60/bpm/24)*1000;
   const clockCount=Math.ceil(totalDuration/msPerClock)+32;
-
-  const t0=performance.now()+20; // 20ms head start for scheduling
-
-  // Transport start (Digitakt begins playback from step 1)
+  const t0=performance.now()+20;
   output.send([0xFA],t0);
-
-  // Pre-schedule all MIDI clock pulses — Digitakt slaves its step grid to these
   for(let i=0;i<clockCount;i++)output.send([0xF8],t0+i*msPerClock);
-
-  // Pre-schedule all note events across all loops
-  // Each active step → note-on on channel N (track N, 0-indexed) at exact step time
   for(let loop=0;loop<loops;loop++){
-    const loopOffset=loop*patDuration;
+    const lo=loop*patDuration;
     tracks.forEach((track,idx)=>{
       if(!track.steps||!track.steps.length)return;
-      const ch=idx&0x0F; // channels 0–15
+      const ch=idx&0x0F;
       track.steps.forEach(step=>{
         if(step<1||step>patLen)return;
-        const onset=t0+loopOffset+(step-1)*msPerStep;
-        output.send([0x90|ch,60,100],onset);                       // note on  (C4, vel 100)
-        output.send([0x80|ch,60,0], onset+msPerStep*0.45);         // note off
+        const onset=t0+lo+(step-1)*msPerStep;
+        output.send([0x90|ch,60,100],onset);
+        output.send([0x80|ch,60,0],onset+msPerStep*0.45);
       });
     });
   }
-
-  // Transport stop
   output.send([0xFC],t0+totalDuration+msPerStep);
+  if(onDone)setTimeout(onDone,totalDuration+msPerStep+150);
+  return totalDuration;
+}
 
-  // UI: show countdown, re-enable when done
+function getMidiOutput(){
+  if(!midiAccess)return null;
+  return midiAccess.outputs.get(document.getElementById("midiOutput").value)||null;
+}
+
+function sendToDigitakt(){
+  const statusEl=document.getElementById("midiStatusMsg");
+  if(!midiAccess){statusEl.textContent="MIDI not ready";return;}
+  const output=getMidiOutput();
+  if(!output){statusEl.textContent="Select a MIDI output first";return;}
+  const bpm=Math.max(20,Math.min(300,parseFloat(document.getElementById("midiBpm").value)||120));
+  const loops=Math.max(1,Math.min(8,parseInt(document.getElementById("midiLoops").value)||2));
   const btn=document.getElementById("midiSendBtn");
   btn.disabled=true;
   btn.innerHTML='<i class="fas fa-circle-notch fa-spin"></i> Sending…';
-  statusEl.textContent=`${(totalDuration/1000).toFixed(1)}s`;
-  setTimeout(()=>{
+  const dur=doMidiSend(output,currentTracks(),bpm,loops,()=>{
     btn.disabled=false;
     btn.innerHTML='<i class="fas fa-paper-plane"></i> Send Pattern';
     statusEl.textContent="✓ Done";
-  },totalDuration+msPerStep+150);
+  });
+  statusEl.textContent=`${(dur/1000).toFixed(1)}s`;
+}
+
+// ================================================================
+// SECTION — SONG MODE SEND
+// ================================================================
+let songStepIdx=0;
+
+function openSongSend(){
+  const comp=COMPOSITION[S.genre];
+  if(!comp||!comp.song){alert("No song guide for this genre yet.");return;}
+  songStepIdx=0;
+  document.getElementById("songModalGenre").textContent=S.genre;
+  document.getElementById("songBpm").value=document.getElementById("midiBpm").value||120;
+  document.getElementById("songSummaryView").classList.add("hidden");
+  document.getElementById("songStepView").classList.remove("hidden");
+  renderSongStep();
+  document.getElementById("songModal").classList.remove("hidden");
+}
+
+function closeSongModal(){document.getElementById("songModal").classList.add("hidden");}
+
+function renderSongStep(){
+  const steps=COMPOSITION[S.genre].song;
+  const step=steps[songStepIdx];
+  document.getElementById("songProgress").innerHTML=steps.map((_,i)=>
+    `<div class="flex-1 h-1.5 rounded-full ${i<songStepIdx?"bg-cyan-700":i===songStepIdx?"bg-cyan-400":"bg-slate-700"}"></div>`
+  ).join("");
+  document.getElementById("songPatSlot").textContent=step.l;
+  document.getElementById("songSendLabel").textContent=step.l;
+  document.getElementById("songStepDesc").textContent=step.a;
+  document.getElementById("songStepCounter").textContent=`${songStepIdx+1} / ${steps.length}`;
+  const activeTrkIds=step.trks||[];
+  document.getElementById("songActiveTracks").innerHTML=currentTracks().map(t=>{
+    const on=activeTrkIds.includes(t.id);
+    return`<span class="px-2 py-1 rounded text-xs mono font-semibold ${on?"bg-cyan-900/50 border border-cyan-700/50 text-cyan-300":"bg-slate-900 border border-slate-800 text-slate-700"}">${t.icon} ${String(t.id).padStart(2,"0")}</span>`;
+  }).join("");
+  document.getElementById("songPrevBtn").disabled=songStepIdx===0;
+  document.getElementById("songNextBtn").textContent=songStepIdx===steps.length-1?"Finish ✓":"Next →";
+  document.getElementById("songNextBtn").className="px-4 py-1.5 text-xs bg-slate-700 hover:bg-slate-600 border border-slate-600 text-slate-200 font-semibold rounded-lg transition-colors";
+  document.getElementById("songSendStatus").textContent="";
+}
+
+function moveSongStep(dir){
+  const steps=COMPOSITION[S.genre].song;
+  const next=songStepIdx+dir;
+  if(next>=steps.length){showSongSummary();return;}
+  if(next<0)return;
+  songStepIdx=next;
+  renderSongStep();
+}
+
+function showSongSummary(){
+  document.getElementById("songStepView").classList.add("hidden");
+  document.getElementById("songSummaryView").classList.remove("hidden");
+  document.getElementById("songChainDisplay").innerHTML=COMPOSITION[S.genre].song.map(s=>{
+    const rm=s.a.match(/(\d+)\s*repeat/);
+    const rep=rm?rm[1]:"?";
+    return`<div class="flex items-baseline gap-2 border-b border-slate-800/50 py-1.5 last:border-0">
+      <span class="mono text-cyan-400 font-bold w-8 flex-shrink-0">${s.l}</span>
+      <span class="text-slate-500 w-6 flex-shrink-0">×${rep}</span>
+      <span class="text-slate-400">${s.a}</span>
+    </div>`;
+  }).join("");
+}
+
+function sendCurrentSongStep(){
+  const statusEl=document.getElementById("songSendStatus");
+  const btn=document.getElementById("songSendBtn");
+  if(!midiAccess){statusEl.textContent="MIDI not ready";return;}
+  const output=getMidiOutput();
+  if(!output){statusEl.textContent="Select MIDI output in main panel first";return;}
+  const step=COMPOSITION[S.genre].song[songStepIdx];
+  const activeTrkIds=step.trks||[];
+  const filteredTracks=currentTracks().map(t=>({
+    ...t,steps:activeTrkIds.includes(t.id)?(t.steps||[]):[]
+  }));
+  const bpm=Math.max(20,Math.min(300,parseFloat(document.getElementById("songBpm").value)||120));
+  const loops=Math.max(1,Math.min(8,parseInt(document.getElementById("songLoops").value)||2));
+  btn.disabled=true;
+  btn.innerHTML='<i class="fas fa-circle-notch fa-spin"></i> Sending…';
+  const dur=doMidiSend(output,filteredTracks,bpm,loops,()=>{
+    btn.disabled=false;
+    btn.innerHTML=`<i class="fas fa-paper-plane"></i> Send ${step.l}`;
+    statusEl.textContent="✓ Sent";
+    document.getElementById("songNextBtn").className="px-4 py-1.5 text-xs bg-cyan-800 hover:bg-cyan-700 border border-cyan-600 text-cyan-200 font-semibold rounded-lg transition-colors";
+  });
+  statusEl.textContent=`${(dur/1000).toFixed(1)}s`;
 }
 
 // ================================================================
