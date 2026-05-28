@@ -44,6 +44,10 @@ body{font-family:'Space Grotesk',system-ui,sans-serif;background:#070b14;color:#
 .sect-trigger:hover{background:#0d1525}
 .sect-trigger.open-hdr{border-bottom-left-radius:0;border-bottom-right-radius:0;border-bottom-color:#070b14}
 .sect-body{background:#090e1a;border:1px solid #16213a;border-top:none;border-bottom-left-radius:10px;border-bottom-right-radius:10px;padding:1rem}
+.track-card.pv-muted{opacity:.4}
+.track-card.pv-muted .mini-step.on{background:#2a3d58}
+.pvtog{background:none;border:none;padding:0;cursor:pointer;line-height:1;flex-shrink:0}
+.pvtog:hover i{opacity:.7}
 </style>
 </head>
 <body>
@@ -873,7 +877,7 @@ function euclidean(pulses,steps,offset){
 // ================================================================
 // SECTION 5 — APP STATE & HELPERS
 // ================================================================
-let S={genre:"Ambient",subgenre:null,trackData:{},editId:null,patLen:64,keyIdx:0};
+let S={genre:"Ambient",subgenre:null,trackData:{},editId:null,patLen:64,keyIdx:0,previewMuted:{}};
 
 function getRecommended(genre,subId){
   const base=JSON.parse(JSON.stringify(GENRES[genre].tracks));
@@ -1006,30 +1010,49 @@ function synthHit(ctx,type,t){
   }
 }
 
+function pgcd(a,b){return b?pgcd(b,a%b):a;}
+function plcm(a,b){return a/pgcd(a,b)*b;}
+
 function schedulePreview(){
   const ctx=getACtx();
   if(ctx.state==="suspended")ctx.resume();
-  const tracks=currentTracks();
   const bpm=parseFloat(document.getElementById("midiBpm").value)||120;
-  let maxStep=GENRES[S.genre].defaultLen;
-  tracks.forEach(t=>{if(t.steps&&t.steps.length)maxStep=Math.max(maxStep,...t.steps);});
-  const patLen=Math.ceil(maxStep/16)*16;
-  const sps=(60/bpm)/4; // seconds per step
-  const loops=4;
+  const sps=(60/bpm)/4; // seconds per 16th-note step
+
+  // only tracks that have steps and aren't muted for preview
+  const tracks=currentTracks().filter(t=>
+    t.steps&&t.steps.length&&!(S.previewMuted&&S.previewMuted[t.id])
+  );
+  if(!tracks.length){previewPlaying=false;setPreviewBtn(false);return 0;}
+
+  // per-track natural pattern length
+  const trackLens=tracks.map(t=>Math.max(16,Math.ceil(Math.max(...t.steps)/16)*16));
+
+  // LCM of all lengths = one complete cycle where every track returns to bar 1
+  let cycleLen=trackLens.reduce((a,b)=>plcm(a,b),16);
+  if(cycleLen>256)cycleLen=128; // safety cap
+
+  const outerLoops=2;
   const t0=ctx.currentTime+0.06;
-  for(let loop=0;loop<loops;loop++){
-    const lo=loop*patLen*sps;
-    tracks.forEach(t=>{
-      if(!t.steps||!t.steps.length)return;
+
+  for(let outer=0;outer<outerLoops;outer++){
+    const ot=outer*cycleLen*sps;
+    tracks.forEach((t,i)=>{
+      const tLen=trackLens[i];
       const type=classifyTrack(t);
       if(type==="texture")return;
-      t.steps.forEach(step=>{
-        if(step<1||step>patLen)return;
-        synthHit(ctx,type,t0+lo+(step-1)*sps);
-      });
+      const tLoops=cycleLen/tLen;
+      for(let tl=0;tl<tLoops;tl++){
+        const lt=tl*tLen*sps;
+        t.steps.forEach(step=>{
+          if(step<1||step>tLen)return;
+          synthHit(ctx,type,t0+ot+lt+(step-1)*sps);
+        });
+      }
     });
   }
-  const totalMs=(patLen*sps*loops+0.15)*1000;
+
+  const totalMs=(cycleLen*sps*outerLoops+0.2)*1000;
   previewSched=setTimeout(()=>{previewPlaying=false;setPreviewBtn(false);},totalMs);
   return totalMs;
 }
@@ -1084,13 +1107,29 @@ function renderTrackGrid(){
   const tracks=currentTracks();
   tracks.forEach(track=>{
     const sc=track.steps?track.steps.length:0;
-    let viz="";for(let i=1;i<=16;i++){const on=track.steps&&track.steps.includes(i);viz+=`<div class="mini-step${on?" on":""}"></div>`;}
+    const maxSt=track.steps&&track.steps.length?Math.max(...track.steps):0;
+    const tPatLen=Math.max(16,Math.ceil(maxSt/16)*16);
+    const rows=tPatLen/16;
+    let viz='<div class="space-y-0.5">';
+    for(let r=0;r<rows;r++){
+      viz+='<div class="flex gap-0.5">';
+      for(let i=1;i<=16;i++){const step=r*16+i;const on=track.steps&&track.steps.includes(step);viz+=`<div class="mini-step${on?" on":""}"></div>`;}
+      viz+='</div>';
+    }
+    viz+='</div>';
+    const isMuted=S.previewMuted&&S.previewMuted[track.id];
     const card=document.createElement("div");
-    card.className="track-card bg-slate-900/80 border border-slate-800 rounded-xl p-3 select-none";
-    card.innerHTML=`<div class="flex items-start justify-between mb-1.5"><div class="flex items-center gap-1.5"><span class="text-base leading-none">${track.icon}</span><span class="lbl text-slate-700">${String(track.id).padStart(2,"0")}</span></div><span class="lbl text-cyan-700 tabular-nums">${sc}</span></div><div class="font-semibold text-xs text-slate-200 mb-0.5 leading-tight truncate">${track.name}</div><div class="text-xs text-slate-600 mb-2 leading-tight truncate">${track.role}</div><div class="flex gap-0.5 flex-wrap">${viz}</div>`;
+    card.className=`track-card bg-slate-900/80 border border-slate-800 rounded-xl p-3 select-none${isMuted?" pv-muted":""}`;
+    card.innerHTML=`<div class="flex items-start justify-between mb-1.5"><div class="flex items-center gap-1.5"><span class="text-base leading-none">${track.icon}</span><span class="lbl text-slate-700">${String(track.id).padStart(2,"0")}</span></div><div class="flex items-center gap-1.5"><button class="pvtog" onclick="event.stopPropagation();togglePreviewMute(${track.id})" title="${isMuted?"Excluded from preview — click to include":"Included in preview — click to exclude"}"><i class="fas fa-${isMuted?"volume-xmark text-slate-600":"volume-low text-cyan-700"} text-xs"></i></button><span class="lbl text-cyan-700 tabular-nums">${sc}</span></div></div><div class="font-semibold text-xs text-slate-200 mb-0.5 leading-tight truncate">${track.name}</div><div class="text-xs text-slate-600 mb-2 leading-tight truncate">${track.role}</div>${viz}`;
     card.onclick=()=>openModal(track.id);
     grid.appendChild(card);
   });
+}
+
+function togglePreviewMute(id){
+  if(!S.previewMuted)S.previewMuted={};
+  S.previewMuted[id]=!S.previewMuted[id];
+  renderTrackGrid();
 }
 
 function renderCompositionGuide(){
