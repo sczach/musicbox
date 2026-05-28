@@ -48,184 +48,193 @@ body{font-family:'Space Grotesk',system-ui,sans-serif;background:#070b14;color:#
 </head>
 <body>
 
-<div class="max-w-6xl mx-auto px-4 py-7">
+<div class="max-w-[1480px] mx-auto px-4 pt-5 pb-10">
 
-  <!-- HEADER -->
-  <header class="flex flex-wrap items-start justify-between gap-5 mb-5">
-    <div>
-      <div class="flex items-center gap-3">
-        <div class="w-9 h-9 rounded-xl bg-cyan-500/10 border border-cyan-500/25 flex items-center justify-center flex-shrink-0">
-          <i class="fas fa-drum text-cyan-400 text-sm"></i>
-        </div>
-        <h1 class="text-2xl font-bold tracking-tight">Digitakt II</h1>
-      </div>
-      <p class="text-slate-500 text-sm mt-0.5 ml-12">Rhythm Aide — 16-track pattern companion</p>
+  <!-- HEADER: slim branding only -->
+  <header class="flex items-center gap-3 mb-5 pb-4 border-b border-slate-800/50">
+    <div class="w-9 h-9 rounded-xl bg-cyan-500/10 border border-cyan-500/25 flex items-center justify-center flex-shrink-0">
+      <i class="fas fa-drum text-cyan-400 text-sm"></i>
     </div>
-    <div class="flex items-center gap-3 flex-wrap">
-      <div>
-        <div class="lbl mb-1.5">Genre</div>
-        <select id="genreSelect" class="rounded-xl px-3 py-2.5 text-sm border border-slate-800 focus:outline-none focus:border-cyan-600 w-48"></select>
-      </div>
-      <div class="bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-2 text-center min-w-[82px]">
-        <div class="lbl">BPM</div>
-        <div id="bpmDisplay" class="text-xl font-bold text-cyan-400 mono mt-0.5">—</div>
-      </div>
-      <div class="bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-2 text-center min-w-[82px]">
-        <div class="lbl">Def.Len</div>
-        <div id="defLenDisplay" class="text-xl font-bold text-slate-300 mono mt-0.5">—</div>
-      </div>
+    <div>
+      <h1 class="text-xl font-bold tracking-tight leading-none">Digitakt II <span class="text-slate-500 font-normal text-base">Rhythm Aide</span></h1>
+      <p class="text-slate-600 text-xs mt-0.5">16-track pattern companion · Euclidean rhythms · MIDI send</p>
     </div>
   </header>
 
-  <!-- SUBGENRE BAR -->
-  <div class="mb-5">
-    <div class="lbl mb-2">Subgenre</div>
-    <div id="subgenreBar" class="flex gap-2 flex-wrap"></div>
-    <div id="subgenreNote" class="text-xs text-cyan-700 mt-2 min-h-[1rem]"></div>
-  </div>
+  <!-- THREE-COLUMN LAYOUT -->
+  <div class="flex gap-5 items-start">
 
-  <!-- HARMONY PANEL -->
-  <div id="harmonyPanel" class="mb-5 p-4 bg-slate-900/60 border border-slate-800 rounded-xl">
-    <div class="flex items-start justify-between gap-3 flex-wrap">
-      <div class="flex-1 min-w-0">
-        <div class="flex items-center gap-3 flex-wrap mb-2">
-          <div>
-            <div class="lbl mb-1">Key / Mode</div>
-            <div id="harmKeyDisplay" class="text-base font-bold text-white mono"></div>
+    <!-- ──────────────── LEFT: Configure ──────────────── -->
+    <div class="w-52 flex-shrink-0 space-y-3 sticky top-4 max-h-[calc(100vh-6rem)] overflow-y-auto pr-0.5">
+
+      <!-- Genre select -->
+      <div>
+        <div class="lbl mb-1.5">Genre</div>
+        <select id="genreSelect" class="w-full rounded-xl px-3 py-2 text-sm border border-slate-800 focus:outline-none focus:border-cyan-600 bg-slate-900 text-slate-200"></select>
+      </div>
+
+      <!-- BPM + Def.Len -->
+      <div class="grid grid-cols-2 gap-2">
+        <div class="bg-slate-900/60 border border-slate-800 rounded-xl px-2 py-2.5 text-center">
+          <div class="lbl">BPM</div>
+          <div id="bpmDisplay" class="text-lg font-bold text-cyan-400 mono mt-0.5 leading-none">—</div>
+        </div>
+        <div class="bg-slate-900/60 border border-slate-800 rounded-xl px-2 py-2.5 text-center">
+          <div class="lbl">Def.Len</div>
+          <div id="defLenDisplay" class="text-lg font-bold text-slate-300 mono mt-0.5 leading-none">—</div>
+        </div>
+      </div>
+
+      <!-- Subgenre pills -->
+      <div>
+        <div class="lbl mb-1.5">Subgenre</div>
+        <div id="subgenreBar" class="flex gap-1.5 flex-wrap"></div>
+        <div id="subgenreNote" class="text-xs text-cyan-700 mt-1.5 leading-relaxed min-h-[1rem]"></div>
+      </div>
+
+      <!-- Composition Guide (collapsible, accordion sub-sections) -->
+      <div>
+        <button class="sect-trigger open-hdr w-full" onclick="toggleSect('compBody','compChev')">
+          <div class="flex items-center gap-2">
+            <i class="fas fa-map text-cyan-600 text-xs"></i>
+            <span class="font-semibold text-xs">Composition Guide</span>
           </div>
-          <div>
-            <div class="lbl mb-1">Mood</div>
-            <div id="harmMoodDisplay" class="text-xs text-slate-400"></div>
+          <i id="compChev" class="fas fa-chevron-down chevron open text-slate-500 text-xs"></i>
+        </button>
+        <div id="compBody" class="collapse-body open sect-body">
+          <div id="compContent"></div>
+        </div>
+      </div>
+
+      <!-- Workflow Tips (collapsible) -->
+      <div>
+        <button class="sect-trigger w-full" onclick="toggleSect('tipsBody','tipsChev')">
+          <div class="flex items-center gap-2">
+            <i class="fas fa-lightbulb text-cyan-600 text-xs"></i>
+            <span class="font-semibold text-xs">Workflow Tips</span>
           </div>
-          <div>
-            <div class="lbl mb-1">Chord Progression</div>
-            <div id="harmProgDisplay" class="text-sm text-cyan-300 mono font-semibold"></div>
+          <i id="tipsChev" class="fas fa-chevron-down chevron text-slate-500 text-xs"></i>
+        </button>
+        <div id="tipsBody" class="collapse-body sect-body">
+          <div class="space-y-2">
+            <div class="ccard p-2.5"><div class="flex items-center gap-1.5 mb-1"><i class="fas fa-water text-cyan-500 text-xs"></i><span class="text-xs font-semibold">Sparse Patterns</span></div><p class="text-xs text-slate-500 leading-relaxed">32–64 step patterns with 2–4 active trigs per track. At 70 BPM a 64-step pattern is ~27 seconds — an event, not a loop.</p></div>
+            <div class="ccard p-2.5"><div class="flex items-center gap-1.5 mb-1"><i class="fas fa-lock text-cyan-500 text-xs"></i><span class="text-xs font-semibold">Parameter Locks</span></div><p class="text-xs text-slate-500 leading-relaxed">Hold any trig and turn a knob. Lock filter, reverb send, or sample start per step. The primary tool for making patterns feel alive.</p></div>
+            <div class="ccard p-2.5"><div class="flex items-center gap-1.5 mb-1"><i class="fas fa-shuffle text-cyan-500 text-xs"></i><span class="text-xs font-semibold">Conditional Trigs</span></div><p class="text-xs text-slate-500 leading-relaxed">Hold trig + right arrow. 1:2 fires every other loop, 1:4 every fourth. PRE/NEI link trigs. Simple patterns that never repeat.</p></div>
+            <div class="ccard p-2.5"><div class="flex items-center gap-1.5 mb-1"><i class="fas fa-copy text-cyan-500 text-xs"></i><span class="text-xs font-semibold">Copy → Paste → Vary</span></div><p class="text-xs text-slate-500 leading-relaxed">FUNC+COPY, move to next slot, FUNC+PASTE, edit 1–2 trigs. Faster than from scratch and keeps musical continuity.</p></div>
+            <div class="ccard p-2.5"><div class="flex items-center gap-1.5 mb-1"><i class="fas fa-circle-nodes text-cyan-500 text-xs"></i><span class="text-xs font-semibold">Euclidean Rhythms</span></div><p class="text-xs text-slate-500 leading-relaxed">E(3,8), E(5,13), E(7,16) distribute pulses as evenly as possible. Use the Euclidean Generator in any track editor.</p></div>
+            <div class="ccard p-2.5"><div class="flex items-center gap-1.5 mb-1"><i class="fas fa-wave-square text-cyan-500 text-xs"></i><span class="text-xs font-semibold">LFO Breathing Pads</span></div><p class="text-xs text-slate-500 leading-relaxed">LFO → FLTR CUTOFF, slow triangle wave, speed 1–4. The filter breathes independently — living pad with zero extra trigs.</p></div>
+            <div class="ccard p-2.5"><div class="flex items-center gap-1.5 mb-1"><i class="fas fa-satellite-dish text-cyan-500 text-xs"></i><span class="text-xs font-semibold">FX Send Automation</span></div><p class="text-xs text-slate-500 leading-relaxed">P-lock SEND: step 1 dry, step 33 drenched. Same hit sounds completely different twice per pattern.</p></div>
+            <div class="ccard p-2.5"><div class="flex items-center gap-1.5 mb-1"><i class="fas fa-music text-cyan-500 text-xs"></i><span class="text-xs font-semibold">Pro 3 Integration</span></div><p class="text-xs text-slate-500 leading-relaxed">Track 16 as MIDI out, ch 1, to gate the Pro 3. Chord mode sends full chords. Slow-attack patch + Digitakt reverb = atmosphere.</p></div>
           </div>
         </div>
-        <div class="flex items-center gap-2 flex-wrap mb-2">
+      </div>
+
+      <p class="text-xs text-slate-800 pt-1 text-center">Bjorklund / Euclidean engine</p>
+    </div>
+
+    <!-- ──────────────── CENTER: Build ──────────────── -->
+    <div class="flex-1 min-w-0 space-y-4">
+
+      <!-- Toolbar -->
+      <div class="flex items-center justify-between gap-3 flex-wrap">
+        <div>
+          <h2 class="font-semibold text-slate-200">Track Palette</h2>
+          <p id="paletteSubtitle" class="text-xs text-slate-600 mt-0.5">Click any track to open the pattern editor</p>
+        </div>
+        <div class="flex gap-2 flex-wrap">
+          <button onclick="regenerateComposition()" class="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg flex items-center gap-1.5 transition-colors">
+            <i class="fas fa-wand-magic-sparkles text-purple-400"></i> Regenerate
+          </button>
+          <button onclick="loadRecommendedDefaults()" class="px-3 py-1.5 text-xs bg-slate-900 hover:bg-slate-800 border border-slate-700 rounded-lg flex items-center gap-1.5 transition-colors">
+            <i class="fas fa-rotate-left text-slate-400"></i> Recommended
+          </button>
+          <button onclick="exportAllPatterns()" class="px-3 py-1.5 text-xs bg-cyan-950/50 hover:bg-cyan-900/50 border border-cyan-800/40 text-cyan-300 rounded-lg flex items-center gap-1.5 transition-colors">
+            <i class="fas fa-file-export"></i> Export All
+          </button>
+        </div>
+      </div>
+
+      <!-- Track Grid -->
+      <div id="trackGrid" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2"></div>
+
+      <!-- Export Panel -->
+      <div id="exportPanel" class="hidden">
+        <div class="bg-slate-900/60 border border-slate-800 rounded-2xl overflow-hidden">
+          <div class="flex items-center justify-between px-4 py-3 border-b border-slate-800">
+            <h3 class="font-semibold text-sm">Export — <span id="exportGenreLabel" class="text-cyan-400"></span></h3>
+            <div class="flex gap-2">
+              <button onclick="doCopy()" class="px-3 py-1 text-xs bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors"><i class="fas fa-copy mr-1"></i><span id="copyLbl">Copy</span></button>
+              <button onclick="document.getElementById('exportPanel').classList.add('hidden')" class="text-slate-500 hover:text-white text-lg px-1 leading-none">×</button>
+            </div>
+          </div>
+          <textarea id="exportOut" class="w-full h-64 p-4 focus:outline-none" readonly></textarea>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ──────────────── RIGHT: Harmonize + Send ──────────────── -->
+    <div class="w-64 flex-shrink-0 space-y-3 sticky top-4 max-h-[calc(100vh-6rem)] overflow-y-auto pl-0.5">
+
+      <!-- Harmony Panel -->
+      <div id="harmonyPanel" class="p-3 bg-slate-900/60 border border-slate-800 rounded-xl">
+        <div class="flex items-center justify-between mb-2.5">
+          <div class="lbl">Key / Mode</div>
+          <div class="flex gap-1.5">
+            <button onclick="randomizeKey()" class="px-2 py-1 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg flex items-center gap-1 transition-colors">
+              <i class="fas fa-dice text-slate-400 text-xs"></i> New Key
+            </button>
+            <button onclick="showCompositionRules()" class="px-2 py-1 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg flex items-center gap-1 transition-colors">
+              <i class="fas fa-question-circle text-slate-400 text-xs"></i> How?
+            </button>
+          </div>
+        </div>
+        <div id="harmKeyDisplay" class="text-base font-bold text-white mono mb-0.5"></div>
+        <div id="harmMoodDisplay" class="text-xs text-slate-500 mb-2.5"></div>
+        <div class="lbl mb-1">Progression</div>
+        <div id="harmProgDisplay" class="text-sm text-cyan-300 mono font-semibold mb-3"></div>
+        <div class="flex items-center gap-1.5 flex-wrap mb-2">
           <div class="lbl">Scale:</div>
           <div id="harmNotes" class="flex gap-1 flex-wrap"></div>
         </div>
-        <div id="harmPlockGuide" class="text-xs text-slate-500 leading-relaxed border-t border-slate-800 pt-2 mt-2"></div>
+        <div id="harmPlockGuide" class="text-xs text-slate-500 leading-relaxed border-t border-slate-800 pt-2 mt-1"></div>
       </div>
-      <div class="flex flex-col gap-2 flex-shrink-0">
-        <button onclick="randomizeKey()" class="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg flex items-center gap-1.5 transition-colors whitespace-nowrap">
-          <i class="fas fa-dice text-slate-400"></i> New Key
-        </button>
-        <button onclick="showCompositionRules()" class="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg flex items-center gap-1.5 transition-colors whitespace-nowrap">
-          <i class="fas fa-question-circle text-slate-400"></i> How?
-        </button>
-      </div>
-    </div>
-  </div>
 
-  <!-- MIDI SEND PANEL -->
-  <div class="mb-5 p-3 bg-slate-900/60 border border-slate-800 rounded-xl">
-    <div class="flex flex-wrap items-center gap-3">
-      <div class="flex items-center gap-2 flex-shrink-0">
-        <i class="fas fa-plug text-cyan-600 text-sm"></i>
-        <span class="font-semibold text-sm text-slate-200">Send to Digitakt</span>
-      </div>
-      <select id="midiOutput" class="flex-1 min-w-[180px] bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-cyan-600">
-        <option value="">— plug in Digitakt via USB —</option>
-      </select>
-      <div class="flex items-center gap-1.5">
-        <span class="lbl">BPM</span>
-        <input id="midiBpm" type="number" value="120" min="20" max="300" class="w-16 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-center text-white focus:outline-none focus:border-cyan-600 mono">
-      </div>
-      <div class="flex items-center gap-1.5">
-        <span class="lbl">Loops</span>
-        <input id="midiLoops" type="number" value="2" min="1" max="8" class="w-12 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-center text-white focus:outline-none focus:border-cyan-600 mono">
-      </div>
-      <button id="midiSendBtn" onclick="sendToDigitakt()" class="px-4 py-1.5 text-xs bg-cyan-700 hover:bg-cyan-600 text-white font-bold rounded-lg flex items-center gap-1.5 transition-colors whitespace-nowrap">
-        <i class="fas fa-paper-plane"></i> Send Pattern
-      </button>
-      <button onclick="openSongSend()" class="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-300 rounded-lg flex items-center gap-1.5 transition-colors whitespace-nowrap">
-        <i class="fas fa-list-ol text-purple-400"></i> Song Mode
-      </button>
-      <span id="midiStatusMsg" class="text-xs text-slate-600 mono"></span>
-    </div>
-    <div class="text-xs text-slate-700 mt-2 leading-relaxed">
-      On Digitakt: <span class="text-slate-500">MIDI Settings → Receive Clock ON → Receive Transport ON</span> · Then hold <span class="text-slate-500">REC</span> and click Send. Tracks 1–16 → MIDI channels 1–16. Requires Chrome or Edge.
-    </div>
-  </div>
-
-  <!-- TOOLBAR -->
-  <div class="flex items-center justify-between mb-3">
-    <div>
-      <h2 class="font-semibold text-slate-200">Track Palette</h2>
-      <p id="paletteSubtitle" class="text-xs text-slate-600 mt-0.5">Click any track to open the pattern editor</p>
-    </div>
-    <div class="flex gap-2 flex-wrap">
-      <button onclick="regenerateComposition()" class="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg flex items-center gap-1.5 transition-colors">
-        <i class="fas fa-wand-magic-sparkles text-purple-400"></i> Regenerate
-      </button>
-      <button onclick="loadRecommendedDefaults()" class="px-3 py-1.5 text-xs bg-slate-900 hover:bg-slate-800 border border-slate-700 rounded-lg flex items-center gap-1.5 transition-colors">
-        <i class="fas fa-rotate-left text-slate-400"></i> Recommended
-      </button>
-      <button onclick="exportAllPatterns()" class="px-3 py-1.5 text-xs bg-cyan-950/50 hover:bg-cyan-900/50 border border-cyan-800/40 text-cyan-300 rounded-lg flex items-center gap-1.5 transition-colors">
-        <i class="fas fa-file-export"></i> Export All
-      </button>
-    </div>
-  </div>
-
-  <!-- TRACK GRID -->
-  <div id="trackGrid" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2 mb-6"></div>
-
-  <!-- EXPORT PANEL -->
-  <div id="exportPanel" class="hidden mb-6">
-    <div class="bg-slate-900/60 border border-slate-800 rounded-2xl overflow-hidden">
-      <div class="flex items-center justify-between px-4 py-3 border-b border-slate-800">
-        <h3 class="font-semibold text-sm">Export — <span id="exportGenreLabel" class="text-cyan-400"></span></h3>
-        <div class="flex gap-2">
-          <button onclick="doCopy()" class="px-3 py-1 text-xs bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors"><i class="fas fa-copy mr-1"></i><span id="copyLbl">Copy</span></button>
-          <button onclick="document.getElementById('exportPanel').classList.add('hidden')" class="text-slate-500 hover:text-white text-lg px-1 leading-none">×</button>
+      <!-- MIDI Send Panel -->
+      <div class="p-3 bg-slate-900/60 border border-slate-800 rounded-xl space-y-2.5">
+        <div class="flex items-center gap-2">
+          <i class="fas fa-plug text-cyan-600 text-sm"></i>
+          <span class="font-semibold text-sm text-slate-200">Send to Digitakt</span>
+          <span id="midiStatusMsg" class="text-xs text-slate-600 mono ml-auto"></span>
         </div>
+        <select id="midiOutput" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-cyan-600">
+          <option value="">— plug in Digitakt via USB —</option>
+        </select>
+        <div class="flex gap-2">
+          <div class="flex items-center gap-1.5 flex-1">
+            <span class="lbl whitespace-nowrap">BPM</span>
+            <input id="midiBpm" type="number" value="120" min="20" max="300" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-center text-white focus:outline-none focus:border-cyan-600 mono">
+          </div>
+          <div class="flex items-center gap-1.5 flex-1">
+            <span class="lbl whitespace-nowrap">Loops</span>
+            <input id="midiLoops" type="number" value="2" min="1" max="8" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-center text-white focus:outline-none focus:border-cyan-600 mono">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <button id="midiSendBtn" onclick="sendToDigitakt()" class="py-2 text-xs bg-cyan-700 hover:bg-cyan-600 text-white font-bold rounded-lg flex items-center justify-center gap-1.5 transition-colors">
+            <i class="fas fa-paper-plane text-xs"></i> Send
+          </button>
+          <button onclick="openSongSend()" class="py-2 text-xs bg-slate-700 hover:bg-slate-600 border border-slate-600 text-slate-200 rounded-lg flex items-center justify-center gap-1.5 transition-colors">
+            <i class="fas fa-list-ol text-purple-400 text-xs"></i> Song Mode
+          </button>
+        </div>
+        <p class="text-xs text-slate-700 leading-relaxed">Digitakt: <span class="text-slate-600">MIDI → Recv Clock + Transport ON</span> · hold <span class="text-slate-500">REC</span> · Send. Chrome/Edge.</p>
       </div>
-      <textarea id="exportOut" class="w-full h-64 p-4 focus:outline-none" readonly></textarea>
+
     </div>
+
   </div>
 
-  <!-- COMPOSITION GUIDE -->
-  <div class="mb-3">
-    <button class="sect-trigger open-hdr" onclick="toggleSect('compBody','compChev')">
-      <div class="flex items-center gap-2">
-        <i class="fas fa-map text-cyan-600 text-sm"></i>
-        <span class="font-semibold text-sm">Composition &amp; Song Mode Guide</span>
-      </div>
-      <i id="compChev" class="fas fa-chevron-down chevron open text-slate-500 text-xs"></i>
-    </button>
-    <div id="compBody" class="collapse-body open sect-body">
-      <div id="compContent"></div>
-    </div>
-  </div>
-
-  <!-- WORKFLOW TIPS -->
-  <div class="mb-6">
-    <button class="sect-trigger" onclick="toggleSect('tipsBody','tipsChev')">
-      <div class="flex items-center gap-2">
-        <i class="fas fa-lightbulb text-cyan-600 text-sm"></i>
-        <span class="font-semibold text-sm">Digitakt II Workflow Tips</span>
-        <span class="text-xs text-slate-600">(Pro 3 integration, p-locks, conditional trigs)</span>
-      </div>
-      <i id="tipsChev" class="fas fa-chevron-down chevron text-slate-500 text-xs"></i>
-    </button>
-    <div id="tipsBody" class="collapse-body sect-body">
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        <div class="ccard"><div class="flex items-center gap-2 mb-2"><i class="fas fa-water text-cyan-500 text-sm"></i><span class="text-sm font-semibold">Sparse Patterns</span></div><p class="text-xs text-slate-400 leading-relaxed">For ambient, use 32–64 step patterns with only 2–4 active trigs per track. At 70 BPM a 64-step pattern is ~27 seconds — long enough to feel like an event, not a loop.</p></div>
-        <div class="ccard"><div class="flex items-center gap-2 mb-2"><i class="fas fa-lock text-cyan-500 text-sm"></i><span class="text-sm font-semibold">Parameter Locks</span></div><p class="text-xs text-slate-400 leading-relaxed">Hold any trig and turn a knob to add a p-lock. Lock filter cutoff, reverb send, or sample start per-step. In ambient work this is your primary tool for making patterns feel alive.</p></div>
-        <div class="ccard"><div class="flex items-center gap-2 mb-2"><i class="fas fa-shuffle text-cyan-500 text-sm"></i><span class="text-sm font-semibold">Conditional Trigs</span></div><p class="text-xs text-slate-400 leading-relaxed">Hold a trig + press the right arrow for conditions. 1:2 fires every other loop, 1:4 every fourth. PRE/NEI link trigs together. Makes simple patterns feel like they never repeat.</p></div>
-        <div class="ccard"><div class="flex items-center gap-2 mb-2"><i class="fas fa-link text-cyan-500 text-sm"></i><span class="text-sm font-semibold">Song Mode Arc</span></div><p class="text-xs text-slate-400 leading-relaxed">Chain A01→A02→A03 in Song Mode, each adding or removing one track. This builds a 10–20 minute arc without thousands of steps. Each pattern plays 2–4 repeats before advancing.</p></div>
-        <div class="ccard"><div class="flex items-center gap-2 mb-2"><i class="fas fa-copy text-cyan-500 text-sm"></i><span class="text-sm font-semibold">Copy → Paste → Vary</span></div><p class="text-xs text-slate-400 leading-relaxed">FUNC+COPY a pattern, move to next slot, FUNC+PASTE, then manually edit 1–2 trigs. Faster than programming from scratch and keeps musical continuity across your song chain.</p></div>
-        <div class="ccard"><div class="flex items-center gap-2 mb-2"><i class="fas fa-circle-nodes text-cyan-500 text-sm"></i><span class="text-sm font-semibold">Euclidean Rhythms</span></div><p class="text-xs text-slate-400 leading-relaxed">E(3,8), E(5,13), E(7,16) distribute pulses as evenly as possible — patterns that feel musical but irregular. Use the Euclidean Generator button in any track editor.</p></div>
-        <div class="ccard"><div class="flex items-center gap-2 mb-2"><i class="fas fa-wave-square text-cyan-500 text-sm"></i><span class="text-sm font-semibold">LFO Breathing Pads</span></div><p class="text-xs text-slate-400 leading-relaxed">Assign the LFO to FLTR CUTOFF with a very slow triangle wave (speed 1–4). The filter opens and closes independently of any trig — a breathing, living pad with zero extra programming.</p></div>
-        <div class="ccard"><div class="flex items-center gap-2 mb-2"><i class="fas fa-satellite-dish text-cyan-500 text-sm"></i><span class="text-sm font-semibold">FX Send Automation</span></div><p class="text-xs text-slate-400 leading-relaxed">P-lock the SEND knob so step 1 is dry and step 33 is drenched in reverb. The same hit sounds completely different in two places — instant evolution without extra samples.</p></div>
-        <div class="ccard"><div class="flex items-center gap-2 mb-2"><i class="fas fa-music text-cyan-500 text-sm"></i><span class="text-sm font-semibold">Pro 3 Integration</span></div><p class="text-xs text-slate-400 leading-relaxed">Set Track 16 as a MIDI track, output channel 1, to gate the Sequential Pro 3. Use Digitakt chord mode to send chords. Pro 3 slow-attack patch + Digitakt reverb = instant atmosphere.</p></div>
-      </div>
-    </div>
-  </div>
-
-  <p class="text-center text-xs text-slate-700 pb-6">Euclidean engine adapted from <span class="text-slate-600">dbkaplun/euclidean-rhythm</span> · UI inspired by <span class="text-slate-600">hisschemoller/music-pattern-generator</span></p>
 </div>
 
 <!-- COMPOSITION RULES MODAL -->
@@ -969,22 +978,34 @@ function renderCompositionGuide(){
   const g=S.genre,c=COMPOSITION[g];
   if(!c){document.getElementById("compContent").innerHTML="";return;}
   document.getElementById("compContent").innerHTML=`
-<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-  <div class="ccard">
-    <div class="flex items-center gap-2 mb-2"><i class="fas fa-play text-cyan-600 text-xs"></i><span class="font-semibold text-sm">Pattern Setup</span></div>
-    <ul class="space-y-1">${c.setup.map(s=>`<li class="text-xs text-slate-400 leading-relaxed flex gap-2"><span class="text-cyan-700 flex-shrink-0 mt-0.5">▸</span><span>${s}</span></li>`).join("")}</ul>
+<div class="space-y-1.5 text-xs">
+  <button class="sect-trigger open-hdr w-full" onclick="toggleSect('cg1','cgv1')">
+    <div class="flex items-center gap-1.5"><i class="fas fa-play text-cyan-600 text-xs"></i><span class="font-semibold">Pattern Setup</span></div>
+    <i id="cgv1" class="fas fa-chevron-down chevron open text-slate-500 text-xs"></i>
+  </button>
+  <div id="cg1" class="collapse-body open sect-body">
+    <ul class="space-y-1.5">${c.setup.map(s=>`<li class="flex gap-1.5"><span class="text-cyan-700 flex-shrink-0 mt-0.5">▸</span><span class="text-slate-400 leading-relaxed">${s}</span></li>`).join("")}</ul>
   </div>
-  <div class="ccard">
-    <div class="flex items-center gap-2 mb-2"><i class="fas fa-list-ol text-cyan-600 text-xs"></i><span class="font-semibold text-sm">Song Mode Blueprint</span></div>
-    <ol class="space-y-1">${c.song.map(s=>`<li class="flex items-baseline gap-2 text-xs"><span class="text-cyan-500 font-bold mono w-8 flex-shrink-0">${s.l}</span><span class="text-slate-400">${s.a}</span></li>`).join("")}</ol>
+  <button class="sect-trigger w-full" onclick="toggleSect('cg2','cgv2')">
+    <div class="flex items-center gap-1.5"><i class="fas fa-list-ol text-cyan-600 text-xs"></i><span class="font-semibold">Song Mode</span></div>
+    <i id="cgv2" class="fas fa-chevron-down chevron text-slate-500 text-xs"></i>
+  </button>
+  <div id="cg2" class="collapse-body sect-body">
+    <ol class="space-y-1.5">${c.song.map(s=>`<li class="flex items-baseline gap-1.5"><span class="text-cyan-500 font-bold mono w-8 flex-shrink-0">${s.l}</span><span class="text-slate-400 leading-relaxed">${s.a}</span></li>`).join("")}</ol>
   </div>
-  <div class="ccard">
-    <div class="flex items-center gap-2 mb-2"><i class="fas fa-code-branch text-cyan-600 text-xs"></i><span class="font-semibold text-sm">Variation Technique</span></div>
-    <p class="text-xs text-slate-400 leading-relaxed">${c.variations}</p>
+  <button class="sect-trigger w-full" onclick="toggleSect('cg3','cgv3')">
+    <div class="flex items-center gap-1.5"><i class="fas fa-code-branch text-cyan-600 text-xs"></i><span class="font-semibold">Variations</span></div>
+    <i id="cgv3" class="fas fa-chevron-down chevron text-slate-500 text-xs"></i>
+  </button>
+  <div id="cg3" class="collapse-body sect-body">
+    <p class="text-slate-400 leading-relaxed">${c.variations}</p>
   </div>
-  <div class="ccard">
-    <div class="flex items-center gap-2 mb-2"><i class="fas fa-music text-cyan-600 text-xs"></i><span class="font-semibold text-sm">Pro 3 Integration</span></div>
-    <p class="text-xs text-slate-400 leading-relaxed">${c.pro3}</p>
+  <button class="sect-trigger w-full" onclick="toggleSect('cg4','cgv4')">
+    <div class="flex items-center gap-1.5"><i class="fas fa-music text-cyan-600 text-xs"></i><span class="font-semibold">Pro 3</span></div>
+    <i id="cgv4" class="fas fa-chevron-down chevron text-slate-500 text-xs"></i>
+  </button>
+  <div id="cg4" class="collapse-body sect-body">
+    <p class="text-slate-400 leading-relaxed">${c.pro3}</p>
   </div>
 </div>`;
 }
