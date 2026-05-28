@@ -84,15 +84,53 @@ body{font-family:'Space Grotesk',system-ui,sans-serif;background:#070b14;color:#
     <div id="subgenreNote" class="text-xs text-cyan-700 mt-2 min-h-[1rem]"></div>
   </div>
 
+  <!-- HARMONY PANEL -->
+  <div id="harmonyPanel" class="mb-5 p-4 bg-slate-900/60 border border-slate-800 rounded-xl">
+    <div class="flex items-start justify-between gap-3 flex-wrap">
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-3 flex-wrap mb-2">
+          <div>
+            <div class="lbl mb-1">Key / Mode</div>
+            <div id="harmKeyDisplay" class="text-base font-bold text-white mono"></div>
+          </div>
+          <div>
+            <div class="lbl mb-1">Mood</div>
+            <div id="harmMoodDisplay" class="text-xs text-slate-400"></div>
+          </div>
+          <div>
+            <div class="lbl mb-1">Chord Progression</div>
+            <div id="harmProgDisplay" class="text-sm text-cyan-300 mono font-semibold"></div>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 flex-wrap mb-2">
+          <div class="lbl">Scale:</div>
+          <div id="harmNotes" class="flex gap-1 flex-wrap"></div>
+        </div>
+        <div id="harmPlockGuide" class="text-xs text-slate-500 leading-relaxed border-t border-slate-800 pt-2 mt-2"></div>
+      </div>
+      <div class="flex flex-col gap-2 flex-shrink-0">
+        <button onclick="randomizeKey()" class="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg flex items-center gap-1.5 transition-colors whitespace-nowrap">
+          <i class="fas fa-dice text-slate-400"></i> New Key
+        </button>
+        <button onclick="showCompositionRules()" class="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg flex items-center gap-1.5 transition-colors whitespace-nowrap">
+          <i class="fas fa-question-circle text-slate-400"></i> How?
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- TOOLBAR -->
   <div class="flex items-center justify-between mb-3">
     <div>
       <h2 class="font-semibold text-slate-200">Track Palette</h2>
-      <p class="text-xs text-slate-600 mt-0.5">Click any track to open the pattern editor</p>
+      <p id="paletteSubtitle" class="text-xs text-slate-600 mt-0.5">Click any track to open the pattern editor</p>
     </div>
-    <div class="flex gap-2">
+    <div class="flex gap-2 flex-wrap">
+      <button onclick="regenerateComposition()" class="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg flex items-center gap-1.5 transition-colors">
+        <i class="fas fa-wand-magic-sparkles text-purple-400"></i> Regenerate
+      </button>
       <button onclick="loadRecommendedDefaults()" class="px-3 py-1.5 text-xs bg-slate-900 hover:bg-slate-800 border border-slate-700 rounded-lg flex items-center gap-1.5 transition-colors">
-        <i class="fas fa-rotate-left text-slate-400"></i> Load Recommended
+        <i class="fas fa-rotate-left text-slate-400"></i> Recommended
       </button>
       <button onclick="exportAllPatterns()" class="px-3 py-1.5 text-xs bg-cyan-950/50 hover:bg-cyan-900/50 border border-cyan-800/40 text-cyan-300 rounded-lg flex items-center gap-1.5 transition-colors">
         <i class="fas fa-file-export"></i> Export All
@@ -157,6 +195,58 @@ body{font-family:'Space Grotesk',system-ui,sans-serif;background:#070b14;color:#
   </div>
 
   <p class="text-center text-xs text-slate-700 pb-6">Euclidean engine adapted from <span class="text-slate-600">dbkaplun/euclidean-rhythm</span> · UI inspired by <span class="text-slate-600">hisschemoller/music-pattern-generator</span></p>
+</div>
+
+<!-- COMPOSITION RULES MODAL -->
+<div id="rulesModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+  <div class="modal-inner bg-slate-900 border border-slate-700/70 rounded-2xl w-full max-w-2xl max-h-[85vh] overflow-y-auto">
+    <div class="flex items-center justify-between px-5 py-4 border-b border-slate-800">
+      <h2 class="font-bold text-base">How Composition is Generated</h2>
+      <button onclick="document.getElementById('rulesModal').classList.add('hidden')" class="text-slate-500 hover:text-white text-2xl leading-none">×</button>
+    </div>
+    <div class="p-5 space-y-4 text-xs text-slate-400 leading-relaxed">
+      <div class="ccard">
+        <div class="font-semibold text-slate-200 mb-2 text-sm">Rhythm Generation Rules</div>
+        <p class="mb-2">Each track is classified by role (kick, snare, hat, bass, harmonic, melody, texture, percussion, MIDI). Each role has a <span class="text-cyan-400">pulse range</span> and <span class="text-cyan-400">pattern length</span> appropriate for the genre.</p>
+        <p class="mb-2">Step patterns are generated using the <strong class="text-slate-300">Euclidean / Bjorklund algorithm</strong>: given <em>k</em> pulses distributed across <em>n</em> steps, the algorithm spaces them as evenly as possible. This mirrors how natural rhythm patterns emerge in African, Latin, and electronic music traditions.</p>
+        <p>A random <strong class="text-slate-300">rotation offset</strong> shifts the pattern start point. Small offsets produce subtle groove variation; larger offsets create a completely different rhythmic feel.</p>
+      </div>
+      <div class="ccard">
+        <div class="font-semibold text-slate-200 mb-2 text-sm">Track Role Pulse Targets</div>
+        <div id="rulesGenParams" class="space-y-1 mono text-xs"></div>
+      </div>
+      <div class="ccard">
+        <div class="font-semibold text-slate-200 mb-2 text-sm">Harmonic Generation Rules</div>
+        <p class="mb-2">Key recommendations are drawn from a curated set of <strong class="text-slate-300">modes and scales</strong> matched to the genre's emotional character:</p>
+        <ul class="space-y-1 list-none">
+          <li><span class="text-cyan-500">Ambient / Dark Ambient</span> → Natural Minor (Aeolian), Dorian, Phrygian — modal and introspective</li>
+          <li><span class="text-cyan-500">Techno / DnB / IDM</span> → Phrygian, Locrian, Chromatic — dark and tense</li>
+          <li><span class="text-cyan-500">House / Downtempo</span> → Dorian, Natural Minor, Major — soulful and emotional</li>
+          <li><span class="text-cyan-500">Trap / Jungle</span> → Minor Pentatonic, Natural Minor — accessible and direct</li>
+        </ul>
+      </div>
+      <div class="ccard">
+        <div class="font-semibold text-slate-200 mb-2 text-sm">P-Lock Melody System (Digitakt)</div>
+        <p class="mb-2">The Tune parameter on Digitakt adjusts sample pitch in semitones. To build a melody via p-locks: tune your sample to the root note, then lock Tune values per step.</p>
+        <p class="mb-1 text-slate-300">Example — sample tuned to A, Natural Minor scale:</p>
+        <div class="grid grid-cols-4 gap-1 mt-2 text-xs mono">
+          <div class="bg-slate-800 rounded p-1 text-center"><div class="text-cyan-400">+0</div><div class="text-slate-500">A (root)</div></div>
+          <div class="bg-slate-800 rounded p-1 text-center"><div class="text-cyan-400">+2</div><div class="text-slate-500">B (maj2)</div></div>
+          <div class="bg-slate-800 rounded p-1 text-center"><div class="text-cyan-400">+3</div><div class="text-slate-500">C (min3)</div></div>
+          <div class="bg-slate-800 rounded p-1 text-center"><div class="text-cyan-400">+5</div><div class="text-slate-500">D (perf4)</div></div>
+          <div class="bg-slate-800 rounded p-1 text-center"><div class="text-cyan-400">+7</div><div class="text-slate-500">E (perf5)</div></div>
+          <div class="bg-slate-800 rounded p-1 text-center"><div class="text-cyan-400">+8</div><div class="text-slate-500">F (min6)</div></div>
+          <div class="bg-slate-800 rounded p-1 text-center"><div class="text-cyan-400">+10</div><div class="text-slate-500">G (min7)</div></div>
+          <div class="bg-slate-800 rounded p-1 text-center"><div class="text-cyan-400">+12</div><div class="text-slate-500">A (oct)</div></div>
+        </div>
+        <p class="mt-2">The same principle applies to any root — the intervals are always relative to wherever your sample is tuned.</p>
+      </div>
+      <div class="ccard">
+        <div class="font-semibold text-slate-200 mb-2 text-sm">What Regenerate Does NOT Do</div>
+        <p>It does not generate melody <em>sequences</em> — it generates <em>rhythm patterns</em> for melodic tracks and tells you which pitches to p-lock. You decide the actual note order. The tool gives you the rhythmic skeleton and harmonic palette; you provide the musical intention.</p>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- MODAL -->
@@ -575,7 +665,91 @@ pro3:"Gate Pro 3 on backbeat positions (5, 13, 21, 29) for a lush warm lead. Slo
 }
 };
 // ================================================================
-// SECTION 4 — EUCLIDEAN RHYTHM (Bjorklund algorithm)
+// SECTION 4 — HARMONIC / KEY DATA
+// Modes: root semitone offsets from root, chord progressions, mood
+// ================================================================
+const HARMONIC = {
+"Ambient":[
+  {name:"A Minor",root:"A",mode:"Aeolian",notes:["A","B","C","D","E","F","G"],prog:"Am — G — F — Em",mood:"melancholy, floating, introspective",semitones:[0,2,3,5,7,8,10,12],midi:57,pro3:"Tune OSC1 to A3 (440Hz). OSC2 up +7 semitones (fifth) for warmth. Slow filter LFO, triangle, rate 2."},
+  {name:"D Dorian",root:"D",mode:"Dorian",notes:["D","E","F","G","A","B","C"],prog:"Dm7 — C — Am7 — G",mood:"open, hopeful-dark, soulful",semitones:[0,2,3,5,7,9,10,12],midi:62,pro3:"Tune OSC1 to D3. Raised 6th (B) gives Dorian its characteristic sound — use it in melodic p-locks."},
+  {name:"E Phrygian",root:"E",mode:"Phrygian",notes:["E","F","G","A","B","C","D"],prog:"Em — F — Em — F",mood:"exotic, dark, mysterioso",semitones:[0,1,3,5,7,8,10,12],midi:64,pro3:"Tune OSC1 to E3. The flat-2 (F, +1 semitone) is the signature Phrygian tension note."},
+  {name:"G Dorian",root:"G",mode:"Dorian",notes:["G","A","Bb","C","D","E","F"],prog:"Gm7 — F — Gm7 — F",mood:"warm, spacious, grounded",semitones:[0,2,3,5,7,9,10,12],midi:67,pro3:"Tune to G3. Two-chord vamp (Gm7–F) works perfectly for ambient drones — sustained and evolving."}
+],
+"Dark Ambient":[
+  {name:"C# Phrygian",root:"C#",mode:"Phrygian",notes:["C#","D","E","F#","G#","A","B"],prog:"C#m — D — C#m — D",mood:"ominous, unsettling, ancient",semitones:[0,1,3,5,7,8,10,12],midi:61,pro3:"Tune to C#3. The semitone tension (C#→D) is the defining dark ambient interval."},
+  {name:"A Locrian",root:"A",mode:"Locrian",notes:["A","Bb","C","D","Eb","F","G"],prog:"Am♭5 — Bb — Am♭5 — Bb",mood:"unstable, horror, unsolved",semitones:[0,1,3,5,6,8,10,12],midi:57,pro3:"Most dissonant mode. Flat-5 (Eb, +6) creates the tritone — the 'devil's interval'. Use sparingly."},
+  {name:"D Minor",root:"D",mode:"Natural Minor",notes:["D","E","F","G","A","Bb","C"],prog:"Dm — Bb — C — Dm",mood:"dark, brooding, ceremonial",semitones:[0,2,3,5,7,8,10,12],midi:62,pro3:"Classic dark atmosphere key. Bb (flat-6, +8) is the most haunting interval in D minor."},
+  {name:"B Aeolian",root:"B",mode:"Natural Minor",notes:["B","C#","D","E","F#","G","A"],prog:"Bm — G — A — F#m",mood:"cold, distant, ethereal",semitones:[0,2,3,5,7,8,10,12],midi:59,pro3:"Tune to B3. Cold and isolationist character. Avoid chord progressions — use drone on B only."}
+],
+"Ambient Dub":[
+  {name:"A Minor",root:"A",mode:"Natural Minor",notes:["A","B","C","D","E","F","G"],prog:"Am — G — F — E7",mood:"rootsy, soulful, meditative",semitones:[0,2,3,5,7,8,10,12],midi:57,pro3:"Classic dub key. Dominant 7th (E7) resolution to Am gives the reggae tension-release feel."},
+  {name:"D Minor",root:"D",mode:"Dorian",notes:["D","E","F","G","A","B","C"],prog:"Dm7 — Am — Dm7 — Am",mood:"deep, loping, hypnotic",semitones:[0,2,3,5,7,9,10,12],midi:62,pro3:"Dorian's raised 6th (B) adds brightness to an otherwise dark bass groove. Two-chord dub vamp."},
+  {name:"G Minor",root:"G",mode:"Natural Minor",notes:["G","A","Bb","C","D","Eb","F"],prog:"Gm — Bb — F — Cm",mood:"rolling, warm bass, classic dub",semitones:[0,2,3,5,7,8,10,12],midi:55,pro3:"G minor is the classic reggae/dub key. Tune bass samples to G1–G2 for maximum sub depth."}
+],
+"DnB":[
+  {name:"D Minor",root:"D",mode:"Natural Minor",notes:["D","E","F","G","A","Bb","C"],prog:"Dm — Bb — C — Am",mood:"dark, driving, emotive",semitones:[0,2,3,5,7,8,10,12],midi:62,pro3:"Standard DnB key. Reese bass tuned to D1 (MIDI 26). Sub bass and Reese should share the same root."},
+  {name:"A Minor Pentatonic",root:"A",mode:"Minor Pentatonic",notes:["A","C","D","E","G"],prog:"Am — G — Am — G",mood:"direct, aggressive, punchy",semitones:[0,3,5,7,10,12],midi:57,pro3:"Pentatonic removes the 'wrong note' risk. All 5 notes work over any Am or G chord. Good for liquid DnB hooks."},
+  {name:"F Dorian",root:"F",mode:"Dorian",notes:["F","G","Ab","Bb","C","D","Eb"],prog:"Fm7 — Eb — Db — Cm",mood:"sophisticated, liquid, emotive",semitones:[0,2,3,5,7,9,10,12],midi:65,pro3:"Raised 6th (D) gives Dorian its characteristic lift over otherwise dark minor harmony. Liquid DnB favourite."},
+  {name:"C# Minor",root:"C#",mode:"Natural Minor",notes:["C#","D#","E","F#","G#","A","B"],prog:"C#m — B — A — G#m",mood:"tense, dark, neurofunk",semitones:[0,2,3,5,7,8,10,12],midi:61,pro3:"Dark and technical. C#1 (MIDI 25) for deep Reese bass root. Pair with tritone substitutions for neurofunk."}
+],
+"Techno":[
+  {name:"A Minor",root:"A",mode:"Natural Minor",notes:["A","B","C","D","E","F","G"],prog:"Am static / Am — G drone",mood:"dark, hypnotic, minimal",semitones:[0,2,3,5,7,8,10,12],midi:57,pro3:"Techno bass rarely uses full progressions — oscillate between A and a tritone (Eb, +6) for tension."},
+  {name:"D Phrygian",root:"D",mode:"Phrygian",notes:["D","Eb","F","G","A","Bb","C"],prog:"Dm — Eb — Dm — Eb",mood:"industrial, alien, relentless",semitones:[0,1,3,5,7,8,10,12],midi:62,pro3:"The semitone riff (D→Eb→D) is fundamental to industrial techno. Tune OSC1 to D, p-lock between +0 and +1."},
+  {name:"F# Minor",root:"F#",mode:"Natural Minor",notes:["F#","G#","A","B","C#","D","E"],prog:"F#m — D — E — C#m",mood:"driving, functional, Berlin",semitones:[0,2,3,5,7,8,10,12],midi:66,pro3:"F# minor is a common Berlin techno key. Bassline root at F#1 (MIDI 30). Pair with filter sweep automation."},
+  {name:"Chromatic / Atonal",root:"—",mode:"Chromatic",notes:["All 12"],prog:"No progression — interval-based",mood:"cold, cerebral, industrial",semitones:[0,1,2,3,4,5,6,7,8,9,10,11,12],midi:57,pro3:"No key center. Use intervals of +1, +6, +11 for maximum tension. Filter self-oscillation at resonance provides the 'pitch'."}
+],
+"House":[
+  {name:"D Minor",root:"D",mode:"Dorian",notes:["D","E","F","G","A","B","C"],prog:"Dm7 — G7 — Cmaj7 — Am7",mood:"soulful, funky, classic",semitones:[0,2,3,5,7,9,10,12],midi:62,pro3:"The classic deep house key. Dm7–G7–Cmaj7 is the ii-V-I of house. Tune Pro 3 to D for bass, upper register for chords."},
+  {name:"F Minor",root:"F",mode:"Natural Minor",notes:["F","G","Ab","Bb","C","Db","Eb"],prog:"Fm7 — Db — Ab — Eb",mood:"deep, dark, emotive",semitones:[0,2,3,5,7,8,10,12],midi:65,pro3:"F minor is the Larry Heard/Mr Fingers key. Fm7 chord: F-Ab-C-Eb. Tune Pro 3 to F for warm sub-bass."},
+  {name:"Bb Major",root:"Bb",mode:"Major / Ionian",notes:["Bb","C","D","Eb","F","G","A"],prog:"Bb — Gm — Eb — F",mood:"uplifting, gospel, Chicago",semitones:[0,2,4,5,7,9,11,12],midi:70,pro3:"Gospel-influenced. The IV-chord (Eb) and vi-chord (Gm) are the key movements. Organ stabs on Pro 3."},
+  {name:"G Minor",root:"G",mode:"Natural Minor",notes:["G","A","Bb","C","D","Eb","F"],prog:"Gm7 — Cm7 — F7 — Bb",mood:"warm, rolling, afro",semitones:[0,2,3,5,7,8,10,12],midi:55,pro3:"Common in Afro and deep house. The i-iv-VII-III progression creates a rolling, cyclical feel."}
+],
+"Trap":[
+  {name:"C# Minor",root:"C#",mode:"Natural Minor",notes:["C#","D#","E","F#","G#","A","B"],prog:"C#m — A — B — G#m",mood:"dark, melodic, trap classic",semitones:[0,2,3,5,7,8,10,12],midi:61,pro3:"808 root at C#1 (MIDI 25). Tune Pro 3 lead to C#4 for melodic hooks an octave above the 808."},
+  {name:"F Minor Pentatonic",root:"F",mode:"Minor Pentatonic",notes:["F","Ab","Bb","C","Eb"],prog:"Fm — Db — Ab — Eb",mood:"melodic trap, emotional, direct",semitones:[0,3,5,7,10,12],midi:65,pro3:"Pentatonic is safe for trap melodies — no avoid notes. 808 at F1 (MIDI 29). All 5 notes over any chord."},
+  {name:"D Minor",root:"D",mode:"Natural Minor",notes:["D","E","F","G","A","Bb","C"],prog:"Dm — Bb — F — C",mood:"cinematic, dark melodic",semitones:[0,2,3,5,7,8,10,12],midi:62,pro3:"Very common trap key. 808 at D1 (MIDI 26). The Bb (flat-6, +8) is the characteristic 'sad' interval in trap melodies."},
+  {name:"A Minor",root:"A",mode:"Natural Minor",notes:["A","B","C","D","E","F","G"],prog:"Am — F — G — Em",mood:"versatile, direct, punchy",semitones:[0,2,3,5,7,8,10,12],midi:57,pro3:"808 at A0 (MIDI 21) for deep trap sub. Highly versatile — works over almost any chord combination."}
+],
+"Jungle / Breakbeat":[
+  {name:"D Minor",root:"D",mode:"Natural Minor",notes:["D","E","F","G","A","Bb","C"],prog:"Dm — Bb — C — Am",mood:"dark, driving, classic jungle",semitones:[0,2,3,5,7,8,10,12],midi:62,pro3:"Classic jungle key. Reese bass at D1 (MIDI 26). Orchestral samples should be in D minor — chord D-F-A."},
+  {name:"G Minor",root:"G",mode:"Dorian",notes:["G","A","Bb","C","D","E","F"],prog:"Gm7 — F — Gm7 — F",mood:"soulful, rolling, liquid",semitones:[0,2,3,5,7,9,10,12],midi:55,pro3:"Liquid jungle favourite. G Dorian's raised 6th (E) gives the soul-jazz feel. Sample horns and keys in G minor."},
+  {name:"F# Minor Pentatonic",root:"F#",mode:"Minor Pentatonic",notes:["F#","A","B","C#","E"],prog:"F#m — D — E — Bm",mood:"aggressive, energetic, rave",semitones:[0,3,5,7,10,12],midi:66,pro3:"Pentatonic = no wrong notes for fast fills. Good for rave-era jungle and breakcore hooks."}
+],
+"IDM / Glitch":[
+  {name:"D Phrygian",root:"D",mode:"Phrygian",notes:["D","Eb","F","G","A","Bb","C"],prog:"Dm — Eb — Dm — Eb",mood:"alien, mechanical, tense",semitones:[0,1,3,5,7,8,10,12],midi:62,pro3:"The semitone motion (D→Eb) creates IDM's characteristic 'wrong but right' tension. Use in melodic p-locks."},
+  {name:"Whole Tone",root:"C",mode:"Whole Tone",notes:["C","D","E","F#","G#","A#"],prog:"Cmaj♭5 — Daug — Cmaj♭5",mood:"dreamlike, floating, unstable",semitones:[0,2,4,6,8,10,12],midi:60,pro3:"No tritones, no leading tones — perpetually unresolved. Aphex Twin used whole tone scales extensively."},
+  {name:"A Minor",root:"A",mode:"Natural Minor",notes:["A","B","C","D","E","F","G"],prog:"Am — F — G — Dm (irregular)",mood:"IDM with emotional anchor",semitones:[0,2,3,5,7,8,10,12],midi:57,pro3:"Even IDM needs an emotional core occasionally. A minor with irregular rhythmic placement gives structure."},
+  {name:"Chromatic",root:"—",mode:"Chromatic",notes:["All 12"],prog:"Interval-based, no progression",mood:"abstract, noise-influenced, maximally complex",semitones:[0,1,2,3,4,5,6,7,8,9,10,11,12],midi:57,pro3:"Use all semitones as available pitches. Tritone (+6) and minor 2nd (+1) are most useful in IDM contexts."}
+],
+"Downtempo":[
+  {name:"D Minor",root:"D",mode:"Dorian",notes:["D","E","F","G","A","B","C"],prog:"Dm7 — Am7 — C — G",mood:"trip-hop, soulful, cinematic",semitones:[0,2,3,5,7,9,10,12],midi:62,pro3:"Massive Attack territory. Dorian's raised 6th (B, +9) gives the major-minor ambiguity that defines trip-hop."},
+  {name:"Eb Major",root:"Eb",mode:"Major",notes:["Eb","F","G","Ab","Bb","C","D"],prog:"Ebmaj7 — Cm7 — Ab — Bb",mood:"jazz-influenced, warm, sophisticated",semitones:[0,2,4,5,7,9,11,12],midi:63,pro3:"Nu jazz territory. Major 7th chords (Ebmaj7) give the smooth, sophisticated lounge feel."},
+  {name:"G Minor",root:"G",mode:"Natural Minor",notes:["G","A","Bb","C","D","Eb","F"],prog:"Gm7 — Cm7 — Fsus4 — Gm7",mood:"chill, lo-fi, classic",semitones:[0,2,3,5,7,8,10,12],midi:55,pro3:"Lo-fi hip-hop classic key. Bass at G1 (MIDI 31). Suspended chords (sus4) give the unresolved lo-fi feel."},
+  {name:"A Minor Pentatonic",root:"A",mode:"Minor Pentatonic",notes:["A","C","D","E","G"],prog:"Am — G — Dm — Am",mood:"accessible, soulful, direct",semitones:[0,3,5,7,10,12],midi:57,pro3:"Most accessible downtempo scale. All 5 notes work as melody and bass. Great for live improvisation on Pro 3."}
+]
+};
+
+// ================================================================
+// SECTION 5 — GENERATION PARAMETERS
+// Rules that answer: "what informs the composition?"
+// [minPulses, maxPulses] per track role, for each genre
+// "loop" = just trig step 1, sample loops; "fixed" = use genre template
+// ================================================================
+const GEN_PARAMS = {
+"Ambient":    {pLen:64, kick:[0,2],snare:[0,0],hat:[0,4],shaker:[0,5],bass:[0,1],harmonic:[1,3],melody:[0,2],texture:"loop",percussion:[0,3],midi:[2,5],  rules:"Extremely sparse. Most tracks: 0–4 pulses per 64 steps. Empty space IS the composition."},
+"Dark Ambient":{pLen:64,kick:[0,1],snare:[0,0],hat:[0,2],shaker:[0,2],bass:[0,1],harmonic:[1,2],melody:[0,1],texture:"loop",percussion:[0,2],midi:[1,3],  rules:"Near silence. Prioritise drone and texture over rhythm. Only 2–4 tracks should have any events."},
+"Ambient Dub": {pLen:32, kick:[1,3],snare:[1,2],hat:[3,6],shaker:[8,16],bass:[3,5],harmonic:[1,3],melody:[1,2],texture:"loop",percussion:[1,3],midi:[2,4],  rules:"Lazy groove. Off-beat emphasis. Bass and echo tails carry the music. Moderate density."},
+"DnB":        {pLen:32, kick:[2,4],snare:[2,2],hat:[8,16],shaker:[4,8],bass:[6,10],harmonic:[1,3],melody:[2,4],texture:"loop",percussion:[3,6],midi:[3,6],  rules:"Fast and syncopated. Hi-hat density is high. Kick/snare are irregular. Bass is melodic."},
+"Techno":     {pLen:16, kick:[4,4],snare:[2,2],hat:[6,16],shaker:[4,8],bass:[4,8],harmonic:[1,2],melody:[1,2],texture:"loop",percussion:[2,4],midi:[3,5],  rules:"Rigid grid foundation (kick+snare), layered textures above. Bass and percussion add variation."},
+"House":      {pLen:16, kick:[4,4],snare:[2,2],hat:[8,16],shaker:[8,8],bass:[3,5],harmonic:[2,3],melody:[2,3],texture:"loop",percussion:[2,4],midi:[2,4],  rules:"Four-on-floor kick, 16th-note hats. Soul comes from chord stabs and bass fills."},
+"Trap":       {pLen:32, kick:[1,3],snare:[1,2],hat:[8,16],shaker:[0,4],bass:[2,3],harmonic:[1,2],melody:[2,4],texture:"loop",percussion:[1,3],midi:[2,4],  rules:"Sparse kick, heavy 808, dense hi-hat rolls. Melody and 808 pitch are the main expression."},
+"Jungle / Breakbeat":{pLen:32,kick:[3,6],snare:[3,5],hat:[12,16],shaker:[2,5],bass:[4,7],harmonic:[1,2],melody:[1,2],texture:"loop",percussion:[3,6],midi:[2,4], rules:"Maximum rhythmic complexity. All break tracks are dense and irregular. Euclidean spacing creates natural-sounding irregularity."},
+"IDM / Glitch":{pLen:32,kick:[1,4],snare:[2,5],hat:[8,16],shaker:[0,4],bass:[2,5],harmonic:[1,3],melody:[1,3],texture:"loop",percussion:[3,6],midi:[2,5],  rules:"Irregular everything. Wide pulse range for all tracks creates unpredictable but mathematically distributed results."},
+"Downtempo":  {pLen:32, kick:[2,3],snare:[2,2],hat:[8,16],shaker:[6,8],bass:[4,6],harmonic:[2,3],melody:[2,3],texture:"loop",percussion:[2,4],midi:[2,4],  rules:"Swung 16ths with heavy shuffle. Medium density — 6–8 active tracks. Space is important but groove must lock."}
+};
+
+// ================================================================
+// SECTION 6 — EUCLIDEAN RHYTHM (Bjorklund algorithm)
 // Adapted from: https://github.com/dbkaplun/euclidean-rhythm
 // ================================================================
 function euclidean(pulses,steps,offset){
@@ -595,7 +769,7 @@ function euclidean(pulses,steps,offset){
 // ================================================================
 // SECTION 5 — APP STATE & HELPERS
 // ================================================================
-let S={genre:"Ambient",subgenre:null,trackData:{},editId:null,patLen:64};
+let S={genre:"Ambient",subgenre:null,trackData:{},editId:null,patLen:64,keyIdx:0};
 
 function getRecommended(genre,subId){
   const base=JSON.parse(JSON.stringify(GENRES[genre].tracks));
@@ -632,7 +806,7 @@ function init(){
 // SECTION 7 — GENRE / SUBGENRE LOADING
 // ================================================================
 function loadGenre(genre){
-  S.genre=genre;S.subgenre=null;
+  S.genre=genre;S.subgenre=null;S.keyIdx=0;
   const gd=GENRES[genre];
   document.getElementById("bpmDisplay").textContent=gd.bpm;
   document.getElementById("defLenDisplay").textContent=gd.defaultLen;
@@ -640,16 +814,20 @@ function loadGenre(genre){
   renderSubgenreBar();
   renderTrackGrid();
   renderCompositionGuide();
+  renderHarmonicPanel();
   save();
 }
 
 function selectSubgenre(id){
   S.subgenre=(S.subgenre===id)?null:id;
+  S.trackData[S.genre]=getRecommended(S.genre,S.subgenre);
   renderSubgenreBar();
+  renderTrackGrid();
   const sg=currentSG();
   document.getElementById("subgenreNote").textContent=sg?sg.note:"";
   if(sg&&sg.bpm)document.getElementById("bpmDisplay").textContent=sg.bpm;
   else document.getElementById("bpmDisplay").textContent=GENRES[S.genre].bpm;
+  save();
 }
 
 // ================================================================
@@ -847,7 +1025,99 @@ function doCopy(){
 }
 
 // ================================================================
-// SECTION 13 — PERSISTENCE
+// SECTION 13 — HARMONIC PANEL / GENERATION
+// ================================================================
+function classifyTrack(track){
+  const t=(track.name+" "+track.role).toLowerCase();
+  if(/kick|808/.test(t))return"kick";
+  if(/snare|clap/.test(t))return"snare";
+  if(/hat|hh|cymbal/.test(t))return"hat";
+  if(/shaker|shake|tambourine|cabasa/.test(t))return"shaker";
+  if(/bass|sub/.test(t))return"bass";
+  if(/pad|chord|stab|drone|harmonic/.test(t))return"harmonic";
+  if(/melody|lead|hook|riff|melodic/.test(t))return"melody";
+  if(/texture|atmosphere|atmos|noise|field|wind|layer/.test(t))return"texture";
+  if(/midi/.test(t))return"midi";
+  return"percussion";
+}
+
+function generateTrackSteps(type,pLen,params){
+  if(type==="texture")return[];
+  const range=params[type]||(Array.isArray(params.percussion)?params.percussion:[1,3]);
+  if(!Array.isArray(range))return[];
+  const [mn,mx]=range;
+  if(mx===0)return[];
+  const pulses=mn===mx?mn:mn+Math.floor(Math.random()*(mx-mn+1));
+  if(pulses===0)return[];
+  const maxOff=Math.max(1,Math.floor(pLen/pulses));
+  const offset=Math.floor(Math.random()*maxOff);
+  return euclidean(pulses,pLen,offset);
+}
+
+function regenerateComposition(){
+  const params=GEN_PARAMS[S.genre]||GEN_PARAMS["Ambient"];
+  const pLen=params.pLen||16;
+  const tracks=JSON.parse(JSON.stringify(GENRES[S.genre].tracks));
+  tracks.forEach(t=>{
+    const type=classifyTrack(t);
+    t.steps=generateTrackSteps(type,pLen,params);
+  });
+  S.trackData[S.genre]=tracks;
+  const keys=HARMONIC[S.genre]||[];
+  if(keys.length){
+    let next=S.keyIdx;
+    if(keys.length>1)while(next===S.keyIdx)next=Math.floor(Math.random()*keys.length);
+    S.keyIdx=next;
+  }
+  renderTrackGrid();
+  renderHarmonicPanel();
+  save();
+}
+
+function renderHarmonicPanel(){
+  const keys=HARMONIC[S.genre]||[];
+  const panel=document.getElementById("harmonyPanel");
+  if(!keys.length){panel.style.display="none";return;}
+  panel.style.display="";
+  if(S.keyIdx===undefined||S.keyIdx>=keys.length)S.keyIdx=0;
+  const k=keys[S.keyIdx];
+  document.getElementById("harmKeyDisplay").textContent=`${k.name} (${k.mode})`;
+  document.getElementById("harmMoodDisplay").textContent=k.mood;
+  document.getElementById("harmProgDisplay").textContent=k.prog;
+  const notesEl=document.getElementById("harmNotes");
+  notesEl.innerHTML=k.notes.map((n,i)=>`<span class="inline-flex items-baseline gap-0.5 px-2 py-0.5 rounded text-xs mono font-semibold bg-slate-800 border border-slate-700 text-cyan-300">${n}<span class="text-slate-600 text-[10px] ml-0.5">+${k.semitones[i]}</span></span>`).join("");
+  const plockPairs=k.notes.map((n,i)=>`<span class="mono text-cyan-400">+${k.semitones[i]}</span>=<span class="text-slate-300">${n}</span>`).join(", ");
+  document.getElementById("harmPlockGuide").innerHTML=`<span class="font-semibold text-slate-300">P-lock guide:</span> Tune sample to <span class="mono text-cyan-400">${k.root}</span>. Lock <span class="mono text-cyan-400">Tune</span> per step → ${plockPairs}.${k.pro3?` <span class="text-slate-500">| Pro 3: ${k.pro3}</span>`:""}`;
+}
+
+function randomizeKey(){
+  const keys=HARMONIC[S.genre]||[];
+  if(!keys.length)return;
+  let next=S.keyIdx;
+  if(keys.length>1)while(next===S.keyIdx)next=Math.floor(Math.random()*keys.length);
+  S.keyIdx=next;
+  renderHarmonicPanel();
+}
+
+function showCompositionRules(){
+  const params=GEN_PARAMS[S.genre];
+  const el=document.getElementById("rulesGenParams");
+  if(params){
+    const roles=["kick","snare","hat","shaker","bass","harmonic","melody","percussion","midi"];
+    const rows=roles.map(r=>{
+      const v=params[r];
+      const range=Array.isArray(v)?`${v[0]}–${v[1]} pulses`:(v||"—");
+      return`<div class="flex justify-between border-b border-slate-800/50 py-1.5"><span class="text-slate-400 capitalize">${r}</span><span class="text-cyan-400 mono">${range}</span></div>`;
+    }).join("");
+    el.innerHTML=`<div class="text-slate-500 text-xs mb-2">Pattern Length: <span class="mono text-cyan-400">${params.pLen} steps</span></div>${rows}<div class="mt-3 text-slate-400 text-xs leading-relaxed pt-2 border-t border-slate-800">${params.rules}</div>`;
+  } else {
+    el.innerHTML="<span class='text-slate-500'>No parameters for this genre.</span>";
+  }
+  document.getElementById("rulesModal").classList.remove("hidden");
+}
+
+// ================================================================
+// SECTION 14 — PERSISTENCE
 // ================================================================
 function save(){try{localStorage.setItem("dt2aide_v4",JSON.stringify(S.trackData));}catch(e){}}
 
