@@ -119,6 +119,34 @@ body{font-family:'Space Grotesk',system-ui,sans-serif;background:#070b14;color:#
     </div>
   </div>
 
+  <!-- MIDI SEND PANEL -->
+  <div class="mb-5 p-3 bg-slate-900/60 border border-slate-800 rounded-xl">
+    <div class="flex flex-wrap items-center gap-3">
+      <div class="flex items-center gap-2 flex-shrink-0">
+        <i class="fas fa-plug text-cyan-600 text-sm"></i>
+        <span class="font-semibold text-sm text-slate-200">Send to Digitakt</span>
+      </div>
+      <select id="midiOutput" class="flex-1 min-w-[180px] bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-cyan-600">
+        <option value="">— plug in Digitakt via USB —</option>
+      </select>
+      <div class="flex items-center gap-1.5">
+        <span class="lbl">BPM</span>
+        <input id="midiBpm" type="number" value="120" min="20" max="300" class="w-16 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-center text-white focus:outline-none focus:border-cyan-600 mono">
+      </div>
+      <div class="flex items-center gap-1.5">
+        <span class="lbl">Loops</span>
+        <input id="midiLoops" type="number" value="2" min="1" max="8" class="w-12 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-center text-white focus:outline-none focus:border-cyan-600 mono">
+      </div>
+      <button id="midiSendBtn" onclick="sendToDigitakt()" class="px-4 py-1.5 text-xs bg-cyan-700 hover:bg-cyan-600 text-white font-bold rounded-lg flex items-center gap-1.5 transition-colors whitespace-nowrap">
+        <i class="fas fa-paper-plane"></i> Send Pattern
+      </button>
+      <span id="midiStatusMsg" class="text-xs text-slate-600 mono"></span>
+    </div>
+    <div class="text-xs text-slate-700 mt-2 leading-relaxed">
+      On Digitakt: <span class="text-slate-500">MIDI Settings → Receive Clock ON → Receive Transport ON</span> · Then hold <span class="text-slate-500">REC</span> and click Send. Tracks 1–16 → MIDI channels 1–16. Requires Chrome or Edge.
+    </div>
+  </div>
+
   <!-- TOOLBAR -->
   <div class="flex items-center justify-between mb-3">
     <div>
@@ -799,6 +827,7 @@ function init(){
   sel.onchange=()=>loadGenre(sel.value);
   try{const sv=localStorage.getItem("dt2aide_v4");if(sv)S.trackData=JSON.parse(sv);}catch(e){}
   loadGenre("Ambient");
+  initMidi();
   document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!document.getElementById("modal").classList.contains("hidden"))closeModal();});
 }
 
@@ -811,6 +840,9 @@ function loadGenre(genre){
   document.getElementById("bpmDisplay").textContent=gd.bpm;
   document.getElementById("defLenDisplay").textContent=gd.defaultLen;
   if(!S.trackData[genre])S.trackData[genre]=JSON.parse(JSON.stringify(gd.tracks));
+  // Pre-fill MIDI BPM with genre low end
+  const bpmEl=document.getElementById("midiBpm");
+  if(bpmEl){const m=gd.bpm.match(/\d+/);if(m)bpmEl.value=m[0];}
   renderSubgenreBar();
   renderTrackGrid();
   renderCompositionGuide();
@@ -1117,7 +1149,101 @@ function showCompositionRules(){
 }
 
 // ================================================================
-// SECTION 14 — PERSISTENCE
+// SECTION 14 — MIDI SEND (Web MIDI API → Digitakt II over USB)
+// ================================================================
+let midiAccess = null;
+
+async function initMidi(){
+  const statusEl=document.getElementById("midiStatusMsg");
+  if(!navigator.requestMIDIAccess){statusEl.textContent="Web MIDI not supported — use Chrome or Edge";return;}
+  try{
+    midiAccess=await navigator.requestMIDIAccess({sysex:false});
+    midiAccess.onstatechange=populateMidiOutputs;
+    populateMidiOutputs();
+  }catch(e){statusEl.textContent="MIDI access denied";}
+}
+
+function populateMidiOutputs(){
+  const sel=document.getElementById("midiOutput");
+  if(!sel||!midiAccess)return;
+  const prev=sel.value;
+  sel.innerHTML="";
+  const outputs=[...midiAccess.outputs.values()];
+  if(!outputs.length){sel.innerHTML='<option value="">— no MIDI devices found —</option>';return;}
+  outputs.forEach(o=>{
+    const opt=document.createElement("option");
+    opt.value=o.id;opt.textContent=o.name;
+    if(o.name.toLowerCase().includes("digitakt"))opt.selected=true;
+    sel.appendChild(opt);
+  });
+  const match=sel.querySelector(`option[value="${prev}"]`);
+  if(match)sel.value=prev;
+}
+
+function sendToDigitakt(){
+  const statusEl=document.getElementById("midiStatusMsg");
+  if(!midiAccess){statusEl.textContent="MIDI not ready";return;}
+  const outputId=document.getElementById("midiOutput").value;
+  if(!outputId){statusEl.textContent="Select a MIDI output";return;}
+  const output=midiAccess.outputs.get(outputId);
+  if(!output){statusEl.textContent="Device not found";return;}
+
+  const bpm=Math.max(20,Math.min(300,parseFloat(document.getElementById("midiBpm").value)||120));
+  const loops=Math.max(1,Math.min(8,parseInt(document.getElementById("midiLoops").value)||2));
+  const tracks=currentTracks();
+
+  // Effective pattern length: genre default or max step, rounded to 16
+  let maxStep=GENRES[S.genre].defaultLen;
+  tracks.forEach(t=>{if(t.steps&&t.steps.length)maxStep=Math.max(maxStep,...t.steps);});
+  const patLen=Math.ceil(maxStep/16)*16;
+
+  const msPerStep=(60/bpm/4)*1000;       // ms per 16th note
+  const patDuration=msPerStep*patLen;    // ms per full pattern
+  const totalDuration=patDuration*loops;
+  const msPerClock=(60/bpm/24)*1000;     // ms per MIDI clock pulse (24 PPQN)
+  const clockCount=Math.ceil(totalDuration/msPerClock)+32;
+
+  const t0=performance.now()+20; // 20ms head start for scheduling
+
+  // Transport start (Digitakt begins playback from step 1)
+  output.send([0xFA],t0);
+
+  // Pre-schedule all MIDI clock pulses — Digitakt slaves its step grid to these
+  for(let i=0;i<clockCount;i++)output.send([0xF8],t0+i*msPerClock);
+
+  // Pre-schedule all note events across all loops
+  // Each active step → note-on on channel N (track N, 0-indexed) at exact step time
+  for(let loop=0;loop<loops;loop++){
+    const loopOffset=loop*patDuration;
+    tracks.forEach((track,idx)=>{
+      if(!track.steps||!track.steps.length)return;
+      const ch=idx&0x0F; // channels 0–15
+      track.steps.forEach(step=>{
+        if(step<1||step>patLen)return;
+        const onset=t0+loopOffset+(step-1)*msPerStep;
+        output.send([0x90|ch,60,100],onset);                       // note on  (C4, vel 100)
+        output.send([0x80|ch,60,0], onset+msPerStep*0.45);         // note off
+      });
+    });
+  }
+
+  // Transport stop
+  output.send([0xFC],t0+totalDuration+msPerStep);
+
+  // UI: show countdown, re-enable when done
+  const btn=document.getElementById("midiSendBtn");
+  btn.disabled=true;
+  btn.innerHTML='<i class="fas fa-circle-notch fa-spin"></i> Sending…';
+  statusEl.textContent=`${(totalDuration/1000).toFixed(1)}s`;
+  setTimeout(()=>{
+    btn.disabled=false;
+    btn.innerHTML='<i class="fas fa-paper-plane"></i> Send Pattern';
+    statusEl.textContent="✓ Done";
+  },totalDuration+msPerStep+150);
+}
+
+// ================================================================
+// SECTION 15 — PERSISTENCE
 // ================================================================
 function save(){try{localStorage.setItem("dt2aide_v4",JSON.stringify(S.trackData));}catch(e){}}
 
