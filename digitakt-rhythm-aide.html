@@ -92,44 +92,6 @@ body{font-family:'Space Grotesk',system-ui,sans-serif;background:#070b14;color:#
         <div id="subgenreNote" class="text-xs text-cyan-700 mt-1.5 leading-relaxed min-h-[1rem]"></div>
       </div>
 
-      <!-- Composition Guide (collapsible, accordion sub-sections) -->
-      <div>
-        <button class="sect-trigger open-hdr w-full" onclick="toggleSect('compBody','compChev')">
-          <div class="flex items-center gap-2">
-            <i class="fas fa-map text-cyan-600 text-xs"></i>
-            <span class="font-semibold text-xs">Composition Guide</span>
-          </div>
-          <i id="compChev" class="fas fa-chevron-down chevron open text-slate-500 text-xs"></i>
-        </button>
-        <div id="compBody" class="collapse-body open sect-body">
-          <div id="compContent"></div>
-        </div>
-      </div>
-
-      <!-- Workflow Tips (collapsible) -->
-      <div>
-        <button class="sect-trigger w-full" onclick="toggleSect('tipsBody','tipsChev')">
-          <div class="flex items-center gap-2">
-            <i class="fas fa-lightbulb text-cyan-600 text-xs"></i>
-            <span class="font-semibold text-xs">Workflow Tips</span>
-          </div>
-          <i id="tipsChev" class="fas fa-chevron-down chevron text-slate-500 text-xs"></i>
-        </button>
-        <div id="tipsBody" class="collapse-body sect-body">
-          <div class="space-y-2">
-            <div class="ccard p-2.5"><div class="flex items-center gap-1.5 mb-1"><i class="fas fa-water text-cyan-500 text-xs"></i><span class="text-xs font-semibold">Sparse Patterns</span></div><p class="text-xs text-slate-500 leading-relaxed">32–64 step patterns with 2–4 active trigs per track. At 70 BPM a 64-step pattern is ~27 seconds — an event, not a loop.</p></div>
-            <div class="ccard p-2.5"><div class="flex items-center gap-1.5 mb-1"><i class="fas fa-lock text-cyan-500 text-xs"></i><span class="text-xs font-semibold">Parameter Locks</span></div><p class="text-xs text-slate-500 leading-relaxed">Hold any trig and turn a knob. Lock filter, reverb send, or sample start per step. The primary tool for making patterns feel alive.</p></div>
-            <div class="ccard p-2.5"><div class="flex items-center gap-1.5 mb-1"><i class="fas fa-shuffle text-cyan-500 text-xs"></i><span class="text-xs font-semibold">Conditional Trigs</span></div><p class="text-xs text-slate-500 leading-relaxed">Hold trig + right arrow. 1:2 fires every other loop, 1:4 every fourth. PRE/NEI link trigs. Simple patterns that never repeat.</p></div>
-            <div class="ccard p-2.5"><div class="flex items-center gap-1.5 mb-1"><i class="fas fa-copy text-cyan-500 text-xs"></i><span class="text-xs font-semibold">Copy → Paste → Vary</span></div><p class="text-xs text-slate-500 leading-relaxed">FUNC+COPY, move to next slot, FUNC+PASTE, edit 1–2 trigs. Faster than from scratch and keeps musical continuity.</p></div>
-            <div class="ccard p-2.5"><div class="flex items-center gap-1.5 mb-1"><i class="fas fa-circle-nodes text-cyan-500 text-xs"></i><span class="text-xs font-semibold">Euclidean Rhythms</span></div><p class="text-xs text-slate-500 leading-relaxed">E(3,8), E(5,13), E(7,16) distribute pulses as evenly as possible. Use the Euclidean Generator in any track editor.</p></div>
-            <div class="ccard p-2.5"><div class="flex items-center gap-1.5 mb-1"><i class="fas fa-wave-square text-cyan-500 text-xs"></i><span class="text-xs font-semibold">LFO Breathing Pads</span></div><p class="text-xs text-slate-500 leading-relaxed">LFO → FLTR CUTOFF, slow triangle wave, speed 1–4. The filter breathes independently — living pad with zero extra trigs.</p></div>
-            <div class="ccard p-2.5"><div class="flex items-center gap-1.5 mb-1"><i class="fas fa-satellite-dish text-cyan-500 text-xs"></i><span class="text-xs font-semibold">FX Send Automation</span></div><p class="text-xs text-slate-500 leading-relaxed">P-lock SEND: step 1 dry, step 33 drenched. Same hit sounds completely different twice per pattern.</p></div>
-            <div class="ccard p-2.5"><div class="flex items-center gap-1.5 mb-1"><i class="fas fa-music text-cyan-500 text-xs"></i><span class="text-xs font-semibold">Pro 3 Integration</span></div><p class="text-xs text-slate-500 leading-relaxed">Track 16 as MIDI out, ch 1, to gate the Pro 3. Chord mode sends full chords. Slow-attack patch + Digitakt reverb = atmosphere.</p></div>
-          </div>
-        </div>
-      </div>
-
-      <p class="text-xs text-slate-800 pt-1 text-center">Bjorklund / Euclidean engine</p>
     </div>
 
     <!-- ──────────────── CENTER: Build ──────────────── -->
@@ -142,6 +104,9 @@ body{font-family:'Space Grotesk',system-ui,sans-serif;background:#070b14;color:#
           <p id="paletteSubtitle" class="text-xs text-slate-600 mt-0.5">Click any track to open the pattern editor</p>
         </div>
         <div class="flex gap-2 flex-wrap">
+          <button id="previewBtn" onclick="togglePreview()" class="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 rounded-lg flex items-center gap-1.5 transition-colors">
+            <i class="fas fa-play text-green-400 text-xs"></i> Preview
+          </button>
           <button onclick="regenerateComposition()" class="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg flex items-center gap-1.5 transition-colors">
             <i class="fas fa-wand-magic-sparkles text-purple-400"></i> Regenerate
           </button>
@@ -169,6 +134,38 @@ body{font-family:'Space Grotesk',system-ui,sans-serif;background:#070b14;color:#
           </div>
           <textarea id="exportOut" class="w-full h-64 p-4 focus:outline-none" readonly></textarea>
         </div>
+      </div>
+
+      <!-- Composition Guide + Workflow Tips -->
+      <div class="grid grid-cols-2 gap-5 pt-1">
+
+        <!-- Composition Guide -->
+        <div>
+          <div class="flex items-center gap-2 mb-2.5">
+            <i class="fas fa-map text-cyan-600 text-xs"></i>
+            <span class="font-semibold text-sm text-slate-200">Composition Guide</span>
+          </div>
+          <div id="compContent"></div>
+        </div>
+
+        <!-- Workflow Tips -->
+        <div>
+          <div class="flex items-center gap-2 mb-2.5">
+            <i class="fas fa-lightbulb text-cyan-600 text-xs"></i>
+            <span class="font-semibold text-sm text-slate-200">Workflow Tips</span>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div class="ccard p-2.5"><div class="flex items-center gap-1.5 mb-1"><i class="fas fa-water text-cyan-500 text-xs"></i><span class="text-xs font-semibold">Sparse Patterns</span></div><p class="text-xs text-slate-500 leading-relaxed">32–64 step patterns with 2–4 active trigs per track. At 70 BPM a 64-step pattern is ~27 seconds — an event, not a loop.</p></div>
+            <div class="ccard p-2.5"><div class="flex items-center gap-1.5 mb-1"><i class="fas fa-lock text-cyan-500 text-xs"></i><span class="text-xs font-semibold">Parameter Locks</span></div><p class="text-xs text-slate-500 leading-relaxed">Hold any trig and turn a knob. Lock filter, reverb send, or sample start per step. The primary tool for making patterns feel alive.</p></div>
+            <div class="ccard p-2.5"><div class="flex items-center gap-1.5 mb-1"><i class="fas fa-shuffle text-cyan-500 text-xs"></i><span class="text-xs font-semibold">Conditional Trigs</span></div><p class="text-xs text-slate-500 leading-relaxed">Hold trig + right arrow. 1:2 fires every other loop, 1:4 every fourth. PRE/NEI link trigs. Simple patterns that never repeat.</p></div>
+            <div class="ccard p-2.5"><div class="flex items-center gap-1.5 mb-1"><i class="fas fa-copy text-cyan-500 text-xs"></i><span class="text-xs font-semibold">Copy → Paste → Vary</span></div><p class="text-xs text-slate-500 leading-relaxed">FUNC+COPY, move to next slot, FUNC+PASTE, edit 1–2 trigs. Faster than from scratch and keeps musical continuity.</p></div>
+            <div class="ccard p-2.5"><div class="flex items-center gap-1.5 mb-1"><i class="fas fa-circle-nodes text-cyan-500 text-xs"></i><span class="text-xs font-semibold">Euclidean Rhythms</span></div><p class="text-xs text-slate-500 leading-relaxed">E(3,8), E(5,13), E(7,16) distribute pulses as evenly as possible. Use the Euclidean Generator in any track editor.</p></div>
+            <div class="ccard p-2.5"><div class="flex items-center gap-1.5 mb-1"><i class="fas fa-wave-square text-cyan-500 text-xs"></i><span class="text-xs font-semibold">LFO Breathing Pads</span></div><p class="text-xs text-slate-500 leading-relaxed">LFO → FLTR CUTOFF, slow triangle wave, speed 1–4. The filter breathes independently — living pad with zero extra trigs.</p></div>
+            <div class="ccard p-2.5"><div class="flex items-center gap-1.5 mb-1"><i class="fas fa-satellite-dish text-cyan-500 text-xs"></i><span class="text-xs font-semibold">FX Send Automation</span></div><p class="text-xs text-slate-500 leading-relaxed">P-lock SEND: step 1 dry, step 33 drenched. Same hit sounds completely different twice per pattern.</p></div>
+            <div class="ccard p-2.5"><div class="flex items-center gap-1.5 mb-1"><i class="fas fa-music text-cyan-500 text-xs"></i><span class="text-xs font-semibold">Pro 3 Integration</span></div><p class="text-xs text-slate-500 leading-relaxed">Track 16 as MIDI out, ch 1, to gate the Pro 3. Chord mode sends full chords. Slow-attack patch + Digitakt reverb = atmosphere.</p></div>
+          </div>
+        </div>
+
       </div>
 
     </div>
@@ -942,6 +939,128 @@ function selectSubgenre(id){
 }
 
 // ================================================================
+// ================================================================
+// SECTION 7b — AUDIO PREVIEW
+// ================================================================
+let audioCtx=null;
+let previewSched=null;
+let previewPlaying=false;
+
+function getACtx(){
+  if(!audioCtx||audioCtx.state==="closed")audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function synthHit(ctx,type,t){
+  const g=ctx.createGain();
+  g.gain.setValueAtTime(0.001,t);
+  g.connect(ctx.destination);
+  if(type==="kick"){
+    const o=ctx.createOscillator();
+    o.type="sine";
+    o.frequency.setValueAtTime(90,t);
+    o.frequency.exponentialRampToValueAtTime(40,t+0.08);
+    g.gain.linearRampToValueAtTime(0.75,t+0.004);
+    g.gain.exponentialRampToValueAtTime(0.001,t+0.14);
+    o.connect(g);o.start(t);o.stop(t+0.15);
+  } else if(type==="snare"){
+    const len=Math.floor(ctx.sampleRate*0.07);
+    const buf=ctx.createBuffer(1,len,ctx.sampleRate);
+    const d=buf.getChannelData(0);
+    for(let i=0;i<len;i++)d[i]=Math.random()*2-1;
+    const s=ctx.createBufferSource();s.buffer=buf;
+    const f=ctx.createBiquadFilter();f.type="highpass";f.frequency.value=1200;
+    s.connect(f);f.connect(g);
+    g.gain.linearRampToValueAtTime(0.55,t+0.003);
+    g.gain.exponentialRampToValueAtTime(0.001,t+0.07);
+    s.start(t);s.stop(t+0.08);
+  } else if(type==="hat"||type==="shaker"){
+    const len=Math.floor(ctx.sampleRate*(type==="hat"?0.025:0.03));
+    const buf=ctx.createBuffer(1,len,ctx.sampleRate);
+    const d=buf.getChannelData(0);
+    for(let i=0;i<len;i++)d[i]=Math.random()*2-1;
+    const s=ctx.createBufferSource();s.buffer=buf;
+    const f=ctx.createBiquadFilter();f.type="highpass";f.frequency.value=type==="hat"?7000:4000;
+    s.connect(f);f.connect(g);
+    g.gain.linearRampToValueAtTime(0.35,t+0.002);
+    g.gain.exponentialRampToValueAtTime(0.001,t+0.03);
+    s.start(t);s.stop(t+0.035);
+  } else if(type==="bass"){
+    const o=ctx.createOscillator();
+    o.type="triangle";o.frequency.value=80;
+    g.gain.linearRampToValueAtTime(0.6,t+0.005);
+    g.gain.exponentialRampToValueAtTime(0.001,t+0.18);
+    o.connect(g);o.start(t);o.stop(t+0.19);
+  } else if(type==="melody"||type==="harmonic"){
+    const o=ctx.createOscillator();
+    o.type="sine";o.frequency.value=type==="melody"?440:330;
+    g.gain.linearRampToValueAtTime(0.3,t+0.01);
+    g.gain.exponentialRampToValueAtTime(0.001,t+0.1);
+    o.connect(g);o.start(t);o.stop(t+0.11);
+  } else if(type!=="texture"){
+    const o=ctx.createOscillator();
+    o.type="sine";o.frequency.value=220;
+    g.gain.linearRampToValueAtTime(0.25,t+0.005);
+    g.gain.exponentialRampToValueAtTime(0.001,t+0.07);
+    o.connect(g);o.start(t);o.stop(t+0.08);
+  }
+}
+
+function schedulePreview(){
+  const ctx=getACtx();
+  if(ctx.state==="suspended")ctx.resume();
+  const tracks=currentTracks();
+  const bpm=parseFloat(document.getElementById("midiBpm").value)||120;
+  let maxStep=GENRES[S.genre].defaultLen;
+  tracks.forEach(t=>{if(t.steps&&t.steps.length)maxStep=Math.max(maxStep,...t.steps);});
+  const patLen=Math.ceil(maxStep/16)*16;
+  const sps=(60/bpm)/4; // seconds per step
+  const loops=4;
+  const t0=ctx.currentTime+0.06;
+  for(let loop=0;loop<loops;loop++){
+    const lo=loop*patLen*sps;
+    tracks.forEach(t=>{
+      if(!t.steps||!t.steps.length)return;
+      const type=classifyTrack(t);
+      if(type==="texture")return;
+      t.steps.forEach(step=>{
+        if(step<1||step>patLen)return;
+        synthHit(ctx,type,t0+lo+(step-1)*sps);
+      });
+    });
+  }
+  const totalMs=(patLen*sps*loops+0.15)*1000;
+  previewSched=setTimeout(()=>{previewPlaying=false;setPreviewBtn(false);},totalMs);
+  return totalMs;
+}
+
+function togglePreview(){
+  if(previewPlaying){
+    previewPlaying=false;
+    clearTimeout(previewSched);previewSched=null;
+    if(audioCtx){audioCtx.close();audioCtx=null;}
+    setPreviewBtn(false);
+  } else {
+    previewPlaying=true;
+    schedulePreview();
+    setPreviewBtn(true);
+  }
+}
+
+function setPreviewBtn(playing){
+  const btn=document.getElementById("previewBtn");if(!btn)return;
+  if(playing){
+    btn.innerHTML='<i class="fas fa-stop text-red-400 text-xs"></i> Stop';
+    btn.classList.add("bg-red-950/60","border-red-800/50");
+    btn.classList.remove("bg-slate-800","border-slate-600");
+  } else {
+    btn.innerHTML='<i class="fas fa-play text-green-400 text-xs"></i> Preview';
+    btn.classList.remove("bg-red-950/60","border-red-800/50");
+    btn.classList.add("bg-slate-800","border-slate-600");
+  }
+}
+
+// ================================================================
 // SECTION 8 — RENDERING
 // ================================================================
 function renderSubgenreBar(){
@@ -978,33 +1097,21 @@ function renderCompositionGuide(){
   const g=S.genre,c=COMPOSITION[g];
   if(!c){document.getElementById("compContent").innerHTML="";return;}
   document.getElementById("compContent").innerHTML=`
-<div class="space-y-1.5 text-xs">
-  <button class="sect-trigger open-hdr w-full" onclick="toggleSect('cg1','cgv1')">
-    <div class="flex items-center gap-1.5"><i class="fas fa-play text-cyan-600 text-xs"></i><span class="font-semibold">Pattern Setup</span></div>
-    <i id="cgv1" class="fas fa-chevron-down chevron open text-slate-500 text-xs"></i>
-  </button>
-  <div id="cg1" class="collapse-body open sect-body">
+<div class="grid grid-cols-2 gap-2 text-xs">
+  <div class="ccard p-2.5">
+    <div class="flex items-center gap-1.5 mb-2"><i class="fas fa-play text-cyan-600 text-xs"></i><span class="font-semibold text-slate-200">Pattern Setup</span></div>
     <ul class="space-y-1.5">${c.setup.map(s=>`<li class="flex gap-1.5"><span class="text-cyan-700 flex-shrink-0 mt-0.5">▸</span><span class="text-slate-400 leading-relaxed">${s}</span></li>`).join("")}</ul>
   </div>
-  <button class="sect-trigger w-full" onclick="toggleSect('cg2','cgv2')">
-    <div class="flex items-center gap-1.5"><i class="fas fa-list-ol text-cyan-600 text-xs"></i><span class="font-semibold">Song Mode</span></div>
-    <i id="cgv2" class="fas fa-chevron-down chevron text-slate-500 text-xs"></i>
-  </button>
-  <div id="cg2" class="collapse-body sect-body">
+  <div class="ccard p-2.5">
+    <div class="flex items-center gap-1.5 mb-2"><i class="fas fa-list-ol text-cyan-600 text-xs"></i><span class="font-semibold text-slate-200">Song Mode</span></div>
     <ol class="space-y-1.5">${c.song.map(s=>`<li class="flex items-baseline gap-1.5"><span class="text-cyan-500 font-bold mono w-8 flex-shrink-0">${s.l}</span><span class="text-slate-400 leading-relaxed">${s.a}</span></li>`).join("")}</ol>
   </div>
-  <button class="sect-trigger w-full" onclick="toggleSect('cg3','cgv3')">
-    <div class="flex items-center gap-1.5"><i class="fas fa-code-branch text-cyan-600 text-xs"></i><span class="font-semibold">Variations</span></div>
-    <i id="cgv3" class="fas fa-chevron-down chevron text-slate-500 text-xs"></i>
-  </button>
-  <div id="cg3" class="collapse-body sect-body">
+  <div class="ccard p-2.5">
+    <div class="flex items-center gap-1.5 mb-2"><i class="fas fa-code-branch text-cyan-600 text-xs"></i><span class="font-semibold text-slate-200">Variations</span></div>
     <p class="text-slate-400 leading-relaxed">${c.variations}</p>
   </div>
-  <button class="sect-trigger w-full" onclick="toggleSect('cg4','cgv4')">
-    <div class="flex items-center gap-1.5"><i class="fas fa-music text-cyan-600 text-xs"></i><span class="font-semibold">Pro 3</span></div>
-    <i id="cgv4" class="fas fa-chevron-down chevron text-slate-500 text-xs"></i>
-  </button>
-  <div id="cg4" class="collapse-body sect-body">
+  <div class="ccard p-2.5">
+    <div class="flex items-center gap-1.5 mb-2"><i class="fas fa-music text-cyan-600 text-xs"></i><span class="font-semibold text-slate-200">Pro 3</span></div>
     <p class="text-slate-400 leading-relaxed">${c.pro3}</p>
   </div>
 </div>`;
