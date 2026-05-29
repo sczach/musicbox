@@ -180,14 +180,21 @@ select,input,textarea{box-shadow:none}
       <!-- Export Panel -->
       <div id="exportPanel" class="hidden">
         <div class="bg-slate-900/60 border border-slate-800 rounded-2xl overflow-hidden">
-          <div class="flex items-center justify-between px-4 py-3 border-b border-slate-800">
-            <h3 class="font-semibold text-sm">Export — <span id="exportGenreLabel" class="text-cyan-400"></span></h3>
+          <div class="flex items-center justify-between px-4 py-3 border-b border-slate-800 flex-wrap gap-2">
+            <div class="flex items-center gap-3">
+              <h3 class="font-semibold text-sm">Export — <span id="exportGenreLabel" class="text-cyan-400"></span></h3>
+              <div class="flex rounded-lg overflow-hidden border border-slate-700">
+                <button id="exportTabText" onclick="setExportFormat('text')" class="px-2.5 py-1 text-xs font-semibold transition-colors bg-slate-700 text-slate-200">Text</button>
+                <button id="exportTabJson" onclick="setExportFormat('json')" class="px-2.5 py-1 text-xs font-semibold transition-colors bg-slate-800 text-slate-500 border-l border-slate-700">JSON</button>
+              </div>
+            </div>
             <div class="flex gap-2">
               <button onclick="doCopy()" class="px-3 py-1 text-xs bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors"><i class="fas fa-copy mr-1"></i><span id="copyLbl">Copy</span></button>
+              <button onclick="doDownload()" class="px-3 py-1 text-xs bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors"><i class="fas fa-download mr-1"></i>Save</button>
               <button onclick="document.getElementById('exportPanel').classList.add('hidden')" class="text-slate-500 hover:text-white text-lg px-1 leading-none">×</button>
             </div>
           </div>
-          <textarea id="exportOut" class="w-full h-64 p-4 focus:outline-none" readonly></textarea>
+          <textarea id="exportOut" class="w-full h-72 p-4 focus:outline-none" readonly></textarea>
         </div>
       </div>
 
@@ -1160,11 +1167,15 @@ function init(){
     const sv=localStorage.getItem(STORAGE_KEY)||localStorage.getItem(LEGACY_STORAGE_KEY);
     if(sv){
       const parsed=JSON.parse(sv);
-      // Support both old format (direct trackData obj) and new wrapped format
+      // schemaVersion 0: unversioned saves (pre-v5 or early v5) — trackData may be top-level
+      // schemaVersion 1: {schemaVersion:1, trackData, seed, lockedTracks}
+      const ver=parsed&&typeof parsed==="object"&&typeof parsed.schemaVersion==="number"?parsed.schemaVersion:0;
       const raw=parsed&&typeof parsed==="object"&&parsed.trackData?parsed.trackData:parsed;
       S.trackData=migrateTrackData(raw);
       if(parsed.seed!==undefined)S.seed=parsed.seed;
       if(parsed.lockedTracks&&typeof parsed.lockedTracks==="object")S.lockedTracks=parsed.lockedTracks;
+      // If migrating from v0, immediately re-save with schema version
+      if(ver===0)save();
     }
   }catch(e){S.trackData=migrateTrackData({});}
   loadGenre("Ambient");
@@ -1905,25 +1916,106 @@ function loadRecommendedDefaults(){
 // ================================================================
 // SECTION 12 — EXPORT
 // ================================================================
-function exportAllPatterns(){
+let _exportFormat="text"; // "text" | "json"
+
+function setExportFormat(fmt){
+  _exportFormat=fmt;
+  document.getElementById("exportTabText").className="px-2.5 py-1 text-xs font-semibold transition-colors border-l border-slate-700 "+(fmt==="text"?"bg-slate-700 text-slate-200":"bg-slate-800 text-slate-500");
+  document.getElementById("exportTabJson").className="px-2.5 py-1 text-xs font-semibold transition-colors border-l border-slate-700 "+(fmt==="json"?"bg-slate-700 text-slate-200":"bg-slate-800 text-slate-500");
+  document.getElementById("exportTabText").className="px-2.5 py-1 text-xs font-semibold transition-colors "+(fmt==="text"?"bg-slate-700 text-slate-200":"bg-slate-800 text-slate-500");
+  refreshExportOut();
+}
+
+function buildExportText(){
   const gd=GENRES[S.genre],tracks=currentTracks();
-  const bar="═".repeat(56),thin="─".repeat(56);
-  let out=`${bar}\n DIGITAKT II RHYTHM AIDE — Pattern Export\n Genre: ${S.genre}`;
+  const bar="═".repeat(60),thin="─".repeat(60);
+  const lockedIds=Object.keys(S.lockedTracks||{}).filter(k=>S.lockedTracks[k]).map(Number);
+  let out=`${bar}\n MUSICBOX — Pattern Export\n Genre: ${S.genre}`;
   if(S.subgenre&&currentSG())out+=` › ${currentSG().name}`;
-  out+=`   BPM: ${gd.bpm}   Default Length: ${gd.defaultLen}\n Exported: ${new Date().toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"})}\n${bar}\n\n`;
+  out+=`\n Seed: ${seedHex(S.seed)}   BPM: ${gd.bpm}   Default Length: ${gd.defaultLen}\n`;
+  out+=` Exported: ${new Date().toLocaleDateString("en-US",{year:"numeric",month:"long",day:"numeric"})}`;
+  if(lockedIds.length)out+=`   Locked tracks: ${lockedIds.join(", ")}`;
+  out+=`\n${bar}\n\n`;
+  const COND_LABELS={"1:2":"1:2","2:2":"2:2","1:4":"1:4","2:4":"2:4","3:4":"3:4","4:4":"4:4","1:8":"1:8","1ST":"1ST","!1ST":"!1ST"};
   tracks.forEach(t=>{
     const steps=t.steps||[];const maxS=steps.length?Math.max(...steps,16):16;const dLen=Math.ceil(maxS/16)*16;
     const den=dLen>0?((steps.length/dLen)*100).toFixed(0):0;
-    out+=`TRK ${String(t.id).padStart(2,"0")}  ${t.icon}  ${t.name}\nRole: ${t.role}   Active: ${steps.length} steps (${den}% density)\nSteps: ${steps.length?steps.join(", "):"None"}\n\n`;
+    const locked=lockedIds.includes(t.id)?" 🔒":"";
+    const target=TARGET_LABELS[t.target]||t.target||"DT Audio";
+    const noteName=midiNoteName(t.note||60);
+    out+=`TRK ${String(t.id).padStart(2,"0")}  ${t.icon}  ${t.name}${locked}\n`;
+    out+=`  Role: ${t.role}   Target: ${target}   Ch${t.midiChannel||1}  Note:${noteName}  Vel:${t.velocity||100}\n`;
+    out+=`  Active: ${steps.length} steps (${den}% density)\n`;
+    // Build step grid rows with inline prob/condition annotations
     for(let r=0;r<dLen&&r<128;r+=16){
-      let row=" ";
-      for(let c=0;c<16;c++){const s=r+c+1;row+=steps.includes(s)?"[X]":"[ ]";if((c+1)%4===0&&c<15)row+=" ";}
-      out+=row+"\n";
+      let row="  ";
+      const annotations=[];
+      for(let c=0;c<16;c++){
+        const s=r+c+1;
+        const on=steps.includes(s);
+        const prob=t.lanes&&t.lanes.probability&&t.lanes.probability[s]!=null?t.lanes.probability[s]:100;
+        const cond=t.lanes&&t.lanes.condition&&t.lanes.condition[s];
+        if(on){
+          const pMark=prob<100?`p${prob}`:"";
+          const cMark=cond?(COND_LABELS[cond]||cond):"";
+          row+=`[${pMark||cMark||"X"}]`;
+          if(pMark&&cMark)annotations.push(`s${s}:${cMark}`);
+        }else row+="[ ]";
+        if((c+1)%4===0&&c<15)row+=" ";
+      }
+      out+=row;
+      if(annotations.length)out+=`  ← ${annotations.join(" ")}`;
+      out+="\n";
     }
+    out+=`  Steps: ${steps.length?steps.join(", "):"None"}\n`;
     out+=`${thin}\n\n`;
   });
-  out+=`${bar}\n Digitakt II Notes\n${bar}\n • FUNC+COPY / FUNC+PASTE to duplicate patterns\n • Hold TRIG to add parameter locks per step\n • Hold TRIG + right arrow for conditional trigs\n • Song Mode: chain patterns for long-form composition\n • Track 16 as MIDI: gate the Sequential Pro 3\n${bar}\n`;
-  document.getElementById("exportOut").value=out;
+  out+=`${bar}\n Digitakt II Notes\n${bar}\n • FUNC+COPY / FUNC+PASTE to duplicate patterns\n • Hold TRIG to add parameter locks per step\n • Hold TRIG + right arrow for conditional trigs\n • Song Mode: chain patterns for long-form composition\n • Seed ${seedHex(S.seed)}: re-enter in Musicbox to reproduce this pattern\n${bar}\n`;
+  return out;
+}
+
+function buildExportJson(){
+  const gd=GENRES[S.genre],tracks=currentTracks();
+  const lockedIds=Object.keys(S.lockedTracks||{}).filter(k=>S.lockedTracks[k]).map(Number);
+  const obj={
+    schemaVersion:1,
+    exported:new Date().toISOString().slice(0,10),
+    app:"Musicbox / Digitakt Rhythm Aide",
+    genre:S.genre,
+    subgenre:S.subgenre||null,
+    seed:S.seed,
+    seedHex:seedHex(S.seed),
+    bpm:gd.bpm,
+    defaultLen:gd.defaultLen,
+    lockedTracks:lockedIds,
+    tracks:tracks.map(t=>({
+      id:t.id,
+      name:t.name,
+      icon:t.icon,
+      role:t.role,
+      roleType:t.roleType||null,
+      target:t.target||"digitakt-audio",
+      midiChannel:t.midiChannel||1,
+      note:t.note||60,
+      noteLabel:midiNoteName(t.note||60),
+      velocity:t.velocity||100,
+      steps:t.steps||[],
+      lanes:{
+        probability:t.lanes&&t.lanes.probability?{...t.lanes.probability}:{},
+        condition:t.lanes&&t.lanes.condition?{...t.lanes.condition}:{},
+      },
+    })),
+  };
+  return JSON.stringify(obj,null,2);
+}
+
+function refreshExportOut(){
+  document.getElementById("exportOut").value=_exportFormat==="json"?buildExportJson():buildExportText();
+}
+
+function exportAllPatterns(){
+  _exportFormat="text";
+  setExportFormat("text");
   document.getElementById("exportGenreLabel").textContent=S.genre+(S.subgenre&&currentSG()?` › ${currentSG().name}`:"");
   document.getElementById("exportPanel").classList.remove("hidden");
   document.getElementById("exportPanel").scrollIntoView({behavior:"smooth"});
@@ -1933,6 +2025,18 @@ function doCopy(){
   const txt=document.getElementById("exportOut").value;const lbl=document.getElementById("copyLbl");
   navigator.clipboard.writeText(txt).then(()=>{lbl.textContent="Copied!";setTimeout(()=>lbl.textContent="Copy",2000);})
   .catch(()=>{document.getElementById("exportOut").select();document.execCommand("copy");});
+}
+
+function doDownload(){
+  const isJson=_exportFormat==="json";
+  const txt=document.getElementById("exportOut").value;
+  const blob=new Blob([txt],{type:isJson?"application/json":"text/plain"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  const slug=(S.genre+"-"+seedHex(S.seed)).toLowerCase().replace(/[^a-z0-9]+/g,"-");
+  a.href=url;a.download=`musicbox-${slug}.${isJson?"json":"txt"}`;
+  document.body.appendChild(a);a.click();
+  setTimeout(()=>{URL.revokeObjectURL(url);a.remove();},500);
 }
 
 // ================================================================
@@ -2631,7 +2735,8 @@ function sendCurrentSongStep(){
 // ================================================================
 // SECTION 15 — PERSISTENCE
 // ================================================================
-function save(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify({trackData:S.trackData,seed:S.seed,lockedTracks:S.lockedTracks}));}catch(e){}}
+// schemaVersion 1: added explicit version field + lockedTracks as object
+function save(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify({schemaVersion:1,trackData:S.trackData,seed:S.seed,lockedTracks:S.lockedTracks}));}catch(e){}}
 
 window.onload=init;
 </script>

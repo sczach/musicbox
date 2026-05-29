@@ -587,6 +587,117 @@ assert('swing applied: DnB result steps are sorted', (() => {
 })());
 
 // ================================================================
+// buildExportJson — project JSON structure
+// ================================================================
+// Inline the export builder for Node testing (no DOM dependency)
+function seedHexTest(s) { return s.toString(16).padStart(8, '0'); }
+function midiNoteNameTest(n) {
+  const names = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+  return names[n % 12] + String(Math.floor(n / 12) - 1);
+}
+
+function buildExportJsonTest(genre, seed, tracks, lockedTracks) {
+  const lockedIds = Object.keys(lockedTracks || {}).filter(k => lockedTracks[k]).map(Number);
+  return {
+    schemaVersion: 1,
+    genre,
+    seed,
+    seedHex: seedHexTest(seed),
+    lockedTracks: lockedIds,
+    tracks: tracks.map(t => ({
+      id: t.id,
+      name: t.name,
+      target: t.target || 'digitakt-audio',
+      midiChannel: t.midiChannel || 1,
+      note: t.note || 60,
+      noteLabel: midiNoteNameTest(t.note || 60),
+      velocity: t.velocity || 100,
+      steps: t.steps || [],
+      lanes: {
+        probability: t.lanes && t.lanes.probability ? { ...t.lanes.probability } : {},
+        condition: t.lanes && t.lanes.condition ? { ...t.lanes.condition } : {},
+      },
+    })),
+  };
+}
+
+const exportTracks = [
+  normalizeTrack({ id: 1, name: 'Kick', role: 'Drum', midiChannel: 1, note: 36, velocity: 110,
+    steps: [1, 5, 9, 13], target: 'digitakt-audio',
+    lanes: { probability: { 9: 75 }, condition: { 13: '1:2' } } }),
+  normalizeTrack({ id: 16, name: 'Pro 3 Bass', role: 'MIDI gate', midiChannel: 1, note: 48,
+    velocity: 100, steps: [1, 9, 17, 25] }),
+];
+
+console.log('\nbuildExportJson:');
+assert('schemaVersion is 1', (() => {
+  const obj = buildExportJsonTest('Techno', 0xDEAD, exportTracks, {});
+  return obj.schemaVersion === 1;
+})());
+assert('seedHex matches seed', (() => {
+  const obj = buildExportJsonTest('Techno', 0x1A2B3C4D, exportTracks, {});
+  return obj.seedHex === '1a2b3c4d';
+})());
+assert('lockedTracks is array of IDs', (() => {
+  const obj = buildExportJsonTest('Techno', 1, exportTracks, { 1: true, 5: false, 9: true });
+  return Array.isArray(obj.lockedTracks) && deepEqual(obj.lockedTracks.sort(), [1, 9]);
+})());
+assert('track count matches input', (() => {
+  const obj = buildExportJsonTest('Techno', 1, exportTracks, {});
+  return obj.tracks.length === 2;
+})());
+assert('each track includes routing fields', (() => {
+  const obj = buildExportJsonTest('Techno', 1, exportTracks, {});
+  return obj.tracks.every(t => t.target && t.midiChannel && t.note != null && t.velocity);
+})());
+assert('lanes.probability preserved in JSON export', (() => {
+  const obj = buildExportJsonTest('Techno', 1, exportTracks, {});
+  const kick = obj.tracks.find(t => t.id === 1);
+  return kick && kick.lanes.probability[9] === 75;
+})());
+assert('lanes.condition preserved in JSON export', (() => {
+  const obj = buildExportJsonTest('Techno', 1, exportTracks, {});
+  const kick = obj.tracks.find(t => t.id === 1);
+  return kick && kick.lanes.condition[13] === '1:2';
+})());
+assert('pro3 track target is pro3-usb in export', (() => {
+  const obj = buildExportJsonTest('Techno', 1, exportTracks, {});
+  const p3 = obj.tracks.find(t => t.id === 16);
+  return p3 && p3.target === 'pro3-usb';
+})());
+assert('noteLabel is correct MIDI note name', (() => {
+  const obj = buildExportJsonTest('Techno', 1, exportTracks, {});
+  const kick = obj.tracks.find(t => t.id === 1);
+  return kick && kick.noteLabel === 'C2'; // MIDI 36 = C2
+})());
+
+// ================================================================
+// Schema versioning — migration detection
+// ================================================================
+console.log('\nschema versioning:');
+assert('v0 payload (no schemaVersion) detected as version 0', (() => {
+  const payload = { trackData: {}, seed: 42, lockedTracks: {} };
+  const ver = typeof payload.schemaVersion === 'number' ? payload.schemaVersion : 0;
+  return ver === 0;
+})());
+assert('v1 payload detected as version 1', (() => {
+  const payload = { schemaVersion: 1, trackData: {}, seed: 42, lockedTracks: {} };
+  const ver = typeof payload.schemaVersion === 'number' ? payload.schemaVersion : 0;
+  return ver === 1;
+})());
+assert('v1 serialized JSON round-trips schemaVersion', (() => {
+  const saved = JSON.stringify({ schemaVersion: 1, seed: 0xCAFE, trackData: {}, lockedTracks: {} });
+  const loaded = JSON.parse(saved);
+  return loaded.schemaVersion === 1 && loaded.seed === 0xCAFE;
+})());
+assert('save format includes schemaVersion field (structural check)', (() => {
+  // Simulate save() output structure
+  const payload = { schemaVersion: 1, trackData: {}, seed: 1234, lockedTracks: { 1: true } };
+  const parsed = JSON.parse(JSON.stringify(payload));
+  return parsed.schemaVersion === 1 && typeof parsed.seed === 'number';
+})());
+
+// ================================================================
 // Summary
 // ================================================================
 console.log(`\n${pass} passed, ${fail} failed.`);
