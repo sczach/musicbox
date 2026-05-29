@@ -1129,7 +1129,7 @@ function init(){
   updateSeedDisplay();
   initMidi();
   populateAudioOutputs();
-  if(navigator.mediaDevices)navigator.mediaDevices.addEventListener('devicechange',populateAudioOutputs);
+  if(navigator.mediaDevices)navigator.mediaDevices.addEventListener('devicechange',onDeviceChange);
   document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!document.getElementById("modal").classList.contains("hidden"))closeModal();});
   // Load Three.js from CDN; fall back to canvas 2D if unavailable
   const tjs=document.createElement('script');
@@ -1211,6 +1211,18 @@ async function changeAudioOutput(){
   if(audioCtx&&typeof audioCtx.setSinkId==='function'){
     try{await audioCtx.setSinkId(previewSinkId);}
     catch(e){console.warn('[audio] setSinkId failed:',e);sel.value='';previewSinkId='';}
+  }
+}
+
+// Called on devicechange: re-populate the selector and close any idle AudioContext
+// so the next Play creates a fresh one latched to the new OS default.
+// If already playing with the default sink, re-route immediately via setSinkId.
+async function onDeviceChange(){
+  await populateAudioOutputs();
+  if(!previewPlaying){
+    if(audioCtx){audioCtx.close();audioCtx=null;}
+  } else if(!previewSinkId&&audioCtx&&typeof audioCtx.setSinkId==='function'){
+    await audioCtx.setSinkId('').catch(()=>{});
   }
 }
 
@@ -1331,7 +1343,9 @@ async function togglePreview(){
   } else {
     previewPlaying=true;
     const ctx=getACtx();
-    if(previewSinkId&&typeof ctx.setSinkId==='function'){
+    // Always apply sinkId when supported — even '' forces Chrome to re-latch
+    // to the current OS default rather than staying frozen on the old device.
+    if(typeof ctx.setSinkId==='function'){
       await ctx.setSinkId(previewSinkId).catch(e=>console.warn('[audio] setSinkId:',e));
     }
     const dur=schedulePreview();
