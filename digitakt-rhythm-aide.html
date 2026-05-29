@@ -1725,7 +1725,9 @@ function cycleStepProb(step,btn){
   if(next>=100)delete track.lanes.probability[step];else track.lanes.probability[step]=next;
   const barS=(step-1)%4===0?' bar-s':'';
   btn.className=`step-btn active${probClass(next)}${barS}`;
-  btn.textContent=next<100?String(next):String(step);
+  const cond=track.lanes&&track.lanes.condition&&track.lanes.condition[step];
+  const mainLabel=next<100?String(next):String(step);
+  btn.innerHTML=mainLabel+(cond?`<span class="step-cond">${cond}</span>`:'');
   btn.title=next<100?`Step ${step} · ${next}% probability — right-click to cycle`:`Step ${step} · right-click to set probability`;
 }
 
@@ -1912,7 +1914,9 @@ function randomizeKey(){
   const keys=HARMONIC[S.genre]||[];
   if(!keys.length)return;
   let next=S.keyIdx;
-  if(keys.length>1)while(next===S.keyIdx)next=Math.floor(Math.random()*keys.length);
+  // Intentional one-shot manual action — each button press generates a fresh seed
+  const rng=mulberry32(mkSeed());
+  if(keys.length>1)while(next===S.keyIdx)next=Math.floor(rng()*keys.length);
   S.keyIdx=next;
   renderHarmonicPanel();
 }
@@ -1985,7 +1989,8 @@ function populateMidiOutputs(){
   if(match)sel.value=prev;
 }
 
-function buildMidiEvents(tracks,bpm,loops,startAt){
+function buildMidiEvents(tracks,bpm,loops,startAt,rng){
+  rng=rng||mulberry32(S.seed);
   let maxStep=GENRES[S.genre].defaultLen;
   tracks.forEach(t=>{if(t.steps&&t.steps.length)maxStep=Math.max(maxStep,...t.steps);});
   const patLen=Math.ceil(maxStep/16)*16;
@@ -2006,7 +2011,7 @@ function buildMidiEvents(tracks,bpm,loops,startAt){
       track.steps.forEach(step=>{
         if(step<1||step>patLen)return;
         const prob=track.lanes&&track.lanes.probability&&track.lanes.probability[step]!=null?track.lanes.probability[step]:100;
-        if(Math.random()*100>=prob)return;
+        if(rng()*100>=prob)return;
         const cond=track.lanes&&track.lanes.condition&&track.lanes.condition[step];
         if(cond&&!evalCondition(cond,loop))return;
         const onset=startAt+lo+(step-1)*msPerStep;
