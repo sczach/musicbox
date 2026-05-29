@@ -256,12 +256,30 @@ select,input,textarea{box-shadow:none}
       <div class="hardware-card space-y-2.5">
         <div class="flex items-center gap-2">
           <i class="fas fa-plug text-cyan-600 text-sm"></i>
-          <span class="font-semibold text-sm text-slate-200">Send to Digitakt</span>
+          <span class="font-semibold text-sm text-slate-200">Send to Hardware</span>
           <span id="midiStatusMsg" class="text-xs text-slate-600 mono ml-auto"></span>
         </div>
-        <select id="midiOutput" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-cyan-600">
-          <option value="">— plug in Digitakt via USB —</option>
-        </select>
+        <!-- Per-target output routing matrix -->
+        <div class="space-y-1.5">
+          <div class="flex items-center gap-2">
+            <span class="text-[10px] font-bold tracking-wider uppercase w-16 flex-shrink-0" style="color:#f43f5e;opacity:.7">Digitakt</span>
+            <select id="midiOutDT" class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-cyan-600">
+              <option value="">— not connected —</option>
+            </select>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-[10px] font-bold tracking-wider uppercase w-16 flex-shrink-0" style="color:#a78bfa;opacity:.7">Pro 3</span>
+            <select id="midiOutPro3" class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-cyan-600">
+              <option value="">— not connected —</option>
+            </select>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-[10px] font-bold tracking-wider uppercase w-16 flex-shrink-0 text-slate-600">Ext</span>
+            <select id="midiOutExt" class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-cyan-600">
+              <option value="">— not connected —</option>
+            </select>
+          </div>
+        </div>
         <div class="flex gap-2">
           <div class="flex items-center gap-1.5 flex-1">
             <span class="lbl whitespace-nowrap">BPM</span>
@@ -2016,21 +2034,32 @@ async function initMidi(){
 }
 
 function populateMidiOutputs(){
-  const sel=document.getElementById("midiOutput");
-  if(!sel||!midiAccess)return;
-  const prev=sel.value;
-  sel.innerHTML="";
+  if(!midiAccess)return;
   const outputs=[...midiAccess.outputs.values()];
   updateMidiDiagnostics(outputs.length);
-  if(!outputs.length){sel.innerHTML='<option value="">— no MIDI devices found —</option>';return;}
+  const NONE='<option value="">— not connected —</option>';
+  const NONE_NONE='<option value="">— no MIDI devices found —</option>';
+  const selDT=document.getElementById("midiOutDT");
+  const selP3=document.getElementById("midiOutPro3");
+  const selExt=document.getElementById("midiOutExt");
+  if(!selDT)return;
+  if(!outputs.length){
+    [selDT,selP3,selExt].forEach(s=>{if(s)s.innerHTML=NONE_NONE;});
+    return;
+  }
+  [selDT,selP3,selExt].forEach(s=>{if(s)s.innerHTML=NONE;});
   outputs.forEach(o=>{
-    const opt=document.createElement("option");
-    opt.value=o.id;opt.textContent=o.name;
-    if(o.name.toLowerCase().includes("digitakt"))opt.selected=true;
-    sel.appendChild(opt);
+    const n=o.name.toLowerCase();
+    const isDT=n.includes("digitakt");
+    const isPro3=n.includes("pro 3")||n.includes("sequential")||n.includes("pro3");
+    [selDT,selP3,selExt].forEach(sel=>{
+      const opt=document.createElement("option");
+      opt.value=o.id;opt.textContent=o.name;
+      sel.appendChild(opt);
+    });
+    if(isDT&&selDT.value==="")selDT.value=o.id;
+    if(isPro3&&selP3.value==="")selP3.value=o.id;
   });
-  const match=sel.querySelector(`option[value="${prev}"]`);
-  if(match)sel.value=prev;
 }
 
 function buildMidiEvents(tracks,bpm,loops,startAt,rng){
@@ -2059,8 +2088,9 @@ function buildMidiEvents(tracks,bpm,loops,startAt,rng){
         const cond=track.lanes&&track.lanes.condition&&track.lanes.condition[step];
         if(cond&&!evalCondition(cond,loop))return;
         const onset=startAt+lo+(step-1)*msPerStep;
-        events.push({bytes:[0x90|ch,note,velocity],at:onset});
-        events.push({bytes:[0x80|ch,note,0],at:onset+msPerStep*0.45});
+        const tgt=track.target||"digitakt-audio";
+        events.push({bytes:[0x90|ch,note,velocity],at:onset,target:tgt});
+        events.push({bytes:[0x80|ch,note,0],at:onset+msPerStep*0.45,target:tgt});
       });
     });
   }
@@ -2068,32 +2098,49 @@ function buildMidiEvents(tracks,bpm,loops,startAt,rng){
   return {events,totalDuration,msPerStep,patLen};
 }
 
-// Core MIDI send — shared by single-send and song-mode-send
-function doMidiSend(output,tracks,bpm,loops,onDone){
-  const plan=buildMidiEvents(normalizeTrackCollection(tracks),bpm,loops,performance.now()+35);
-  plan.events.forEach(evt=>output.send(evt.bytes,evt.at));
-  if(onDone)setTimeout(onDone,plan.totalDuration+plan.msPerStep+150);
-  return plan.totalDuration;
+// Returns a map of target-key → MIDIOutput (or null when not selected).
+function getMidiOutputMap(){
+  if(!midiAccess)return {};
+  const get=id=>id?midiAccess.outputs.get(id)||null:null;
+  return{
+    "digitakt-audio":get(document.getElementById("midiOutDT")?.value||""),
+    "digitakt-midi": get(document.getElementById("midiOutDT")?.value||""),
+    "pro3-usb":       get(document.getElementById("midiOutPro3")?.value||""),
+    "external-midi":  get(document.getElementById("midiOutExt")?.value||""),
+  };
 }
 
-function getMidiOutput(){
-  if(!midiAccess)return null;
-  return midiAccess.outputs.get(document.getElementById("midiOutput").value)||null;
+// Core MIDI send — routes note events per target; broadcasts clock/transport to all.
+function doMidiSend(outputMap,tracks,bpm,loops,onDone){
+  const plan=buildMidiEvents(normalizeTrackCollection(tracks),bpm,loops,performance.now()+35);
+  const allOutputs=[...new Set(Object.values(outputMap).filter(Boolean))];
+  plan.events.forEach(evt=>{
+    if(evt.target){
+      const out=outputMap[evt.target];
+      if(out)out.send(evt.bytes,evt.at);
+    }else{
+      // clock / transport — broadcast to every connected output
+      allOutputs.forEach(out=>out.send(evt.bytes,evt.at));
+    }
+  });
+  if(onDone)setTimeout(onDone,plan.totalDuration+plan.msPerStep+150);
+  return plan.totalDuration;
 }
 
 function sendToDigitakt(){
   const statusEl=document.getElementById("midiStatusMsg");
   if(!midiAccess){statusEl.textContent="MIDI not ready";return;}
-  const output=getMidiOutput();
-  if(!output){statusEl.textContent="Select a MIDI output first";return;}
+  const outputMap=getMidiOutputMap();
+  const anyConnected=Object.values(outputMap).some(Boolean);
+  if(!anyConnected){statusEl.textContent="Select at least one MIDI output";return;}
   const bpm=Math.max(20,Math.min(300,parseFloat(document.getElementById("midiBpm").value)||120));
   const loops=Math.max(1,Math.min(8,parseInt(document.getElementById("midiLoops").value)||2));
   const btn=document.getElementById("midiSendBtn");
   btn.disabled=true;
   btn.innerHTML='<i class="fas fa-circle-notch fa-spin"></i> Sending…';
-  const dur=doMidiSend(output,currentTracks(),bpm,loops,()=>{
+  const dur=doMidiSend(outputMap,currentTracks(),bpm,loops,()=>{
     btn.disabled=false;
-    btn.innerHTML='<i class="fas fa-paper-plane"></i> Send Pattern';
+    btn.innerHTML='<i class="fas fa-paper-plane"></i> Send';
     statusEl.textContent="✓ Done";
   });
   statusEl.textContent=`${(dur/1000).toFixed(1)}s`;
@@ -2166,8 +2213,9 @@ function sendCurrentSongStep(){
   const statusEl=document.getElementById("songSendStatus");
   const btn=document.getElementById("songSendBtn");
   if(!midiAccess){statusEl.textContent="MIDI not ready";return;}
-  const output=getMidiOutput();
-  if(!output){statusEl.textContent="Select MIDI output in main panel first";return;}
+  const outputMap=getMidiOutputMap();
+  const anyConnected=Object.values(outputMap).some(Boolean);
+  if(!anyConnected){statusEl.textContent="Select MIDI output in main panel first";return;}
   const step=COMPOSITION[S.genre].song[songStepIdx];
   const activeTrkIds=step.trks||[];
   const filteredTracks=currentTracks().map(t=>({
@@ -2177,7 +2225,7 @@ function sendCurrentSongStep(){
   const loops=Math.max(1,Math.min(8,parseInt(document.getElementById("songLoops").value)||2));
   btn.disabled=true;
   btn.innerHTML='<i class="fas fa-circle-notch fa-spin"></i> Sending…';
-  const dur=doMidiSend(output,filteredTracks,bpm,loops,()=>{
+  const dur=doMidiSend(outputMap,filteredTracks,bpm,loops,()=>{
     btn.disabled=false;
     btn.innerHTML=`<i class="fas fa-paper-plane"></i> Send ${step.l}`;
     statusEl.textContent="✓ Sent";
