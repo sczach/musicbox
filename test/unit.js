@@ -248,8 +248,9 @@ function buildMidiEventsWithProb(tracks, bpm, loops, startAt, defaultLen, rng) {
           ? track.lanes.probability[step] : 100;
         if (rng() * 100 >= prob) return;
         const onset = startAt + lo + (step - 1) * msPerStep;
-        events.push({ bytes: [0x90 | ch, note, velocity], at: onset });
-        events.push({ bytes: [0x80 | ch, note, 0], at: onset + msPerStep * 0.45 });
+        const tgt = track.target || 'digitakt-audio';
+        events.push({ bytes: [0x90 | ch, note, velocity], at: onset, target: tgt });
+        events.push({ bytes: [0x80 | ch, note, 0], at: onset + msPerStep * 0.45, target: tgt });
       });
     });
   }
@@ -378,6 +379,50 @@ assert('3:4 fires on loops 2,6,10', [2,6,10].every(i=>evalCondition('3:4',i)) &&
 assert('1ST fires only on loop 0', evalCondition('1ST',0) && !evalCondition('1ST',1) && !evalCondition('1ST',7));
 assert('!1ST fires on all loops except 0', !evalCondition('!1ST',0) && evalCondition('!1ST',1) && evalCondition('!1ST',7));
 assert('2:3 fires on loops 1,4,7', [1,4,7].every(i=>evalCondition('2:3',i)) && ![0,2,3].some(i=>evalCondition('2:3',i)));
+
+// ================================================================
+// buildMidiEvents — per-target routing
+// ================================================================
+console.log('\nbuildMidiEvents target routing:');
+assert('note events carry target from track', (() => {
+  const t = normalizeTrack({ id: 1, name: 'Kick', midiChannel: 1, note: 36, velocity: 100,
+    steps: [1], target: 'digitakt-audio' });
+  const { events } = buildMidiEventsWithProb([t], 120, 1, 0, 16, mulberry32(1));
+  const noteOn = events.find(e => (e.bytes[0] & 0xF0) === 0x90);
+  return noteOn && noteOn.target === 'digitakt-audio';
+})());
+assert('pro3-usb track events carry pro3-usb target', (() => {
+  const t = normalizeTrack({ id: 16, name: 'Pro 3 Bass', midiChannel: 1, note: 36, velocity: 100,
+    steps: [1, 9] });
+  const { events } = buildMidiEventsWithProb([t], 120, 1, 0, 16, mulberry32(1));
+  const noteOns = events.filter(e => (e.bytes[0] & 0xF0) === 0x90);
+  return noteOns.length === 2 && noteOns.every(e => e.target === 'pro3-usb');
+})());
+assert('external-midi track events carry external-midi target', (() => {
+  const t = normalizeTrack({ id: 5, name: 'Ext synth', midiChannel: 3, note: 60, velocity: 100,
+    steps: [1], target: 'external-midi' });
+  const { events } = buildMidiEventsWithProb([t], 120, 1, 0, 16, mulberry32(1));
+  const noteOn = events.find(e => (e.bytes[0] & 0xF0) === 0x90);
+  return noteOn && noteOn.target === 'external-midi';
+})());
+assert('clock and transport events have no target property', (() => {
+  const t = normalizeTrack({ id: 1, name: 'Kick', midiChannel: 1, note: 36, velocity: 100,
+    steps: [1] });
+  const { events } = buildMidiEventsWithProb([t], 120, 1, 0, 16, mulberry32(1));
+  const clockTransport = events.filter(e => e.bytes[0] === 0xFA || e.bytes[0] === 0xF8 || e.bytes[0] === 0xFC);
+  return clockTransport.length > 0 && clockTransport.every(e => e.target === undefined);
+})());
+assert('multi-target tracks each tag events with own target', (() => {
+  const dtTrack = normalizeTrack({ id: 1, name: 'Kick', midiChannel: 10, note: 36, velocity: 100,
+    steps: [1, 5], target: 'digitakt-audio' });
+  const p3Track = normalizeTrack({ id: 16, name: 'Pro 3 Bass', midiChannel: 1, note: 48, velocity: 100,
+    steps: [3, 11], target: 'pro3-usb' });
+  const { events } = buildMidiEventsWithProb([dtTrack, p3Track], 120, 1, 0, 16, mulberry32(1));
+  const noteOns = events.filter(e => (e.bytes[0] & 0xF0) === 0x90);
+  const dtNotes = noteOns.filter(e => e.target === 'digitakt-audio');
+  const p3Notes = noteOns.filter(e => e.target === 'pro3-usb');
+  return dtNotes.length === 2 && p3Notes.length === 2;
+})());
 
 // ================================================================
 // Summary

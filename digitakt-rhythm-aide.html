@@ -9,7 +9,7 @@
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 *,*::before,*::after{box-sizing:border-box}
-body{font-family:'Space Grotesk',system-ui,sans-serif;background:#070b14;color:#e2e8f0;min-height:100vh}
+body{font-family:'Space Grotesk',system-ui,sans-serif;background:#09111f;color:#e2e8f0;min-height:100vh}
 .mono{font-family:'JetBrains Mono',monospace}
 .track-card{transition:border-color .1s,box-shadow .1s,transform .1s;cursor:pointer}
 .track-card:hover{border-color:#22d3ee!important;box-shadow:0 0 16px rgba(34,211,238,.13);transform:translateY(-1px)}
@@ -62,56 +62,53 @@ body{font-family:'Space Grotesk',system-ui,sans-serif;background:#070b14;color:#
 .viz-src-btn:hover:not(.viz-src-on){background:#182234;color:#608ab0}
 .viz-src-btn.viz-src-on{background:#0a3a58;border-color:#0891b2;color:#22d3ee}
 
-/* Production cockpit polish */
-:root{--mb-bg:#050914;--mb-panel:rgba(9,14,26,.82);--mb-panel-strong:rgba(12,19,34,.94);--mb-border:rgba(148,163,184,.14);--mb-cyan:#22d3ee;--mb-violet:#8b5cf6;--mb-amber:#f59e0b}
-body{background:
-  radial-gradient(circle at 12% 8%,rgba(34,211,238,.14),transparent 30rem),
-  radial-gradient(circle at 88% -4%,rgba(139,92,246,.16),transparent 34rem),
-  linear-gradient(180deg,#07101f 0%,var(--mb-bg) 48%,#020409 100%);}
-body::before{content:"";position:fixed;inset:0;pointer-events:none;background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.02) 1px,transparent 1px);background-size:48px 48px;mask-image:linear-gradient(to bottom,rgba(0,0,0,.8),transparent 78%)}
+/* Palette */
+:root{--mb-panel:rgba(10,17,31,.88);--mb-border:rgba(148,163,184,.1)}
 .app-shell{position:relative;z-index:1}
-.hero{background:linear-gradient(135deg,rgba(15,23,42,.92),rgba(8,13,25,.76));border:1px solid var(--mb-border);box-shadow:0 24px 80px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.05);border-radius:28px;padding:1.25rem 1.4rem;backdrop-filter:blur(18px)}
-.hero-mark{width:3.25rem;height:3.25rem;border-radius:1.15rem;background:linear-gradient(135deg,rgba(34,211,238,.24),rgba(139,92,246,.16));border:1px solid rgba(34,211,238,.34);box-shadow:0 0 28px rgba(34,211,238,.16);display:flex;align-items:center;justify-content:center}
-.status-chip{display:inline-flex;align-items:center;gap:.45rem;border:1px solid var(--mb-border);background:rgba(15,23,42,.72);border-radius:999px;padding:.45rem .7rem;font-size:.72rem;color:#94a3b8;white-space:nowrap}
-.status-chip strong{color:#e2e8f0;font-weight:700}.status-dot{width:.45rem;height:.45rem;border-radius:999px;background:#64748b;box-shadow:0 0 0 4px rgba(100,116,139,.1)}.status-dot.live{background:#22d3ee;box-shadow:0 0 0 4px rgba(34,211,238,.12),0 0 14px rgba(34,211,238,.6)}
-.control-panel,.cockpit-card,.hardware-card{background:var(--mb-panel);border:1px solid var(--mb-border);border-radius:22px;box-shadow:0 18px 60px rgba(0,0,0,.24),inset 0 1px 0 rgba(255,255,255,.035);backdrop-filter:blur(16px)}
+.hero{background:rgba(11,18,33,.75);border:1px solid var(--mb-border);border-radius:14px;padding:.85rem 1.1rem}
+.status-chip{display:inline-flex;align-items:center;gap:.4rem;border:1px solid var(--mb-border);background:rgba(15,23,42,.55);border-radius:999px;padding:.3rem .6rem;font-size:.7rem;color:#64748b;white-space:nowrap}
+.status-chip strong{color:#cbd5e1;font-weight:600}
+.control-panel,.cockpit-card,.hardware-card{background:var(--mb-panel);border:1px solid var(--mb-border);border-radius:20px;box-shadow:0 6px 24px rgba(0,0,0,.2)}
 .control-panel{padding:.9rem}.cockpit-card{padding:1rem}.hardware-card{padding:.85rem}
-.metric-card{background:linear-gradient(180deg,rgba(15,23,42,.78),rgba(6,11,22,.78));border:1px solid var(--mb-border);border-radius:16px;box-shadow:inset 0 1px 0 rgba(255,255,255,.04)}
-.btn-primary{background:linear-gradient(135deg,#0891b2,#7c3aed)!important;border-color:rgba(125,211,252,.45)!important;color:white!important;box-shadow:0 12px 30px rgba(14,165,233,.16)}
-.track-card{background:linear-gradient(180deg,rgba(15,23,42,.88),rgba(5,10,20,.92))!important;border-color:rgba(148,163,184,.13)!important;border-radius:18px!important;box-shadow:0 12px 30px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,255,255,.035)}
-.track-card:hover{border-color:rgba(34,211,238,.55)!important;box-shadow:0 20px 50px rgba(0,0,0,.24),0 0 26px rgba(34,211,238,.13),inset 0 1px 0 rgba(255,255,255,.055)}
-.route-pill{display:inline-flex;align-items:center;gap:.28rem;padding:.18rem .45rem;border-radius:999px;border:1px solid rgba(34,211,238,.18);background:rgba(8,145,178,.08);color:#67e8f9;font-size:.58rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
-.mini-step{width:6px;height:12px;background:#122137}.mini-step.on{background:linear-gradient(180deg,#67e8f9,#0891b2);box-shadow:0 0 10px rgba(34,211,238,.45)}
-.pro-card{background:linear-gradient(180deg,rgba(15,23,42,.76),rgba(2,6,23,.72));border:1px solid var(--mb-border);border-radius:18px;padding:.9rem;position:relative;overflow:hidden}.pro-card::after{content:"";position:absolute;inset:auto -20% -55% -20%;height:80%;background:radial-gradient(circle,rgba(34,211,238,.13),transparent 55%);pointer-events:none}.pro-card-title{font-size:.76rem;font-weight:800;color:#e2e8f0;letter-spacing:.02em}.pro-card-copy{font-size:.7rem;line-height:1.45;color:#64748b;margin-top:.25rem}.device-kv{display:flex;align-items:center;justify-content:space-between;gap:.75rem;font-size:.68rem;color:#64748b;border-top:1px solid rgba(148,163,184,.08);padding-top:.45rem;margin-top:.45rem}.device-kv span:last-child{color:#cbd5e1;font-family:'JetBrains Mono',monospace}
-select,input,textarea{box-shadow:inset 0 1px 0 rgba(255,255,255,.03)}
-@media (max-width:1180px){.app-layout{flex-direction:column}.side-rail,.send-rail{position:static!important;width:100%!important;max-height:none!important}.guide-grid{grid-template-columns:1fr!important}}
-@media (max-width:760px){.hero{border-radius:20px}.hero-row{align-items:flex-start;flex-direction:column}.track-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}.desktop-status{width:100%;justify-content:flex-start;overflow-x:auto}.app-shell{padding-left:.75rem!important;padding-right:.75rem!important}}
+.metric-card{background:rgba(12,20,36,.7);border:1px solid var(--mb-border);border-radius:12px}
+.btn-primary{background:linear-gradient(135deg,#0e7490,#6d28d9)!important;border-color:rgba(6,182,212,.25)!important;color:white!important}
+/* Track card: clean + role-colour accent strip */
+.track-card{background:#0b1422!important;border-color:rgba(148,163,184,.09)!important;border-radius:14px!important;box-shadow:0 3px 12px rgba(0,0,0,.18);position:relative;overflow:hidden}
+.track-card::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:var(--tc-rc,rgba(148,163,184,.14))}
+.track-card:hover{border-color:rgba(148,163,184,.2)!important;box-shadow:0 6px 20px rgba(0,0,0,.26)}
+/* Role colours */
+.tc-kick{--tc-rc:#f43f5e}.tc-snare{--tc-rc:#fb923c}.tc-hat,.tc-shaker{--tc-rc:#94a3b8}
+.tc-bass{--tc-rc:#60a5fa}.tc-harmonic{--tc-rc:#22d3ee}.tc-melody{--tc-rc:#34d399}
+.tc-texture{--tc-rc:#475569}.tc-midi{--tc-rc:#a78bfa}.tc-percussion{--tc-rc:#78716c}
+/* Mini step dots inherit role colour */
+.mini-step{width:5px;height:9px;background:#111d2e;border-radius:1px}
+.mini-step.on{background:var(--tc-rc,#22d3ee)!important;box-shadow:none}
+.route-pill{display:inline-flex;align-items:center;gap:.25rem;padding:.15rem .4rem;border-radius:999px;border:1px solid rgba(148,163,184,.1);background:rgba(148,163,184,.05);color:#94a3b8;font-size:.58rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+.device-kv{display:flex;align-items:center;justify-content:space-between;gap:.75rem;font-size:.68rem;color:#64748b;border-top:1px solid rgba(148,163,184,.07);padding-top:.4rem;margin-top:.4rem}.device-kv span:last-child{color:#cbd5e1;font-family:'JetBrains Mono',monospace}
+select,input,textarea{box-shadow:none}
+@media(max-width:1180px){.app-layout{flex-direction:column}.side-rail,.send-rail{position:static!important;width:100%!important;max-height:none!important}.guide-grid{grid-template-columns:1fr!important}}
+@media(max-width:760px){.track-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}.app-shell{padding-left:.75rem!important;padding-right:.75rem!important}}
 </style>
 </head>
 <body>
 
 <div class="app-shell max-w-[1520px] mx-auto px-5 pt-5 pb-10">
 
-  <!-- HEADER: production cockpit branding -->
-  <header class="hero mb-5">
-    <div class="hero-row flex items-center justify-between gap-5">
-      <div class="flex items-center gap-4 min-w-0">
-        <div class="hero-mark flex-shrink-0">
-          <i class="fas fa-wave-square text-cyan-300 text-xl"></i>
+  <!-- HEADER -->
+  <header class="hero mb-4">
+    <div class="flex items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-xl bg-cyan-950/40 border border-cyan-900/25 flex items-center justify-center flex-shrink-0">
+          <i class="fas fa-wave-square text-cyan-500 text-sm"></i>
         </div>
-        <div class="min-w-0">
-          <div class="flex items-center gap-2 mb-1 flex-wrap">
-            <span class="status-chip"><span class="status-dot live"></span><strong>Musicbox</strong> composition cockpit</span>
-            <span class="status-chip"><i class="fas fa-microchip text-purple-300"></i> Digitakt II + Pro 3</span>
-          </div>
-          <h1 class="text-3xl md:text-4xl font-bold tracking-tight leading-none text-white">Digitakt Composition Machine</h1>
-          <p class="text-slate-400 text-sm mt-2 max-w-3xl">Generate, refine, route, and capture hardware-ready patterns with explicit MIDI mapping, arrangement guidance, and professional live/record workflow controls.</p>
+        <div>
+          <div class="font-bold text-slate-100 text-sm leading-tight tracking-tight">Musicbox</div>
+          <div class="text-slate-600 text-[11px]">Digitakt II composition aid · Sequential Pro 3</div>
         </div>
       </div>
-      <div class="desktop-status flex gap-2 flex-wrap justify-end">
-        <span class="status-chip"><i class="fas fa-circle-nodes text-cyan-300"></i><strong>16</strong> tracks</span>
-        <span class="status-chip"><i class="fas fa-dice-d20 text-violet-300"></i> Euclidean engine</span>
-        <span class="status-chip"><i class="fas fa-usb text-emerald-300"></i> Web MIDI</span>
+      <div class="flex items-center gap-2">
+        <span class="status-chip"><i class="fas fa-circle-nodes text-slate-600 text-xs"></i> Euclidean</span>
+        <span class="status-chip"><i class="fas fa-usb text-slate-600 text-xs"></i> Web MIDI</span>
       </div>
     </div>
   </header>
@@ -153,41 +150,29 @@ select,input,textarea{box-shadow:inset 0 1px 0 rgba(255,255,255,.03)}
     <div class="flex-1 min-w-0 space-y-4 cockpit-card">
 
       <!-- Toolbar -->
-      <div class="flex items-center justify-between gap-3 flex-wrap">
-        <div>
-          <h2 class="font-semibold text-slate-100">Composition Workbench</h2>
-          <p id="paletteSubtitle" class="text-xs text-slate-600 mt-0.5">Click a track to edit triggers, review routing, or mute it from preview</p>
-        </div>
-        <div class="flex gap-2 flex-wrap items-center">
-          <button id="previewBtn" onclick="togglePreview()" class="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 rounded-lg flex items-center gap-1.5 transition-colors">
-            <i class="fas fa-play text-green-400 text-xs"></i> Preview
-          </button>
-          <select id="audioOutputSel" onchange="changeAudioOutput()" title="Preview audio output — select headphones, speakers, or other output"
-            class="hidden text-xs bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-slate-400 focus:outline-none focus:border-cyan-600 max-w-[11rem]">
-            <option value="">System default</option>
-          </select>
-          <button onclick="regenerateComposition(true)" class="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg flex items-center gap-1.5 transition-colors">
-            <i class="fas fa-dice text-purple-400"></i> New Seed
-          </button>
-          <span id="seedDisplay" class="mono text-[10px] text-slate-600 tabular-nums px-1 select-all" title="Generation seed — copy to share or replay this composition"></span>
-          <button onclick="regenerateComposition(false)" class="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg flex items-center gap-1.5 transition-colors">
-            <i class="fas fa-wand-magic-sparkles text-purple-400"></i> Regenerate
-          </button>
-          <button onclick="loadRecommendedDefaults()" class="px-3 py-1.5 text-xs bg-slate-900 hover:bg-slate-800 border border-slate-700 rounded-lg flex items-center gap-1.5 transition-colors">
-            <i class="fas fa-rotate-left text-slate-400"></i> Recommended
-          </button>
-          <button onclick="exportAllPatterns()" class="px-3 py-1.5 text-xs bg-cyan-950/50 hover:bg-cyan-900/50 border border-cyan-800/40 text-cyan-300 rounded-lg flex items-center gap-1.5 transition-colors">
-            <i class="fas fa-file-export"></i> Export All
-          </button>
-        </div>
-      </div>
-
-      <!-- Track Grid -->
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
-        <div class="pro-card"><div class="pro-card-title"><i class="fas fa-lock text-cyan-300 mr-1"></i>Lockable roles</div><p class="pro-card-copy">Treat every track as a musical job: drums, bass, texture, chord, MIDI, or Pro 3 voice.</p></div>
-        <div class="pro-card"><div class="pro-card-title"><i class="fas fa-route text-purple-300 mr-1"></i>Explicit routing</div><p class="pro-card-copy">No hidden channel-by-index hacks; each card now exposes target and channel.</p></div>
-        <div class="pro-card"><div class="pro-card-title"><i class="fas fa-sliders text-amber-300 mr-1"></i>Mutation ready</div><p class="pro-card-copy">The next engine can add probability, microtiming, note, and CC lanes to this model.</p></div>
-        <div class="pro-card"><div class="pro-card-title"><i class="fas fa-record-vinyl text-emerald-300 mr-1"></i>Capture first</div><p class="pro-card-copy">Optimized for browser → Digitakt recording before any risky pattern SysEx work.</p></div>
+      <div class="flex items-center gap-2 flex-wrap">
+        <button id="previewBtn" onclick="togglePreview()" class="px-3 py-1.5 text-xs font-medium bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 rounded-lg flex items-center gap-1.5 transition-colors">
+          <i class="fas fa-play text-emerald-400 text-xs"></i> Preview
+        </button>
+        <select id="audioOutputSel" onchange="changeAudioOutput()" title="Preview audio output — select headphones, speakers, or other output"
+          class="hidden text-xs bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-slate-400 focus:outline-none focus:border-cyan-600 max-w-[10rem]">
+          <option value="">System default</option>
+        </select>
+        <div class="w-px h-4 bg-slate-800 mx-0.5 flex-shrink-0"></div>
+        <button onclick="regenerateComposition(false)" class="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg flex items-center gap-1.5 transition-colors">
+          <i class="fas fa-arrows-rotate text-purple-500 text-xs"></i> Regenerate
+        </button>
+        <button onclick="regenerateComposition(true)" class="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg flex items-center gap-1.5 transition-colors">
+          <i class="fas fa-dice text-purple-500 text-xs"></i> New Seed
+        </button>
+        <span id="seedDisplay" class="mono text-[10px] text-slate-700 tabular-nums px-1 select-all" title="Generation seed — copy to share or replay"></span>
+        <div class="flex-1 min-w-[1rem]"></div>
+        <button onclick="loadRecommendedDefaults()" class="px-2.5 py-1.5 text-xs bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg text-slate-600 transition-colors">
+          Reset
+        </button>
+        <button onclick="exportAllPatterns()" class="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 rounded-lg flex items-center gap-1.5 transition-colors">
+          <i class="fas fa-file-export text-xs"></i> Export
+        </button>
       </div>
 
       <div id="trackGrid" class="track-grid grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2"></div>
@@ -206,36 +191,36 @@ select,input,textarea{box-shadow:inset 0 1px 0 rgba(255,255,255,.03)}
         </div>
       </div>
 
-      <!-- Composition Guide + Workflow Tips -->
-      <div class="guide-grid grid grid-cols-2 gap-5 pt-1">
-
-        <!-- Composition Guide -->
-        <div>
-          <div class="flex items-center gap-2 mb-2.5">
-            <i class="fas fa-map text-cyan-600 text-xs"></i>
-            <span class="font-semibold text-sm text-slate-200">Composition Guide</span>
+      <!-- Reference — collapsed by default -->
+      <div class="border-t border-slate-800/40 pt-1 mt-1">
+        <button onclick="toggleSect('refBody','refChev')" class="sect-trigger text-left" style="border-radius:10px;background:transparent;border:none;padding:.6rem .25rem">
+          <span class="text-xs text-slate-700 flex items-center gap-1.5">
+            <i class="fas fa-book-open text-slate-800 text-xs"></i>
+            Reference &amp; workflow tips
+          </span>
+          <i id="refChev" class="fas fa-chevron-down chevron text-slate-800 text-xs"></i>
+        </button>
+        <div id="refBody" class="collapse-body">
+          <div class="guide-grid grid grid-cols-2 gap-4 pt-2">
+            <div>
+              <div class="text-xs font-semibold text-slate-600 mb-2">Composition Guide</div>
+              <div id="compContent"></div>
+            </div>
+            <div>
+              <div class="text-xs font-semibold text-slate-600 mb-2">Workflow Tips</div>
+              <div class="grid grid-cols-2 gap-2">
+                <div class="ccard p-2.5"><div class="flex items-center gap-1.5 mb-1"><i class="fas fa-water text-cyan-700 text-xs"></i><span class="text-xs font-semibold">Sparse Patterns</span></div><p class="text-xs text-slate-500 leading-relaxed">32–64 step patterns with 2–4 active trigs per track. At 70 BPM a 64-step pattern is ~27 seconds — an event, not a loop.</p></div>
+                <div class="ccard p-2.5"><div class="flex items-center gap-1.5 mb-1"><i class="fas fa-lock text-cyan-700 text-xs"></i><span class="text-xs font-semibold">Parameter Locks</span></div><p class="text-xs text-slate-500 leading-relaxed">Hold any trig and turn a knob. Lock filter, reverb send, or sample start per step. The primary tool for making patterns feel alive.</p></div>
+                <div class="ccard p-2.5"><div class="flex items-center gap-1.5 mb-1"><i class="fas fa-shuffle text-cyan-700 text-xs"></i><span class="text-xs font-semibold">Conditional Trigs</span></div><p class="text-xs text-slate-500 leading-relaxed">Hold trig + right arrow. 1:2 fires every other loop, 1:4 every fourth. Simple patterns that never repeat.</p></div>
+                <div class="ccard p-2.5"><div class="flex items-center gap-1.5 mb-1"><i class="fas fa-copy text-cyan-700 text-xs"></i><span class="text-xs font-semibold">Copy → Paste → Vary</span></div><p class="text-xs text-slate-500 leading-relaxed">FUNC+COPY, move to next slot, FUNC+PASTE, edit 1–2 trigs. Keeps musical continuity.</p></div>
+                <div class="ccard p-2.5"><div class="flex items-center gap-1.5 mb-1"><i class="fas fa-circle-nodes text-cyan-700 text-xs"></i><span class="text-xs font-semibold">Euclidean Rhythms</span></div><p class="text-xs text-slate-500 leading-relaxed">E(3,8), E(5,13), E(7,16) distribute pulses evenly. Use the Euclidean Generator in any track editor.</p></div>
+                <div class="ccard p-2.5"><div class="flex items-center gap-1.5 mb-1"><i class="fas fa-wave-square text-cyan-700 text-xs"></i><span class="text-xs font-semibold">LFO Breathing Pads</span></div><p class="text-xs text-slate-500 leading-relaxed">LFO → FLTR CUTOFF, slow triangle, speed 1–4. Filter breathes independently — living pad, zero extra trigs.</p></div>
+                <div class="ccard p-2.5"><div class="flex items-center gap-1.5 mb-1"><i class="fas fa-satellite-dish text-cyan-700 text-xs"></i><span class="text-xs font-semibold">FX Send Automation</span></div><p class="text-xs text-slate-500 leading-relaxed">P-lock SEND: step 1 dry, step 33 drenched. Same hit sounds completely different.</p></div>
+                <div class="ccard p-2.5"><div class="flex items-center gap-1.5 mb-1"><i class="fas fa-music text-cyan-700 text-xs"></i><span class="text-xs font-semibold">Pro 3 Integration</span></div><p class="text-xs text-slate-500 leading-relaxed">Track 16 as MIDI out, ch 1, to gate the Pro 3. Chord mode sends full chords.</p></div>
+              </div>
+            </div>
           </div>
-          <div id="compContent"></div>
         </div>
-
-        <!-- Workflow Tips -->
-        <div>
-          <div class="flex items-center gap-2 mb-2.5">
-            <i class="fas fa-lightbulb text-cyan-600 text-xs"></i>
-            <span class="font-semibold text-sm text-slate-200">Workflow Tips</span>
-          </div>
-          <div class="grid grid-cols-2 gap-2">
-            <div class="ccard p-2.5"><div class="flex items-center gap-1.5 mb-1"><i class="fas fa-water text-cyan-500 text-xs"></i><span class="text-xs font-semibold">Sparse Patterns</span></div><p class="text-xs text-slate-500 leading-relaxed">32–64 step patterns with 2–4 active trigs per track. At 70 BPM a 64-step pattern is ~27 seconds — an event, not a loop.</p></div>
-            <div class="ccard p-2.5"><div class="flex items-center gap-1.5 mb-1"><i class="fas fa-lock text-cyan-500 text-xs"></i><span class="text-xs font-semibold">Parameter Locks</span></div><p class="text-xs text-slate-500 leading-relaxed">Hold any trig and turn a knob. Lock filter, reverb send, or sample start per step. The primary tool for making patterns feel alive.</p></div>
-            <div class="ccard p-2.5"><div class="flex items-center gap-1.5 mb-1"><i class="fas fa-shuffle text-cyan-500 text-xs"></i><span class="text-xs font-semibold">Conditional Trigs</span></div><p class="text-xs text-slate-500 leading-relaxed">Hold trig + right arrow. 1:2 fires every other loop, 1:4 every fourth. PRE/NEI link trigs. Simple patterns that never repeat.</p></div>
-            <div class="ccard p-2.5"><div class="flex items-center gap-1.5 mb-1"><i class="fas fa-copy text-cyan-500 text-xs"></i><span class="text-xs font-semibold">Copy → Paste → Vary</span></div><p class="text-xs text-slate-500 leading-relaxed">FUNC+COPY, move to next slot, FUNC+PASTE, edit 1–2 trigs. Faster than from scratch and keeps musical continuity.</p></div>
-            <div class="ccard p-2.5"><div class="flex items-center gap-1.5 mb-1"><i class="fas fa-circle-nodes text-cyan-500 text-xs"></i><span class="text-xs font-semibold">Euclidean Rhythms</span></div><p class="text-xs text-slate-500 leading-relaxed">E(3,8), E(5,13), E(7,16) distribute pulses as evenly as possible. Use the Euclidean Generator in any track editor.</p></div>
-            <div class="ccard p-2.5"><div class="flex items-center gap-1.5 mb-1"><i class="fas fa-wave-square text-cyan-500 text-xs"></i><span class="text-xs font-semibold">LFO Breathing Pads</span></div><p class="text-xs text-slate-500 leading-relaxed">LFO → FLTR CUTOFF, slow triangle wave, speed 1–4. The filter breathes independently — living pad with zero extra trigs.</p></div>
-            <div class="ccard p-2.5"><div class="flex items-center gap-1.5 mb-1"><i class="fas fa-satellite-dish text-cyan-500 text-xs"></i><span class="text-xs font-semibold">FX Send Automation</span></div><p class="text-xs text-slate-500 leading-relaxed">P-lock SEND: step 1 dry, step 33 drenched. Same hit sounds completely different twice per pattern.</p></div>
-            <div class="ccard p-2.5"><div class="flex items-center gap-1.5 mb-1"><i class="fas fa-music text-cyan-500 text-xs"></i><span class="text-xs font-semibold">Pro 3 Integration</span></div><p class="text-xs text-slate-500 leading-relaxed">Track 16 as MIDI out, ch 1, to gate the Pro 3. Chord mode sends full chords. Slow-attack patch + Digitakt reverb = atmosphere.</p></div>
-          </div>
-        </div>
-
       </div>
 
     </div>
@@ -271,12 +256,30 @@ select,input,textarea{box-shadow:inset 0 1px 0 rgba(255,255,255,.03)}
       <div class="hardware-card space-y-2.5">
         <div class="flex items-center gap-2">
           <i class="fas fa-plug text-cyan-600 text-sm"></i>
-          <span class="font-semibold text-sm text-slate-200">Send to Digitakt</span>
+          <span class="font-semibold text-sm text-slate-200">Send to Hardware</span>
           <span id="midiStatusMsg" class="text-xs text-slate-600 mono ml-auto"></span>
         </div>
-        <select id="midiOutput" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-cyan-600">
-          <option value="">— plug in Digitakt via USB —</option>
-        </select>
+        <!-- Per-target output routing matrix -->
+        <div class="space-y-1.5">
+          <div class="flex items-center gap-2">
+            <span class="text-[10px] font-bold tracking-wider uppercase w-16 flex-shrink-0" style="color:#f43f5e;opacity:.7">Digitakt</span>
+            <select id="midiOutDT" class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-cyan-600">
+              <option value="">— not connected —</option>
+            </select>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-[10px] font-bold tracking-wider uppercase w-16 flex-shrink-0" style="color:#a78bfa;opacity:.7">Pro 3</span>
+            <select id="midiOutPro3" class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-cyan-600">
+              <option value="">— not connected —</option>
+            </select>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-[10px] font-bold tracking-wider uppercase w-16 flex-shrink-0 text-slate-600">Ext</span>
+            <select id="midiOutExt" class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-cyan-600">
+              <option value="">— not connected —</option>
+            </select>
+          </div>
+        </div>
         <div class="flex gap-2">
           <div class="flex items-center gap-1.5 flex-1">
             <span class="lbl whitespace-nowrap">BPM</span>
@@ -1018,6 +1021,8 @@ function euclidean(pulses,steps,offset){
 const STORAGE_KEY="dt2aide_v5";
 const LEGACY_STORAGE_KEY="dt2aide_v4";
 const TARGET_LABELS={"digitakt-audio":"DT Audio","digitakt-midi":"DT MIDI","pro3-usb":"Pro 3","external-midi":"MIDI"};
+const ROLE_SHORT={kick:'KICK',snare:'SNARE',hat:'HAT',shaker:'SHAKER',bass:'BASS',harmonic:'CHORD',melody:'LEAD',texture:'TEXTURE',midi:'MIDI',percussion:'PERC'};
+const ROUTE_SHORT={'digitakt-audio':'DT','digitakt-midi':'DT MIDI','pro3-usb':'PRO 3','external-midi':'EXT'};
 let S={genre:"Ambient",subgenre:null,trackData:{},editId:null,patLen:64,keyIdx:0,previewMuted:{},seed:0,lockedTracks:{}};
 
 function clamp(n,min,max){return Math.max(min,Math.min(max,n));}
@@ -1129,7 +1134,7 @@ function init(){
   updateSeedDisplay();
   initMidi();
   populateAudioOutputs();
-  if(navigator.mediaDevices)navigator.mediaDevices.addEventListener('devicechange',populateAudioOutputs);
+  if(navigator.mediaDevices)navigator.mediaDevices.addEventListener('devicechange',onDeviceChange);
   document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!document.getElementById("modal").classList.contains("hidden"))closeModal();});
   // Load Three.js from CDN; fall back to canvas 2D if unavailable
   const tjs=document.createElement('script');
@@ -1211,6 +1216,18 @@ async function changeAudioOutput(){
   if(audioCtx&&typeof audioCtx.setSinkId==='function'){
     try{await audioCtx.setSinkId(previewSinkId);}
     catch(e){console.warn('[audio] setSinkId failed:',e);sel.value='';previewSinkId='';}
+  }
+}
+
+// Called on devicechange: re-populate the selector and close any idle AudioContext
+// so the next Play creates a fresh one latched to the new OS default.
+// If already playing with the default sink, re-route immediately via setSinkId.
+async function onDeviceChange(){
+  await populateAudioOutputs();
+  if(!previewPlaying){
+    if(audioCtx){audioCtx.close();audioCtx=null;}
+  } else if(!previewSinkId&&audioCtx&&typeof audioCtx.setSinkId==='function'){
+    await audioCtx.setSinkId('').catch(()=>{});
   }
 }
 
@@ -1331,7 +1348,9 @@ async function togglePreview(){
   } else {
     previewPlaying=true;
     const ctx=getACtx();
-    if(previewSinkId&&typeof ctx.setSinkId==='function'){
+    // Always apply sinkId when supported — even '' forces Chrome to re-latch
+    // to the current OS default rather than staying frozen on the old device.
+    if(typeof ctx.setSinkId==='function'){
       await ctx.setSinkId(previewSinkId).catch(e=>console.warn('[audio] setSinkId:',e));
     }
     const dur=schedulePreview();
@@ -1589,22 +1608,28 @@ function renderTrackGrid(){
   const tracks=currentTracks();
   tracks.forEach(track=>{
     const sc=track.steps?track.steps.length:0;
+    const role=track.roleType||inferTrackRole(track);
     const maxSt=track.steps&&track.steps.length?Math.max(...track.steps):0;
     const tPatLen=Math.max(16,Math.ceil(maxSt/16)*16);
-    const rows=tPatLen/16;
-    let viz='<div class="space-y-0.5">';
+    const density=tPatLen>0?Math.round((sc/tPatLen)*100):0;
+    const rows=Math.min(tPatLen/16,4);
+    let viz='<div class="space-y-px">';
     for(let r=0;r<rows;r++){
-      viz+='<div class="flex gap-0.5">';
-      for(let i=1;i<=16;i++){const step=r*16+i;const on=track.steps&&track.steps.includes(step);viz+=`<div class="mini-step${on?" on":""}"></div>`;}
+      viz+='<div class="flex gap-px">';
+      for(let i=1;i<=16;i++){
+        const step=r*16+i;
+        const on=track.steps&&track.steps.includes(step);
+        const hasProb=on&&track.lanes&&track.lanes.probability&&track.lanes.probability[step]!=null&&track.lanes.probability[step]<100;
+        viz+=`<div class="mini-step${on?' on':''}${hasProb?' opacity-50':''}"></div>`;
+      }
       viz+='</div>';
     }
     viz+='</div>';
     const isMuted=S.previewMuted&&S.previewMuted[track.id];
     const isLocked=S.lockedTracks&&S.lockedTracks[track.id];
-    const routeLabel=TARGET_LABELS[track.target]||"MIDI";
     const card=document.createElement("div");
-    card.className=`track-card bg-slate-900/80 border rounded-xl p-3 select-none${isLocked?" border-amber-700/50 bg-amber-950/10":" border-slate-800"}${isMuted?" pv-muted":""}`;
-    card.innerHTML=`<div class="flex items-start justify-between mb-2"><div class="flex items-center gap-1.5"><span class="text-base leading-none">${escapeHtml(track.icon)}</span><span class="lbl ${isLocked?"text-amber-600":"text-slate-600"}">${String(track.id).padStart(2,"0")}</span></div><div class="flex items-center gap-1.5"><button class="pvtog" onclick="toggleTrackLock(${track.id},event)" title="${isLocked?"Locked — regenerate skips this track":"Unlocked — click to lock"}"><i class="fas fa-${isLocked?"lock text-amber-400":"lock-open text-slate-600"} text-xs"></i></button><button class="pvtog" onclick="event.stopPropagation();togglePreviewMute(${track.id})" title="${isMuted?"Excluded from preview — click to include":"Included in preview — click to exclude"}"><i class="fas fa-${isMuted?"volume-xmark text-slate-600":"volume-low text-cyan-600"} text-xs"></i></button><span class="lbl text-cyan-600 tabular-nums">${sc}</span></div></div><div class="font-semibold text-xs text-slate-100 mb-0.5 leading-tight truncate">${escapeHtml(track.name)}</div><div class="text-xs text-slate-500 mb-2 leading-tight truncate">${escapeHtml(track.role)}</div><div class="flex items-center justify-between gap-2 mb-2"><span class="route-pill"><i class="fas fa-route"></i>${escapeHtml(routeLabel)}</span><span class="text-[10px] mono text-slate-500">CH ${track.midiChannel} · N ${track.note}</span></div>${viz}`;
+    card.className=`track-card tc-${role} border p-2.5 select-none cursor-pointer${isLocked?' border-amber-700/40':' border-slate-800/80'}${isMuted?' pv-muted':''}`;
+    card.innerHTML=`<div class="flex items-center justify-between mb-1.5"><span class="mono text-[10px] text-slate-700 leading-none">${String(track.id).padStart(2,'0')}</span><div class="flex items-center gap-1"><button class="pvtog" onclick="toggleTrackLock(${track.id},event)" title="${isLocked?'Locked — regenerate skips this track':'Click to lock'}"><i class="fas fa-${isLocked?'lock text-amber-400':'lock-open text-slate-700'} text-[10px]"></i></button><button class="pvtog" onclick="event.stopPropagation();togglePreviewMute(${track.id})" title="${isMuted?'Excluded from preview':'In preview — click to mute'}"><i class="fas fa-${isMuted?'volume-xmark text-slate-700':'volume-low text-slate-600'} text-[10px]"></i></button></div></div><div class="font-semibold text-[11px] text-slate-100 leading-tight truncate mb-0.5">${escapeHtml(track.name)}</div><div class="text-[9px] tracking-widest font-bold text-slate-700 uppercase mb-1.5">${ROLE_SHORT[role]||role}</div>${viz}<div class="mt-1.5 rounded-full overflow-hidden" style="height:2px;background:rgba(148,163,184,.07)"><div style="width:${density}%;height:100%;background:var(--tc-rc,#475569);opacity:.55;border-radius:9999px"></div></div><div class="flex items-center justify-between mt-1.5"><span class="text-[9px] font-bold tracking-wide uppercase" style="color:var(--tc-rc,#475569);opacity:.55">${ROUTE_SHORT[track.target]||'MIDI'}</span><span class="text-[9px] mono text-slate-700">ch${track.midiChannel}</span></div>`;
     card.onclick=()=>openModal(track.id);
     grid.appendChild(card);
   });
@@ -2009,21 +2034,32 @@ async function initMidi(){
 }
 
 function populateMidiOutputs(){
-  const sel=document.getElementById("midiOutput");
-  if(!sel||!midiAccess)return;
-  const prev=sel.value;
-  sel.innerHTML="";
+  if(!midiAccess)return;
   const outputs=[...midiAccess.outputs.values()];
   updateMidiDiagnostics(outputs.length);
-  if(!outputs.length){sel.innerHTML='<option value="">— no MIDI devices found —</option>';return;}
+  const NONE='<option value="">— not connected —</option>';
+  const NONE_NONE='<option value="">— no MIDI devices found —</option>';
+  const selDT=document.getElementById("midiOutDT");
+  const selP3=document.getElementById("midiOutPro3");
+  const selExt=document.getElementById("midiOutExt");
+  if(!selDT)return;
+  if(!outputs.length){
+    [selDT,selP3,selExt].forEach(s=>{if(s)s.innerHTML=NONE_NONE;});
+    return;
+  }
+  [selDT,selP3,selExt].forEach(s=>{if(s)s.innerHTML=NONE;});
   outputs.forEach(o=>{
-    const opt=document.createElement("option");
-    opt.value=o.id;opt.textContent=o.name;
-    if(o.name.toLowerCase().includes("digitakt"))opt.selected=true;
-    sel.appendChild(opt);
+    const n=o.name.toLowerCase();
+    const isDT=n.includes("digitakt");
+    const isPro3=n.includes("pro 3")||n.includes("sequential")||n.includes("pro3");
+    [selDT,selP3,selExt].forEach(sel=>{
+      const opt=document.createElement("option");
+      opt.value=o.id;opt.textContent=o.name;
+      sel.appendChild(opt);
+    });
+    if(isDT&&selDT.value==="")selDT.value=o.id;
+    if(isPro3&&selP3.value==="")selP3.value=o.id;
   });
-  const match=sel.querySelector(`option[value="${prev}"]`);
-  if(match)sel.value=prev;
 }
 
 function buildMidiEvents(tracks,bpm,loops,startAt,rng){
@@ -2052,8 +2088,9 @@ function buildMidiEvents(tracks,bpm,loops,startAt,rng){
         const cond=track.lanes&&track.lanes.condition&&track.lanes.condition[step];
         if(cond&&!evalCondition(cond,loop))return;
         const onset=startAt+lo+(step-1)*msPerStep;
-        events.push({bytes:[0x90|ch,note,velocity],at:onset});
-        events.push({bytes:[0x80|ch,note,0],at:onset+msPerStep*0.45});
+        const tgt=track.target||"digitakt-audio";
+        events.push({bytes:[0x90|ch,note,velocity],at:onset,target:tgt});
+        events.push({bytes:[0x80|ch,note,0],at:onset+msPerStep*0.45,target:tgt});
       });
     });
   }
@@ -2061,32 +2098,49 @@ function buildMidiEvents(tracks,bpm,loops,startAt,rng){
   return {events,totalDuration,msPerStep,patLen};
 }
 
-// Core MIDI send — shared by single-send and song-mode-send
-function doMidiSend(output,tracks,bpm,loops,onDone){
-  const plan=buildMidiEvents(normalizeTrackCollection(tracks),bpm,loops,performance.now()+35);
-  plan.events.forEach(evt=>output.send(evt.bytes,evt.at));
-  if(onDone)setTimeout(onDone,plan.totalDuration+plan.msPerStep+150);
-  return plan.totalDuration;
+// Returns a map of target-key → MIDIOutput (or null when not selected).
+function getMidiOutputMap(){
+  if(!midiAccess)return {};
+  const get=id=>id?midiAccess.outputs.get(id)||null:null;
+  return{
+    "digitakt-audio":get(document.getElementById("midiOutDT")?.value||""),
+    "digitakt-midi": get(document.getElementById("midiOutDT")?.value||""),
+    "pro3-usb":       get(document.getElementById("midiOutPro3")?.value||""),
+    "external-midi":  get(document.getElementById("midiOutExt")?.value||""),
+  };
 }
 
-function getMidiOutput(){
-  if(!midiAccess)return null;
-  return midiAccess.outputs.get(document.getElementById("midiOutput").value)||null;
+// Core MIDI send — routes note events per target; broadcasts clock/transport to all.
+function doMidiSend(outputMap,tracks,bpm,loops,onDone){
+  const plan=buildMidiEvents(normalizeTrackCollection(tracks),bpm,loops,performance.now()+35);
+  const allOutputs=[...new Set(Object.values(outputMap).filter(Boolean))];
+  plan.events.forEach(evt=>{
+    if(evt.target){
+      const out=outputMap[evt.target];
+      if(out)out.send(evt.bytes,evt.at);
+    }else{
+      // clock / transport — broadcast to every connected output
+      allOutputs.forEach(out=>out.send(evt.bytes,evt.at));
+    }
+  });
+  if(onDone)setTimeout(onDone,plan.totalDuration+plan.msPerStep+150);
+  return plan.totalDuration;
 }
 
 function sendToDigitakt(){
   const statusEl=document.getElementById("midiStatusMsg");
   if(!midiAccess){statusEl.textContent="MIDI not ready";return;}
-  const output=getMidiOutput();
-  if(!output){statusEl.textContent="Select a MIDI output first";return;}
+  const outputMap=getMidiOutputMap();
+  const anyConnected=Object.values(outputMap).some(Boolean);
+  if(!anyConnected){statusEl.textContent="Select at least one MIDI output";return;}
   const bpm=Math.max(20,Math.min(300,parseFloat(document.getElementById("midiBpm").value)||120));
   const loops=Math.max(1,Math.min(8,parseInt(document.getElementById("midiLoops").value)||2));
   const btn=document.getElementById("midiSendBtn");
   btn.disabled=true;
   btn.innerHTML='<i class="fas fa-circle-notch fa-spin"></i> Sending…';
-  const dur=doMidiSend(output,currentTracks(),bpm,loops,()=>{
+  const dur=doMidiSend(outputMap,currentTracks(),bpm,loops,()=>{
     btn.disabled=false;
-    btn.innerHTML='<i class="fas fa-paper-plane"></i> Send Pattern';
+    btn.innerHTML='<i class="fas fa-paper-plane"></i> Send';
     statusEl.textContent="✓ Done";
   });
   statusEl.textContent=`${(dur/1000).toFixed(1)}s`;
@@ -2159,8 +2213,9 @@ function sendCurrentSongStep(){
   const statusEl=document.getElementById("songSendStatus");
   const btn=document.getElementById("songSendBtn");
   if(!midiAccess){statusEl.textContent="MIDI not ready";return;}
-  const output=getMidiOutput();
-  if(!output){statusEl.textContent="Select MIDI output in main panel first";return;}
+  const outputMap=getMidiOutputMap();
+  const anyConnected=Object.values(outputMap).some(Boolean);
+  if(!anyConnected){statusEl.textContent="Select MIDI output in main panel first";return;}
   const step=COMPOSITION[S.genre].song[songStepIdx];
   const activeTrkIds=step.trks||[];
   const filteredTracks=currentTracks().map(t=>({
@@ -2170,7 +2225,7 @@ function sendCurrentSongStep(){
   const loops=Math.max(1,Math.min(8,parseInt(document.getElementById("songLoops").value)||2));
   btn.disabled=true;
   btn.innerHTML='<i class="fas fa-circle-notch fa-spin"></i> Sending…';
-  const dur=doMidiSend(output,filteredTracks,bpm,loops,()=>{
+  const dur=doMidiSend(outputMap,filteredTracks,bpm,loops,()=>{
     btn.disabled=false;
     btn.innerHTML=`<i class="fas fa-paper-plane"></i> Send ${step.l}`;
     statusEl.textContent="✓ Sent";

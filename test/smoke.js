@@ -29,7 +29,7 @@ try {
 }
 
 // --- 2. Required DOM IDs ---
-const required = ['genreSelect', 'trackGrid', 'midiOutput', 'midiSendBtn', 'harmonyPanel', 'modal'];
+const required = ['genreSelect', 'trackGrid', 'midiOutDT', 'midiSendBtn', 'harmonyPanel', 'modal'];
 let allOk = true;
 required.forEach(id => {
   const present = html.includes(`id="${id}"`);
