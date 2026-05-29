@@ -28,6 +28,7 @@ function normalizeTrack(track) {
     steps: uniqueSortedSteps(track.steps),
     lanes: {
       probability: track.lanes?.probability ?? {},
+      condition: track.lanes?.condition ?? {},
       microtiming: track.lanes?.microtiming ?? {},
       cc: track.lanes?.cc ?? {},
       note: track.lanes?.note ?? {},
@@ -66,27 +67,38 @@ function generateComposition({ genre, strategy, seed, lockedTracks }) {
 ```ts
 function buildMidiPlan(project, mode) {
   const events = [];
+  const rng = mode.rng ?? createSeededRng(project.seed);
   const bpm = clamp(project.bpm, 20, 300);
-  const startAt = performance.now() + mode.preRollMs;
+  const startAt = mode.startAt ?? performance.now() + mode.preRollMs;
 
-  if (mode.sendClock) events.push(...clockEvents({ bpm, startAt, duration: mode.duration }));
-  if (mode.sendTransport) events.push({ bytes: [MIDI_START], at: startAt });
+  if (mode.sendClock) events.push(...clockEvents({ target: mode.clockTarget, bpm, startAt, duration: mode.duration }));
+  if (mode.sendTransport) events.push({ target: mode.transportTarget, bytes: [MIDI_START], at: startAt });
 
   for (const track of project.tracks) {
     if (!isTrackEnabledForMode(track, mode)) continue;
 
+    const target = track.target;
     const channel = track.midiChannel - 1;
     for (const stepEvent of expandSteps(track, project.patternLength, mode.loops)) {
-      if (!passesProbability(stepEvent, mode.captureLoop)) continue;
+      if (!passesProbability(stepEvent, rng)) continue;
+      if (!passesCondition(stepEvent.condition, stepEvent.loopIndex)) continue;
 
-      events.push(noteOn(channel, stepEvent.note ?? track.note, stepEvent.velocity ?? track.velocity, stepEvent.at));
-      events.push(noteOff(channel, stepEvent.note ?? track.note, stepEvent.at + stepEvent.lengthMs));
-      events.push(...ccEvents(channel, stepEvent.cc, stepEvent.at));
+      events.push({ target, ...noteOn(channel, stepEvent.note ?? track.note, stepEvent.velocity ?? track.velocity, stepEvent.at) });
+      events.push({ target, ...noteOff(channel, stepEvent.note ?? track.note, stepEvent.at + stepEvent.lengthMs) });
+      events.push(...ccEvents(channel, stepEvent.cc, stepEvent.at).map(evt => ({ target, ...evt })));
     }
   }
 
-  if (mode.sendTransport) events.push({ bytes: [MIDI_STOP], at: startAt + mode.duration });
+  if (mode.sendTransport) events.push({ target: mode.transportTarget, bytes: [MIDI_STOP], at: startAt + mode.duration });
   return events.sort((a, b) => a.at - b.at);
+}
+
+function sendMidiPlan(plan, outputByTarget) {
+  for (const evt of plan) {
+    const output = outputByTarget[evt.target];
+    if (!output) continue;
+    output.send(evt.bytes, evt.at);
+  }
 }
 ```
 
@@ -114,12 +126,14 @@ function renderCompositionCockpit(project) {
 
 ## 5. Production refactor order
 
-1. Move constants and pure functions out of `digitakt-rhythm-aide.html` first.
-2. Add unit tests around `normalizeTrack`, `euclidean`, `generateComposition`, and `buildMidiPlan`.
-3. Keep UI behavior identical while replacing globals with a single project store.
-4. Add explicit routing controls before adding any new MIDI features.
-5. Add seeded generation and lockable tracks only after the current random generator is test-covered.
-6. Treat full Digitakt project/pattern transfer as a separate hardware research spike, not part of the initial production milestone.
+1. Fix current correctness issues inside the standalone file first: seeded MIDI probability, key-randomization semantics, and the probability/condition badge render edge.
+2. Add per-target MIDI output routing while keeping Web MIDI SysEx disabled.
+3. Add schema-versioned project export/import so future refactors have stable fixtures.
+4. Move constants and pure functions out of `digitakt-rhythm-aide.html` in small slices.
+5. Convert tests so they import production `normalizeTrack`, `euclidean`, RNG, lane, generation, and MIDI planner code instead of copied logic.
+6. Keep UI behavior identical while replacing globals with a single project store.
+7. Introduce Vite/TypeScript only after the pure modules and fixtures are stable; keep a standalone HTML build artifact.
+8. Treat full Digitakt project/pattern transfer as a separate hardware research spike, not part of the initial production milestone.
 
 
 ## 6. Oscilloscope / Three.js visualizer pseudocode

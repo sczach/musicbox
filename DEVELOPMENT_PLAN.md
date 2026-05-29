@@ -7,12 +7,53 @@ This document is the execution brief for Claude Code Sonnet. It turns the curren
 - The repo currently centers on one runnable file, `digitakt-rhythm-aide.html`, and that single-file testbed should remain the fastest way to try ideas.
 - Current strengths:
   - Genre presets, 16-track pattern grids, Euclidean generation, browser preview, harmony/p-lock guidance, song-mode instructions, localStorage persistence, and Web MIDI output.
-  - Existing MIDI sender uses Web MIDI without SysEx and now plans MIDI start/clock/stop plus note events through an explicit event builder.
+  - No-dependency `npm test` now runs a smoke check against the inline script/critical DOM ids plus pure-function tests for Euclidean rhythms, track normalization, seeded generation helpers, MIDI event planning, probability lanes, and trig conditions.
+  - Track metadata is normalized in the testbed, cards show route summaries, and the modal now edits target, MIDI channel, note, velocity, and note-name display.
+  - Seeded regeneration and track locks exist for generated steps, and the app has probability/condition lanes in the step editor.
+  - Existing MIDI sender uses Web MIDI without SysEx and plans MIDI start/clock/stop plus note events through an explicit event builder.
+  - Visualizer scaffolding exists for internal preview analysis, external browser audio input, canvas fallback, and optional Three.js rendering.
 - Current limitations to fix first:
-  - No modular source structure, no automated test harness, and no typed build pipeline yet.
+  - No modular source structure or typed build pipeline yet; production logic is still embedded in `digitakt-rhythm-aide.html` and tests duplicate selected functions.
   - MIDI send is performance/record oriented, not a verified Digitakt project/pattern dump.
-  - Track metadata is now normalized in the testbed, but the UI still needs editable routing controls for target, channel, note, velocity, and device output.
-  - The UI has cockpit polish, but still needs arrangement lanes, probability views, macro controls, import/export, and a dedicated visualizer pane.
+  - Per-target output routing is not implemented yet: track targets exist, but send flows still use one selected MIDI output.
+  - Deterministic generation is incomplete because MIDI probability filtering and manual key randomization still use `Math.random()`.
+  - Export/persistence lag behind the model: routing, probability, condition, schema version, project JSON, and undo/migration affordances need work.
+  - The UI has cockpit polish, but still needs arrangement lanes, mutation/macro controls, richer import/export, visualizer calibration, and a dedicated routing matrix.
+
+## Development review snapshot — 2026-05-29
+
+### What has landed since the original roadmap
+
+- A lightweight safety net exists: `package.json` exposes `npm test`, `test/smoke.js` checks inline-script syntax and critical DOM ids, and `test/unit.js` covers the most important pure behaviors.
+- The single-file testbed now has a more explicit model: `normalizeTrack()` adds route metadata and lane objects to every track.
+- The modal has a routing inspector for target, channel, note, velocity, and note-name display, so routing is no longer just hidden metadata.
+- Track cards now expose lock and preview-mute controls and summarize route/channel/note state.
+- Regeneration uses a seeded RNG for generated step patterns and skips locked tracks.
+- The step editor has probability and condition lanes, lane reset controls, Euclidean generation, and 16/32/64/128-step editing.
+- Web MIDI status is more visible, SysEx remains disabled, and sending is centralized through a planned event list.
+- Song-mode send can filter tracks according to the current song-guide step.
+- The visualizer spike has begun: preview analyser, external audio input selection, canvas drawing, and optional Three.js rendering are present.
+
+### Bugs and correctness risks identified in review
+
+1. **Incomplete determinism**: `buildMidiEvents()` still uses `Math.random()` for probability lanes, so a seeded pattern can produce different MIDI note events on repeated sends. `randomizeKey()` also uses `Math.random()`.
+2. **Single-output MIDI bottleneck**: track `target` values do not yet route events to separate Web MIDI outputs. Pro 3 USB and Digitakt USB cannot be addressed independently in browser-as-hub mode.
+3. **Step-grid stale rendering**: cycling probability on a step that already has a condition can temporarily hide the condition badge because the button is rebuilt with `textContent` instead of the same label+badge HTML path used by `renderStepGrid()`.
+4. **Export is behind the editor**: text export does not include route metadata, seed, locks, probability lanes, condition lanes, or project JSON.
+5. **Persistence lacks schema versioning**: migration handles old shapes defensively, but saved data does not declare a version, which will make future extraction riskier.
+6. **Destructive flows need undo/confirmation detail**: subgenre selection, recommended reset, clear pattern, and lane reset can remove user edits without a recoverable history.
+7. **Visualizer lifecycle is early**: input selection works as a spike, but disconnect, calibration, device-change handling, and secure-context messaging need polish.
+8. **Tests copy logic instead of importing it**: acceptable for the current HTML-only app, but extraction should prioritize eliminating duplicate logic.
+
+### Refactor and polish priorities from this review
+
+- Make randomness an explicit dependency: seed creation, deterministic choice helpers, regeneration, key choice, probability lanes, and MIDI planner should share a controlled RNG path.
+- Split `buildMidiEvents()` into a pure planner that returns target-tagged events and a sender that groups events by selected output.
+- Add a route/output matrix: Digitakt USB, Pro 3 USB, and External MIDI each need their own selected output and diagnostic status.
+- Introduce storage schema versioning before adding project JSON import/export.
+- Extract pure modules in small slices while preserving the standalone HTML workflow.
+- Add UI affordances for lanes and destructive actions: visible legends, undo, route-aware export, and clearer lock/regeneration status.
+- Treat the visualizer as non-blocking: failures or denied permissions must never break sequencing, preview, or MIDI send.
 
 ## Research summary and product direction
 
@@ -333,18 +374,20 @@ Acceptance criteria:
 
 ## Immediate coding task list
 
-Give Claude Code Sonnet these tasks in order:
+Give the next Claude Code instance these tasks in order:
 
-1. **Create project scaffold**: Vite + TypeScript while keeping existing HTML accessible.
-2. **Extract core**: move Euclidean, genre data, composition data, and MIDI event generation into typed modules with tests.
-3. **Routing fix**: replace implicit channel-by-index with explicit `midiChannel` and `target` per track; default Pro 3 to channel 1 only when routed to Pro 3.
-4. **Hardware setup docs**: add `docs/hardware-setup.md` covering Digitakt USB MIDI, Digitakt-to-Pro 3 DIN, and browser-as-hub setups.
-5. **UI first pass**: add device diagnostics + routing matrix without changing every visual component yet.
-6. **Seeded generators**: add seed, lock, and deterministic regeneration.
-7. **Arrangement scenes**: add scene mutes/repeats and export a Digitakt Song Mode checklist.
-8. **Asset manifest**: add schema and one example placeholder asset entry with no bundled audio.
-9. **Developer handoff**: keep `DEVELOPMENT_PLAN.md`, `docs/IMPLEMENTATION_PSEUDOCODE.md`, and `docs/DEVELOPER_HANDOFF.md` current with every architectural decision.
-10. **Visualizer spike**: prototype internal-preview oscilloscope first, then external USB/audio-interface input, then Three.js performance visuals.
+1. **Deterministic MIDI planner fix**: inject an RNG/seed into `buildMidiEvents()` and test that identical seed + tracks + probability lanes produce identical note events.
+2. **Step-lane UI bug fix**: keep condition badges visible when cycling probability, and add a focused regression test if practical.
+3. **Per-target MIDI routing**: add output selectors/state for Digitakt USB, Pro 3 USB, and External MIDI; make the planner emit target-tagged events and the sender dispatch to the correct output.
+4. **Route-aware export and project JSON**: include target/channel/note/velocity, probability lanes, condition lanes, seed, locks, genre/subgenre, and schema version.
+5. **Storage schema versioning**: save a versioned project envelope and add migration tests before more state is added.
+6. **Extract pure core**: move RNG, Euclidean, generation, normalization, lane application, and MIDI planning into modules; make tests import production code instead of copies.
+7. **Hardware setup docs**: add `docs/hardware-setup.md` covering Digitakt USB MIDI, Digitakt-to-Pro 3 DIN, Pro 3 clock settings, browser-as-hub setups, and the USB MIDI vs USB audio distinction.
+8. **Visualizer polish**: add disconnect/calibration controls, device-change handling, better permission/secure-context copy, and keep all failures non-blocking.
+9. **Vite/TypeScript scaffold**: introduce only after pure extraction is stable, while keeping `digitakt-rhythm-aide.html` accessible and adding a standalone `dist/musicbox.html` build target.
+10. **Arrangement/mutation layer**: add scene mutes/repeats, undoable mutations, and a route-aware Digitakt Song Mode checklist after serialization is reliable.
+11. **Asset manifest**: add a schema and one placeholder entry with no bundled audio; do not vendor samples until license review is complete.
+12. **Developer handoff maintenance**: keep `DEVELOPMENT_PLAN.md`, `docs/IMPLEMENTATION_PSEUDOCODE.md`, and `docs/DEVELOPER_HANDOFF.md` current with every architectural decision.
 
 ## Non-goals and risks
 
