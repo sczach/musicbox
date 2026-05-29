@@ -425,6 +425,168 @@ assert('multi-target tracks each tag events with own target', (() => {
 })());
 
 // ================================================================
+// applySwing — grid-quantised swing simulation
+// ================================================================
+function applySwing(steps, swingRatio, patLen, rng) {
+  if (!swingRatio || swingRatio <= 0) return steps.slice();
+  const shifted = steps.map(s => {
+    if (s % 4 === 3) return (rng() < swingRatio) ? Math.min(s + 1, patLen) : s;
+    return s;
+  });
+  return [...new Set(shifted)].sort((a, b) => a - b);
+}
+
+console.log('\napplySwing:');
+assert('swingRatio=0 returns steps unchanged', (() => {
+  const steps = [1, 2, 3, 5, 7, 9, 11, 13, 15];
+  const result = applySwing(steps, 0, 16, mulberry32(1));
+  return JSON.stringify(result) === JSON.stringify(steps);
+})());
+assert('non-swing steps (step%4!==3) are never moved', (() => {
+  const steps = [1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 16];
+  const result = applySwing(steps, 1.0, 16, mulberry32(42));
+  // These steps have step%4 !== 3, so none should shift
+  return JSON.stringify(result) === JSON.stringify(steps);
+})());
+assert('swingRatio=1.0 always shifts eligible steps', (() => {
+  // step 3 (3%4===3), step 7, step 11, step 15 should always shift at ratio=1
+  const steps = [3, 7, 11, 15];
+  const result = applySwing(steps, 1.0, 16, () => 0); // rng()=0 < 1.0, always shifts
+  return JSON.stringify(result) === JSON.stringify([4, 8, 12, 16]);
+})());
+assert('result is always sorted ascending', (() => {
+  const steps = [1, 3, 5, 7, 9, 11, 13, 15];
+  const result = applySwing(steps, 0.5, 16, mulberry32(99));
+  for (let i = 1; i < result.length; i++) if (result[i] <= result[i - 1]) return false;
+  return true;
+})());
+assert('result has no duplicates after shift', (() => {
+  // step 3 shifts to 4; step 4 already present — should deduplicate
+  const steps = [3, 4, 7, 8, 11, 12];
+  const result = applySwing(steps, 1.0, 16, () => 0);
+  return result.length === new Set(result).size;
+})());
+assert('steps clamped to patLen (no overshoot)', (() => {
+  const steps = [15, 16]; // step 15 has 15%4===3, so might shift to 16; step 16 stays
+  const result = applySwing(steps, 1.0, 16, () => 0);
+  return result.every(s => s >= 1 && s <= 16);
+})());
+
+// ================================================================
+// generateMusicalSteps — smoke tests
+// ================================================================
+// Minimal inline version of GENRE_STYLE, GEN_PARAMS, and role builders for Node
+const GENRE_STYLE_TEST = {
+  "Techno":  { swing: 0, interactionMode: "lock", structAware: true },
+  "Ambient": { swing: 0, interactionMode: "none", structAware: false },
+  "IDM / Glitch": { swing: -1, interactionMode: "scatter", structAware: false },
+  "DnB":     { swing: 0.2, interactionMode: "offset", structAware: false },
+};
+const GEN_PARAMS_TEST = {
+  "Techno":  { pLen: 16, kick: [4,4], snare: [2,2], hat: [6,16], bass: [4,8], percussion: [2,4], harmonic: [1,2], melody: [1,2], midi: [2,4], shaker: [4,8] },
+  "Ambient": { pLen: 64, kick: [0,2], snare: [0,0], hat: [0,4], bass: [0,1], percussion: [0,3], harmonic: [1,3], melody: [0,2], midi: [2,5], shaker: [0,5] },
+  "IDM / Glitch": { pLen: 32, kick: [1,4], snare: [2,5], hat: [8,16], bass: [2,5], percussion: [3,6], harmonic: [1,3], melody: [1,3], midi: [2,5], shaker: [0,4] },
+  "DnB":     { pLen: 32, kick: [2,4], snare: [2,2], hat: [8,16], bass: [6,10], percussion: [3,6], harmonic: [1,3], melody: [2,4], midi: [3,6], shaker: [4,8] },
+};
+
+// Replicate the role builders inline for unit testing
+function _buildKickTest(genre, pLen, rng) {
+  if (genre === 'Techno') {
+    const base = [1, 5, 9, 13];
+    if (rng() < 0.15) return base.filter(s => s !== 9);
+    if (rng() < 0.2) return [...base, 16].sort((a, b) => a - b);
+    return base;
+  }
+  if (genre === 'Ambient' || genre === 'Dark Ambient') {
+    return rng() < 0.5 ? [] : [1 + Math.floor(rng() * Math.floor(pLen / 4))];
+  }
+  if (genre === 'IDM / Glitch') {
+    const pulses = 1 + Math.floor(rng() * 4);
+    const offset = Math.floor(rng() * pLen);
+    return euclidean(pulses, pLen, offset);
+  }
+  if (genre === 'DnB') {
+    const offPos = [19, 21, 23];
+    return [1, offPos[Math.floor(rng() * offPos.length)]];
+  }
+  const r = GEN_PARAMS_TEST[genre] && GEN_PARAMS_TEST[genre].kick || [2, 4];
+  const p = r[0] + Math.floor(rng() * (r[1] - r[0] + 1));
+  return euclidean(p, pLen, Math.floor(rng() * 4));
+}
+
+function generateMusicalStepsTest(type, genre, pLen, rng, context) {
+  context = context || {};
+  const kickSteps = context.kickSteps || [];
+  if (type === 'texture') return [];
+  const style = GENRE_STYLE_TEST[genre] || {};
+  let swingRatio = style.swing || 0;
+  if (swingRatio === -1) swingRatio = rng() * 0.25;
+  let steps;
+  if (type === 'kick') steps = _buildKickTest(genre, pLen, rng);
+  else {
+    const r = (GEN_PARAMS_TEST[genre] || {})[type] || [1, 4];
+    if (!Array.isArray(r)) return [];
+    const [mn, mx] = r;
+    const p = mn + Math.floor(rng() * (mx - mn + 1));
+    if (!p) return [];
+    steps = euclidean(p, pLen, Math.floor(rng() * 4));
+  }
+  if (!steps || !steps.length) return [];
+  if (style.structAware && type !== 'kick' && rng() < 0.4) {
+    const breathStart = pLen - 3;
+    steps = steps.filter(s => s < breathStart || rng() < 0.3);
+  }
+  if (swingRatio > 0) steps = applySwing(steps, swingRatio, pLen, rng);
+  return steps;
+}
+
+console.log('\ngenerateMusicalSteps:');
+assert('Techno kick always contains step 1 (downbeat anchor)', (() => {
+  for (let seed = 0; seed < 20; seed++) {
+    const steps = generateMusicalStepsTest('kick', 'Techno', 16, mulberry32(seed), {});
+    if (!steps.includes(1)) return false;
+  }
+  return true;
+})());
+assert('Techno kick is deterministic with same seed', (() => {
+  const s1 = generateMusicalStepsTest('kick', 'Techno', 16, mulberry32(12345), {});
+  const s2 = generateMusicalStepsTest('kick', 'Techno', 16, mulberry32(12345), {});
+  return deepEqual(s1, s2);
+})());
+assert('Ambient kick is sparse (0–1 steps in 64-step pattern)', (() => {
+  let sum = 0;
+  for (let seed = 0; seed < 30; seed++) {
+    sum += generateMusicalStepsTest('kick', 'Ambient', 64, mulberry32(seed), {}).length;
+  }
+  return sum / 30 <= 1; // average ≤ 1 hit per pattern
+})());
+assert('IDM kick placement is irregular across seeds', (() => {
+  const results = new Set();
+  for (let seed = 0; seed < 20; seed++) {
+    const s = generateMusicalStepsTest('kick', 'IDM / Glitch', 32, mulberry32(seed), {});
+    results.add(JSON.stringify(s));
+  }
+  return results.size > 5; // at least 6 distinct patterns across 20 seeds
+})());
+assert('texture type always returns empty', (() =>
+  generateMusicalStepsTest('texture', 'Techno', 16, mulberry32(1), {}).length === 0
+)());
+assert('DnB kick always has two steps including step 1', (() => {
+  for (let seed = 0; seed < 20; seed++) {
+    const s = generateMusicalStepsTest('kick', 'DnB', 32, mulberry32(seed), {});
+    if (s.length !== 2 || s[0] !== 1) return false;
+  }
+  return true;
+})());
+assert('swing applied: DnB result steps are sorted', (() => {
+  for (let seed = 0; seed < 10; seed++) {
+    const s = generateMusicalStepsTest('hat', 'DnB', 32, mulberry32(seed), {});
+    for (let i = 1; i < s.length; i++) if (s[i] <= s[i - 1]) return false;
+  }
+  return true;
+})());
+
+// ================================================================
 // Summary
 // ================================================================
 console.log(`\n${pass} passed, ${fail} failed.`);

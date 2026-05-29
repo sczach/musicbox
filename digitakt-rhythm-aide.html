@@ -998,6 +998,30 @@ const GEN_PARAMS = {
 };
 
 // ================================================================
+// GENRE_STYLE — per-genre personality for the musical generation engine.
+// swingRatio: fraction [0,1] of late-8th steps that shift +1. -1 = random per track.
+// interactionMode: how bass/hats relate to the kick.
+//   "lock"   = bass lands near kick, hats thin on kick downbeats
+//   "offset" = bass steps offset away from kick
+//   "scatter"= no interaction, fully random scatter
+//   "sub"    = sub-bass on downbeats, independent of kick rhythm
+//   "none"   = no interaction (sparse ambient)
+// structAware: if true, last 4 steps are thinned to create a phrase "breath"
+// ================================================================
+const GENRE_STYLE={
+  "Techno":            {swing:0,    interactionMode:"lock",   structAware:true},
+  "House":             {swing:0.1,  interactionMode:"lock",   structAware:true},
+  "DnB":               {swing:0.2,  interactionMode:"offset", structAware:false},
+  "Jungle / Breakbeat":{swing:0.28, interactionMode:"offset", structAware:false},
+  "IDM / Glitch":      {swing:-1,   interactionMode:"scatter",structAware:false},
+  "Trap":              {swing:0,    interactionMode:"sub",    structAware:true},
+  "Downtempo":         {swing:0.18, interactionMode:"lock",   structAware:true},
+  "Ambient":           {swing:0,    interactionMode:"none",   structAware:false},
+  "Dark Ambient":      {swing:0,    interactionMode:"none",   structAware:false},
+  "Ambient Dub":       {swing:0.06, interactionMode:"lock",   structAware:true},
+};
+
+// ================================================================
 // SECTION 6 — EUCLIDEAN RHYTHM (Bjorklund algorithm)
 // Adapted from: https://github.com/dbkaplun/euclidean-rhythm
 // ================================================================
@@ -1015,6 +1039,19 @@ function euclidean(pulses,steps,offset){
   for(let i=0;i<pat.length;i++)if(pat[(i-offset+pat.length)%pat.length]===1)res.push(i+1);
   return res;
 }
+
+// Simulate swing/shuffle by nudging "late-8th" positions (step % 4 === 3: the "and" of each beat)
+// forward by one step with probability = swingRatio.  Deduplicates and sorts the result.
+// This is a grid-quantised approximation — real swing is sub-step timing, not available on Digitakt.
+function applySwing(steps,swingRatio,patLen,rng){
+  if(!swingRatio||swingRatio<=0)return steps.slice();
+  const shifted=steps.map(s=>{
+    if(s%4===3)return(rng()<swingRatio)?Math.min(s+1,patLen):s; // "and" of beat positions
+    return s;
+  });
+  return[...new Set(shifted)].sort((a,b)=>a-b);
+}
+
 // ================================================================
 // SECTION 5 — APP STATE & HELPERS
 // ================================================================
@@ -1915,6 +1952,352 @@ function classifyTrack(track){
   return"percussion";
 }
 
+// ================================================================
+// SECTION 13b — MUSICAL GENERATION ENGINE
+// Role-specific pattern builders encode real genre conventions.
+// Each builder returns a step array (1-indexed, patLen-bounded).
+// ================================================================
+
+function _buildKick(genre,pLen,rng){
+  switch(genre){
+    case"Techno":{
+      // 4-on-floor (1,5,9,13) — occasionally drop beat 3 (step 9) for controlled tension
+      const base=[1,5,9,13];
+      if(rng()<0.15)return base.filter(s=>s!==9); // 15% chance: omit beat 3 for tension
+      if(rng()<0.2)return[...base,16].sort((a,b)=>a-b); // 20% chance: add pickup before bar 2
+      return base;
+    }
+    case"House":{
+      // Strict 4-on-floor — house lives and dies by this grid
+      return[1,5,9,13];
+    }
+    case"DnB":{
+      // Two-step feel: beat 1 + syncopated second kick in the back half of the bar
+      const offPositions=[19,21,23]; // classic DnB syncopated second kick zones in 32-step
+      return[1,offPositions[Math.floor(rng()*offPositions.length)]];
+    }
+    case"Jungle / Breakbeat":{
+      // Amen-break-inspired: irregular, syncopated, never mechanical
+      const templates=[[1,5,11,19],[1,7,13,21],[1,5,9,23],[1,3,11,17],[1,9,17,25]];
+      return templates[Math.floor(rng()*templates.length)];
+    }
+    case"IDM / Glitch":{
+      // Anti-grid: deliberate kick placement away from downbeats
+      const pulses=1+Math.floor(rng()*4);
+      const offset=Math.floor(rng()*pLen); // large offset pushes away from beat 1
+      return euclidean(pulses,pLen,offset);
+    }
+    case"Trap":{
+      // Hard downbeat + sparse 808-style hits; space = drama in trap
+      const extras=[5,9,13,17,21,25,29];
+      const n=1+Math.floor(rng()*2);
+      const picked=extras.slice().sort(()=>rng()-0.5).slice(0,n);
+      return[1,...picked].sort((a,b)=>a-b);
+    }
+    case"Ambient":
+    case"Dark Ambient":{
+      // 0–1 kicks — the absence of kick IS the composition in dark ambient
+      if(rng()<0.5)return[];
+      return[1+Math.floor(rng()*Math.floor(pLen/4))];
+    }
+    case"Ambient Dub":{
+      // Lazy, behind-the-beat feel — 2 kicks, offset creates the dub pocket
+      return euclidean(2,pLen,1+Math.floor(rng()*6));
+    }
+    case"Downtempo":{
+      // 2–3 kicks, swung placement, moderate density
+      return euclidean(2+Math.floor(rng()*2),pLen,Math.floor(rng()*5));
+    }
+    default:{
+      const r=GEN_PARAMS[genre]&&GEN_PARAMS[genre].kick||[2,4];
+      const p=r[0]+Math.floor(rng()*(r[1]-r[0]+1));
+      return euclidean(p,pLen,Math.floor(rng()*4));
+    }
+  }
+}
+
+function _buildSnare(genre,pLen,rng,kickSteps){
+  switch(genre){
+    case"Techno":{
+      // Rigid backbeat (5,13) + optional ghost hits for groove depth
+      const base=[5,13];
+      if(rng()<0.5){
+        const ghosts=[3,4,7,8,11,12,15,16].filter(s=>!kickSteps.includes(s));
+        const n=1+Math.floor(rng()*2);
+        ghosts.sort(()=>rng()-0.5).slice(0,n).forEach(s=>base.push(s));
+      }
+      return base.sort((a,b)=>a-b);
+    }
+    case"House":{
+      // Pure backbeat — house snare never deviates from 5,13
+      return[5,13];
+    }
+    case"DnB":{
+      // Backbeat on 9,25 in 32-step (beats 3 and 7) + snare roll toward bar end
+      const base=[9,25];
+      if(rng()<0.6)base.push(...[29,31].slice(0,1+Math.floor(rng()*2))); // roll before loop
+      return base.sort((a,b)=>a-b);
+    }
+    case"Jungle / Breakbeat":{
+      // Dense, syncopated, Amen-referencing — snare is everywhere in jungle
+      const templates=[[3,7,9,11,13,27],[3,9,11,25,27,31],[5,9,13,23,27,29],[3,7,11,17,25,31]];
+      return templates[Math.floor(rng()*templates.length)];
+    }
+    case"IDM / Glitch":{
+      // Irregular and unpredictable — prime-count euclidean for maximum irregularity
+      const primes=[3,5,7];
+      const p=Math.min(primes[Math.floor(rng()*primes.length)],pLen);
+      return euclidean(p,pLen,Math.floor(rng()*pLen));
+    }
+    case"Trap":{
+      // Clap on downbeat 3 (step 9 in 32) + optional stutter roll
+      const base=[9];
+      if(rng()<0.5)base.push(5);   // anticipation hit
+      if(rng()<0.4)base.push(10,11); // stutter roll
+      return[...new Set(base)].sort((a,b)=>a-b);
+    }
+    case"Ambient":
+    case"Dark Ambient":{
+      return rng()<0.3?[Math.floor(pLen/2)+1]:[];
+    }
+    case"Ambient Dub":{
+      return[Math.floor(pLen/4)+1,Math.floor(3*pLen/4)+1];
+    }
+    case"Downtempo":{
+      // Offset backbeat — the laziness is intentional
+      return euclidean(2,pLen,4);
+    }
+    default:{
+      const r=GEN_PARAMS[genre]&&GEN_PARAMS[genre].snare||[2,2];
+      return euclidean(r[0],pLen,4);
+    }
+  }
+}
+
+function _buildHat(genre,pLen,rng,kickSteps){
+  switch(genre){
+    case"Techno":{
+      // 8th-note drivers (1,3,5,7,9,11,13,15) — the classic techno groove motor
+      const base=[1,3,5,7,9,11,13,15];
+      // Thin steps that coincide with kick — Techno keeps most overlap (driving, locked feel)
+      return base.filter(s=>!kickSteps.includes(s)||rng()<0.7);
+    }
+    case"House":{
+      // 16th-note hats + open hat accents on offbeats for the house bounce
+      const all16=Array.from({length:16},(_,i)=>i+1);
+      // Remove a few for breathing room (6–10 drops from full 16ths)
+      const drops=new Set();
+      const nDrops=3+Math.floor(rng()*4);
+      while(drops.size<nDrops){
+        const s=1+Math.floor(rng()*16);
+        if(!kickSteps.includes(s))drops.add(s); // never drop on kick
+      }
+      return all16.filter(s=>!drops.has(s));
+    }
+    case"DnB":{
+      // Dense 16ths in 32-step with deliberate drop points — the DnB "energy engine"
+      const all32=Array.from({length:32},(_,i)=>i+1);
+      const nDrops=5+Math.floor(rng()*5);
+      const drops=new Set();
+      while(drops.size<nDrops)drops.add(1+Math.floor(rng()*32));
+      return all32.filter(s=>!drops.has(s));
+    }
+    case"Jungle / Breakbeat":{
+      // Dense and syncopated — approximates Amen break hi-hat scatter
+      const density=12+Math.floor(rng()*5);
+      return euclidean(density,pLen,Math.floor(rng()*4));
+    }
+    case"IDM / Glitch":{
+      // Anti-grid: prime-number Euclidean with rotating offset
+      const primes=[7,11,13,5,9];
+      const p=Math.min(primes[Math.floor(rng()*primes.length)],pLen);
+      return euclidean(p,pLen,Math.floor(rng()*pLen));
+    }
+    case"Trap":{
+      // Dense hat roll with gaps — 32nds implied by density in 32-step
+      const all32=Array.from({length:32},(_,i)=>i+1);
+      const nDrops=8+Math.floor(rng()*5);
+      const drops=new Set();
+      while(drops.size<nDrops)drops.add(1+Math.floor(rng()*32));
+      return all32.filter(s=>!drops.has(s));
+    }
+    case"Ambient":
+    case"Dark Ambient":{
+      const n=Math.floor(rng()*4);
+      return n?euclidean(n,pLen,Math.floor(rng()*Math.floor(pLen/4))):[];
+    }
+    case"Ambient Dub":{
+      // Off-beat 6-per-bar feel — the dub hi-hat weaves around the kick
+      return euclidean(6,pLen,2);
+    }
+    case"Downtempo":{
+      // 8th-note feel (8 hits in 32 steps) — swing is applied later
+      return euclidean(8,pLen,0);
+    }
+    default:{
+      const r=GEN_PARAMS[genre]&&GEN_PARAMS[genre].hat||[8,16];
+      const p=r[0]+Math.floor(rng()*(r[1]-r[0]+1));
+      return euclidean(p,pLen,Math.floor(rng()*4));
+    }
+  }
+}
+
+function _buildShaker(genre,pLen,rng,kickSteps){
+  // Shakers/tambourines fill different roles than hats — usually steadier, more textural
+  switch(genre){
+    case"Techno":return euclidean(4+Math.floor(rng()*5),pLen,2); // 8th-to-16th feel, slight offset
+    case"House":return euclidean(8,pLen,0);                       // steady 8th-note shaker
+    case"DnB":return euclidean(8+Math.floor(rng()*5),pLen,1);
+    case"Jungle / Breakbeat":return euclidean(8+Math.floor(rng()*8),pLen,Math.floor(rng()*4));
+    case"IDM / Glitch":return rng()<0.5?euclidean(3+Math.floor(rng()*8),pLen,Math.floor(rng()*pLen)):[];
+    case"Trap":return euclidean(8+Math.floor(rng()*8),pLen,0); // dense shaker fills trap hats
+    case"Ambient":case"Dark Ambient":return rng()<0.4?euclidean(1+Math.floor(rng()*3),pLen,Math.floor(rng()*8)):[];
+    case"Ambient Dub":return euclidean(pLen,pLen,1); // continuous 16th-note shaker, offset
+    case"Downtempo":return euclidean(8,pLen,1);
+    default:{
+      const r=GEN_PARAMS[genre]&&GEN_PARAMS[genre].shaker||[4,8];
+      const p=r[0]+Math.floor(rng()*(r[1]-r[0]+1));
+      return euclidean(p,pLen,Math.floor(rng()*4));
+    }
+  }
+}
+
+function _buildBass(genre,pLen,rng,kickSteps){
+  switch(genre){
+    case"Techno":{
+      // Lock to kick: downbeats + 1–2 syncopated extensions
+      const base=[...kickSteps];
+      if(rng()<0.5)kickSteps.forEach(k=>{if(k>1&&!base.includes(k-1))base.push(k-1);});
+      const extras=[3,7,11,15].filter(s=>!base.includes(s));
+      const n=Math.floor(rng()*3);
+      extras.slice(0,n).forEach(s=>base.push(s));
+      return[...new Set(base)].sort((a,b)=>a-b);
+    }
+    case"House":{
+      // Walking house bass — quarter or 8th note movement with melodic bounce
+      const patterns=[[1,5,9,13],[1,3,9,11],[1,7,9,15],[1,3,5,7,9,11,13,15]];
+      return patterns[Math.floor(rng()*patterns.length)];
+    }
+    case"DnB":{
+      // Sub bass offset from kick — syncopated sub hits create DnB low-end tension
+      const base=kickSteps.map(k=>Math.min(k+(2+Math.floor(rng()*3)),pLen));
+      const fill=euclidean(3,pLen,8); // additional rolling sub hits
+      return[...new Set([...base,...fill])].sort((a,b)=>a-b).slice(0,10);
+    }
+    case"Jungle / Breakbeat":{
+      return euclidean(4+Math.floor(rng()*4),pLen,2);
+    }
+    case"IDM / Glitch":{
+      return euclidean(2+Math.floor(rng()*5),pLen,Math.floor(rng()*pLen));
+    }
+    case"Trap":{
+      // 808 sub: hard downbeat + 1–2 sparse melodic drops
+      const extras=[5,9,13,17,21,25];
+      const n=1+Math.floor(rng()*2);
+      const picked=extras.sort(()=>rng()-0.5).slice(0,n);
+      return[1,...picked].sort((a,b)=>a-b);
+    }
+    case"Ambient":case"Dark Ambient":{
+      return rng()<0.4?[1]:[];
+    }
+    case"Ambient Dub":{
+      // Behind-the-beat bass — characteristic dub "late" feel
+      return euclidean(3,pLen,3);
+    }
+    case"Downtempo":{
+      return euclidean(4+Math.floor(rng()*3),pLen,2);
+    }
+    default:{
+      const r=GEN_PARAMS[genre]&&GEN_PARAMS[genre].bass||[3,6];
+      const p=r[0]+Math.floor(rng()*(r[1]-r[0]+1));
+      return euclidean(p,pLen,Math.floor(rng()*4));
+    }
+  }
+}
+
+function _buildPercussion(genre,pLen,rng,kickSteps){
+  switch(genre){
+    case"Techno":{
+      // Off-grid placement creates polyrhythm tension against the 4-on-floor
+      return euclidean(2+Math.floor(rng()*3),pLen,2);
+    }
+    case"House":return euclidean(2+Math.floor(rng()*3),pLen,Math.floor(rng()*4));
+    case"DnB":return euclidean(3+Math.floor(rng()*4),pLen,Math.floor(rng()*8));
+    case"Jungle / Breakbeat":{
+      // Dense percussion is central to jungle — the "busy" break texture
+      return euclidean(4+Math.floor(rng()*6),pLen,Math.floor(rng()*4));
+    }
+    case"IDM / Glitch":{
+      // Prime-count euclidean at random offsets = glitch-feel irregularity
+      const primes=[5,7,11,13];
+      const p=Math.min(primes[Math.floor(rng()*primes.length)],pLen-1);
+      return euclidean(p,pLen,Math.floor(rng()*pLen));
+    }
+    case"Trap":return rng()<0.5?euclidean(1+Math.floor(rng()*3),pLen,Math.floor(rng()*8)):[];
+    case"Ambient":case"Dark Ambient":return rng()<0.4?[Math.floor(rng()*pLen)+1]:[];
+    case"Ambient Dub":return euclidean(2+Math.floor(rng()*3),pLen,Math.floor(rng()*8));
+    case"Downtempo":return euclidean(3+Math.floor(rng()*4),pLen,Math.floor(rng()*6));
+    default:{
+      const r=GEN_PARAMS[genre]&&GEN_PARAMS[genre].percussion||[2,4];
+      const p=r[0]+Math.floor(rng()*(r[1]-r[0]+1));
+      return euclidean(p,pLen,Math.floor(rng()*4));
+    }
+  }
+}
+
+// Main musical generation dispatcher — routes by role, applies swing and structural awareness.
+// context.kickSteps lets hats/bass react to kick placement (interaction).
+function generateMusicalSteps(type,genre,pLen,rng,context){
+  context=context||{};
+  const kickSteps=context.kickSteps||[];
+  if(type==="texture")return[];
+
+  // Determine swing for this genre/track
+  const style=GENRE_STYLE[genre]||{};
+  let swingRatio=style.swing||0;
+  if(swingRatio===-1)swingRatio=rng()*0.25; // IDM: random swing per track
+
+  let steps;
+  switch(type){
+    case"kick":       steps=_buildKick(genre,pLen,rng);break;
+    case"snare":      steps=_buildSnare(genre,pLen,rng,kickSteps);break;
+    case"hat":        steps=_buildHat(genre,pLen,rng,kickSteps);break;
+    case"shaker":     steps=_buildShaker(genre,pLen,rng,kickSteps);break;
+    case"bass":       steps=_buildBass(genre,pLen,rng,kickSteps);break;
+    case"percussion": steps=_buildPercussion(genre,pLen,rng,kickSteps);break;
+    case"harmonic":case"melody":case"midi":{
+      // Melodic tracks use density-range euclidean — genre personality comes from key/harmony
+      const r=(GEN_PARAMS[genre]||{})[type]||[1,4];
+      if(!Array.isArray(r))return[];
+      const[mn,mx]=r;
+      const p=mn+Math.floor(rng()*(mx-mn+1));
+      if(!p)return[];
+      steps=euclidean(p,pLen,Math.floor(rng()*8));
+      break;
+    }
+    default:{
+      const r=(GEN_PARAMS[genre]||{}).percussion||[1,4];
+      if(!Array.isArray(r))return[];
+      const[mn,mx]=r;
+      const p=mn+Math.floor(rng()*(mx-mn+1));
+      if(!p)return[];
+      steps=euclidean(p,pLen,Math.floor(rng()*4));
+    }
+  }
+  if(!steps||!steps.length)return[];
+
+  // Structural awareness: thin last 4 steps to create a phrase "breath" before the loop
+  if(style.structAware&&type!=="kick"&&rng()<0.4){
+    const breathStart=pLen-3;
+    steps=steps.filter(s=>s<breathStart||rng()<0.3);
+  }
+
+  // Apply genre swing to late-8th positions
+  if(swingRatio>0)steps=applySwing(steps,swingRatio,pLen,rng);
+
+  return steps;
+}
+
 function generateTrackSteps(type,pLen,params,rng){
   rng=rng||Math.random.bind(Math);
   if(type==="texture")return[];
@@ -1936,15 +2319,26 @@ function regenerateComposition(newSeed){
   const pLen=params.pLen||16;
   const current=S.trackData[S.genre]||[];
   const base=JSON.parse(JSON.stringify(GENRES[S.genre].tracks));
+
+  // Phase 1 — generate kick tracks first so other roles can interact with them
+  const context={kickSteps:[]};
   base.forEach(t=>{
     const locked=S.lockedTracks&&S.lockedTracks[t.id];
-    if(locked){
-      const existing=current.find(c=>c.id===t.id);
-      if(existing){Object.assign(t,existing);return;}
+    if(locked){const ex=current.find(c=>c.id===t.id);if(ex){Object.assign(t,ex);if(classifyTrack(t)==="kick")context.kickSteps.push(...(t.steps||[]));return;}}
+    if(classifyTrack(t)==="kick"){
+      t.steps=generateMusicalSteps("kick",S.genre,pLen,rng,context);
+      context.kickSteps.push(...t.steps);
     }
-    const type=classifyTrack(t);
-    t.steps=generateTrackSteps(type,pLen,params,rng);
   });
+
+  // Phase 2 — generate all other tracks with kick context available
+  base.forEach(t=>{
+    const locked=S.lockedTracks&&S.lockedTracks[t.id];
+    if(locked){const ex=current.find(c=>c.id===t.id);if(ex){Object.assign(t,ex);return;}}
+    const type=classifyTrack(t);
+    if(type!=="kick")t.steps=generateMusicalSteps(type,S.genre,pLen,rng,context);
+  });
+
   S.trackData[S.genre]=normalizeTrackCollection(base);
   const keys=HARMONIC[S.genre]||[];
   if(keys.length){
