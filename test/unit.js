@@ -62,7 +62,8 @@ function normalizeTrack(track) {
   const midiChannel = clamp(Number(track.midiChannel || (isPro3 ? 1 : track.id)) || 1, 1, 16);
   const note = clamp(Number(track.note || 60) || 60, 0, 127);
   const velocity = clamp(Number(track.velocity || 100) || 100, 1, 127);
-  return { ...track, roleType: role, target, midiChannel, note, velocity };
+  const lanes = { probability: { ...((track.lanes && track.lanes.probability) || {}) } };
+  return { ...track, roleType: role, target, midiChannel, note, velocity, lanes };
 }
 
 console.log('\nnormalizeTrack:');
@@ -192,6 +193,95 @@ assert('generateTrackSteps is deterministic with seeded rng', (() => {
   const s1 = gts('kick', 16, GEN_PARAMS_KICK, r1);
   const s2 = gts('kick', 16, GEN_PARAMS_KICK, r2);
   return deepEqual(s1, s2);
+})());
+
+// ================================================================
+// normalizeTrack — lanes.probability
+// ================================================================
+console.log('\nnormalizeTrack lanes:');
+assert('normalizeTrack adds lanes.probability object',
+  typeof normalizeTrack({ id: 1, name: 'Kick' }).lanes.probability === 'object');
+assert('existing lanes.probability is preserved',
+  (() => {
+    const t = normalizeTrack({ id: 1, name: 'Kick', lanes: { probability: { 1: 75, 5: 50 } } });
+    return t.lanes.probability[1] === 75 && t.lanes.probability[5] === 50;
+  })());
+assert('missing probability key is not copied as undefined',
+  normalizeTrack({ id: 1, name: 'Kick' }).lanes.probability[1] === undefined);
+
+// ================================================================
+// buildMidiEvents — probability filtering
+// ================================================================
+// Extend buildMidiEvents to accept probability from lanes
+function buildMidiEventsWithProb(tracks, bpm, loops, startAt, defaultLen) {
+  let maxStep = defaultLen || 16;
+  tracks.forEach(t => { if (t.steps && t.steps.length) maxStep = Math.max(maxStep, ...t.steps); });
+  const patLen = Math.ceil(maxStep / 16) * 16;
+  const msPerStep = (60 / bpm / 4) * 1000;
+  const patDuration = msPerStep * patLen;
+  const totalDuration = patDuration * loops;
+  const msPerClock = (60 / bpm / 24) * 1000;
+  const events = [{ bytes: [0xFA], at: startAt }];
+  const clockCount = Math.ceil(totalDuration / msPerClock) + 32;
+  for (let i = 0; i < clockCount; i++) events.push({ bytes: [0xF8], at: startAt + i * msPerClock });
+  for (let loop = 0; loop < loops; loop++) {
+    const lo = loop * patDuration;
+    tracks.forEach(track => {
+      if (!track.steps || !track.steps.length) return;
+      const ch = clamp(Number(track.midiChannel) || 1, 1, 16) - 1;
+      const note = clamp(Number(track.note) || 60, 0, 127);
+      const velocity = clamp(Number(track.velocity) || 100, 1, 127);
+      track.steps.forEach(step => {
+        if (step < 1 || step > patLen) return;
+        const prob = track.lanes && track.lanes.probability && track.lanes.probability[step] != null
+          ? track.lanes.probability[step] : 100;
+        if (Math.random() * 100 >= prob) return;
+        const onset = startAt + lo + (step - 1) * msPerStep;
+        events.push({ bytes: [0x90 | ch, note, velocity], at: onset });
+        events.push({ bytes: [0x80 | ch, note, 0], at: onset + msPerStep * 0.45 });
+      });
+    });
+  }
+  events.push({ bytes: [0xFC], at: startAt + totalDuration + msPerStep });
+  return { events, totalDuration, msPerStep, patLen };
+}
+
+console.log('\nbuildMidiEvents probability:');
+assert('prob=0 steps never fire (100 trials)', (() => {
+  const t = normalizeTrack({ id: 1, name: 'Kick', midiChannel: 1, note: 36, velocity: 100,
+    steps: [1], lanes: { probability: { 1: 0 } } });
+  for (let i = 0; i < 100; i++) {
+    const { events } = buildMidiEventsWithProb([t], 120, 1, 0, 16);
+    if (events.some(e => (e.bytes[0] & 0xF0) === 0x90)) return false;
+  }
+  return true;
+})());
+assert('prob=100 steps always fire', (() => {
+  const t = normalizeTrack({ id: 1, name: 'Kick', midiChannel: 1, note: 36, velocity: 100,
+    steps: [1], lanes: { probability: { 1: 100 } } });
+  for (let i = 0; i < 20; i++) {
+    const { events } = buildMidiEventsWithProb([t], 120, 1, 0, 16);
+    if (!events.some(e => (e.bytes[0] & 0xF0) === 0x90)) return false;
+  }
+  return true;
+})());
+assert('prob=50 fires roughly half the time (50 trials)', (() => {
+  const t = normalizeTrack({ id: 1, name: 'Kick', midiChannel: 1, note: 36, velocity: 100,
+    steps: [1], lanes: { probability: { 1: 50 } } });
+  let hits = 0;
+  for (let i = 0; i < 50; i++) {
+    const { events } = buildMidiEventsWithProb([t], 120, 1, 0, 16);
+    if (events.some(e => (e.bytes[0] & 0xF0) === 0x90)) hits++;
+  }
+  return hits >= 10 && hits <= 40; // generous range — just confirming it's stochastic
+})());
+assert('missing prob entry treated as 100% (always fires)', (() => {
+  const t = normalizeTrack({ id: 1, name: 'Kick', midiChannel: 1, note: 36, velocity: 100, steps: [1] });
+  for (let i = 0; i < 20; i++) {
+    const { events } = buildMidiEventsWithProb([t], 120, 1, 0, 16);
+    if (!events.some(e => (e.bytes[0] & 0xF0) === 0x90)) return false;
+  }
+  return true;
 })());
 
 // ================================================================
