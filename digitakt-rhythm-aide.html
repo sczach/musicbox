@@ -430,7 +430,38 @@ select,input,textarea{box-shadow:inset 0 1px 0 rgba(255,255,255,.03)}
         <div id="mRole" class="text-sm text-slate-300 mb-4"></div>
         <div class="lbl mb-1">Description</div>
         <div id="mDesc" class="text-xs text-slate-400 leading-relaxed mb-4"></div>
-        <div id="mSubNote" class="hidden text-xs text-cyan-700 bg-cyan-950/30 border border-cyan-900/40 rounded-lg p-2.5 leading-relaxed"></div>
+        <div id="mSubNote" class="hidden text-xs text-cyan-700 bg-cyan-950/30 border border-cyan-900/40 rounded-lg p-2.5 leading-relaxed mb-4"></div>
+
+        <!-- Routing inspector -->
+        <div class="border-t border-slate-800 pt-4">
+          <div class="lbl mb-2.5">Routing</div>
+          <div class="space-y-2.5">
+            <div>
+              <div class="lbl mb-1 text-slate-600">Target</div>
+              <select id="routeTarget" onchange="updateRouting()" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-cyan-600">
+                <option value="digitakt-audio">DT Audio (tracks 1–16)</option>
+                <option value="digitakt-midi">DT MIDI track</option>
+                <option value="pro3-usb">Pro 3 USB</option>
+                <option value="external-midi">External MIDI</option>
+              </select>
+            </div>
+            <div class="grid grid-cols-3 gap-2">
+              <div>
+                <div class="lbl mb-1 text-slate-600">CH</div>
+                <input id="routeChannel" type="number" min="1" max="16" onchange="updateRouting()" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-center text-white focus:outline-none focus:border-cyan-600 mono">
+              </div>
+              <div>
+                <div class="lbl mb-1 text-slate-600">Note</div>
+                <input id="routeNote" type="number" min="0" max="127" onchange="updateRouting()" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-center text-white focus:outline-none focus:border-cyan-600 mono">
+              </div>
+              <div>
+                <div class="lbl mb-1 text-slate-600">Vel</div>
+                <input id="routeVelocity" type="number" min="1" max="127" onchange="updateRouting()" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-center text-white focus:outline-none focus:border-cyan-600 mono">
+              </div>
+            </div>
+            <div id="routeNoteName" class="mono text-cyan-400 text-xs text-center"></div>
+          </div>
+        </div>
       </div>
 
       <!-- Right: step editor -->
@@ -961,6 +992,9 @@ function normalizeTrack(track){
 
 function normalizeTrackCollection(tracks){return (tracks||[]).map(normalizeTrack);}
 
+const NOTE_NAMES=["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+function midiNoteName(n){return NOTE_NAMES[n%12]+String(Math.floor(n/12)-1);}
+
 function migrateTrackData(data){
   const migrated={};
   Object.keys(GENRES).forEach(genre=>{
@@ -1271,6 +1305,11 @@ function openModal(trackId){
   const sg=currentSG();const snEl=document.getElementById("mSubNote");
   if(sg&&sg.ov&&sg.ov[trackId]){snEl.textContent=`Subgenre note (${sg.name}): ${sg.note}`;snEl.classList.remove("hidden");}
   else snEl.classList.add("hidden");
+  document.getElementById("routeTarget").value=track.target||"digitakt-audio";
+  document.getElementById("routeChannel").value=track.midiChannel||1;
+  document.getElementById("routeNote").value=track.note||60;
+  document.getElementById("routeVelocity").value=track.velocity||100;
+  document.getElementById("routeNoteName").textContent=midiNoteName(track.note||60);
   document.getElementById("modal").classList.remove("hidden");
   syncLenBtns();renderStepGrid();
 }
@@ -1282,6 +1321,19 @@ function closeModal(){
 
 function updateTrackName(v){
   const t=getTrack(S.editId);if(t&&v.trim())t.name=v.trim();
+}
+
+function updateRouting(){
+  const t=getTrack(S.editId);if(!t)return;
+  t.target=document.getElementById("routeTarget").value;
+  t.midiChannel=clamp(parseInt(document.getElementById("routeChannel").value)||1,1,16);
+  t.note=clamp(parseInt(document.getElementById("routeNote").value)||60,0,127);
+  t.velocity=clamp(parseInt(document.getElementById("routeVelocity").value)||100,1,127);
+  document.getElementById("routeChannel").value=t.midiChannel;
+  document.getElementById("routeNote").value=t.note;
+  document.getElementById("routeVelocity").value=t.velocity;
+  document.getElementById("routeNoteName").textContent=midiNoteName(t.note);
+  save();
 }
 
 // ================================================================
