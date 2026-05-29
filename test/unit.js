@@ -62,7 +62,10 @@ function normalizeTrack(track) {
   const midiChannel = clamp(Number(track.midiChannel || (isPro3 ? 1 : track.id)) || 1, 1, 16);
   const note = clamp(Number(track.note || 60) || 60, 0, 127);
   const velocity = clamp(Number(track.velocity || 100) || 100, 1, 127);
-  const lanes = { probability: { ...((track.lanes && track.lanes.probability) || {}) } };
+  const lanes = {
+    probability: { ...((track.lanes && track.lanes.probability) || {}) },
+    condition: { ...((track.lanes && track.lanes.condition) || {}) },
+  };
   return { ...track, roleType: role, target, midiChannel, note, velocity, lanes };
 }
 
@@ -208,6 +211,13 @@ assert('existing lanes.probability is preserved',
   })());
 assert('missing probability key is not copied as undefined',
   normalizeTrack({ id: 1, name: 'Kick' }).lanes.probability[1] === undefined);
+assert('normalizeTrack adds lanes.condition object',
+  typeof normalizeTrack({ id: 1, name: 'Kick' }).lanes.condition === 'object');
+assert('existing lanes.condition is preserved',
+  (() => {
+    const t = normalizeTrack({ id: 1, name: 'Kick', lanes: { condition: { 5: '1:2', 9: '1:4' } } });
+    return t.lanes.condition[5] === '1:2' && t.lanes.condition[9] === '1:4';
+  })());
 
 // ================================================================
 // buildMidiEvents — probability filtering
@@ -283,6 +293,29 @@ assert('missing prob entry treated as 100% (always fires)', (() => {
   }
   return true;
 })());
+
+// ================================================================
+// evalCondition
+// ================================================================
+// Copy evalCondition for Node testing
+function evalCondition(cond, loopIdx) {
+  if (!cond) return true;
+  if (cond === '1ST') return loopIdx === 0;
+  if (cond === '!1ST') return loopIdx > 0;
+  const m = cond.match(/^(\d+):(\d+)$/);
+  if (m) { const x = parseInt(m[1]), n = parseInt(m[2]); return loopIdx % n === x - 1; }
+  return true;
+}
+
+console.log('\nevalCondition:');
+assert('null condition always fires', evalCondition(null, 0) && evalCondition(null, 99));
+assert('1:2 fires on loops 0,2,4 only', [0,2,4].every(i=>evalCondition('1:2',i)) && ![1,3,5].some(i=>evalCondition('1:2',i)));
+assert('2:2 fires on loops 1,3,5 only', [1,3,5].every(i=>evalCondition('2:2',i)) && ![0,2,4].some(i=>evalCondition('2:2',i)));
+assert('1:4 fires on loops 0,4,8 only', [0,4,8].every(i=>evalCondition('1:4',i)) && ![1,2,3].some(i=>evalCondition('1:4',i)));
+assert('3:4 fires on loops 2,6,10', [2,6,10].every(i=>evalCondition('3:4',i)) && ![0,1,3].some(i=>evalCondition('3:4',i)));
+assert('1ST fires only on loop 0', evalCondition('1ST',0) && !evalCondition('1ST',1) && !evalCondition('1ST',7));
+assert('!1ST fires on all loops except 0', !evalCondition('!1ST',0) && evalCondition('!1ST',1) && evalCondition('!1ST',7));
+assert('2:3 fires on loops 1,4,7', [1,4,7].every(i=>evalCondition('2:3',i)) && ![0,2,3].some(i=>evalCondition('2:3',i)));
 
 // ================================================================
 // Summary

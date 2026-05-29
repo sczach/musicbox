@@ -14,13 +14,20 @@ body{font-family:'Space Grotesk',system-ui,sans-serif;background:#070b14;color:#
 .track-card{transition:border-color .1s,box-shadow .1s,transform .1s;cursor:pointer}
 .track-card:hover{border-color:#22d3ee!important;box-shadow:0 0 16px rgba(34,211,238,.13);transform:translateY(-1px)}
 .track-card:active{transform:translateY(0)}
-.step-btn{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:.58rem;font-weight:500;border-radius:4px;border:1px solid #1a2540;background:#0e1828;color:#2a3d58;cursor:pointer;user-select:none;transition:all .06s}
+.step-btn{aspect-ratio:1;display:flex;flex-direction:column;gap:0;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:.58rem;font-weight:500;border-radius:4px;border:1px solid #1a2540;background:#0e1828;color:#2a3d58;cursor:pointer;user-select:none;transition:all .06s}
 .step-btn:hover:not(.active){background:#182234;color:#4a6080;border-color:#253550}
 .step-btn.active{background:#22d3ee;color:#030d18;font-weight:700;border-color:#0891b2;box-shadow:0 0 6px rgba(34,211,238,.4)}
 .step-btn.active.p75{background:#b45309;color:#fef3c7;border-color:#92400e;box-shadow:0 0 5px rgba(180,83,9,.35)}
 .step-btn.active.p50{background:#7c3a17;color:#fed7aa;border-color:#6b2f13;box-shadow:0 0 4px rgba(124,58,23,.3)}
 .step-btn.active.p25{background:#3b1414;color:#fca5a5;border-color:#2e1010}
 .step-btn.bar-s{border-color:#253550}
+.step-cond{font-size:.38rem;font-weight:700;color:#a78bfa;line-height:1;display:block;letter-spacing:0}
+.step-btn.active.p75 .step-cond{color:#fcd34d}
+.step-btn.active.p50 .step-cond{color:#fb923c}
+.step-btn.active.p25 .step-cond{color:#f87171}
+.cond-mode-btn{padding:.2rem .6rem;font-size:.68rem;font-weight:600;border-radius:4px;border:1px solid #1a2540;background:#0e1828;color:#3a5070;cursor:pointer;transition:all .1s;font-family:'JetBrains Mono',monospace}
+.cond-mode-btn:hover:not(.cond-on){background:#182234;color:#a78bfa}
+.cond-mode-btn.cond-on{background:#1e0a4a;border-color:#7c3aed;color:#a78bfa}
 .mini-step{flex-shrink:0;width:5px;height:10px;border-radius:2px;background:#111e30}
 .mini-step.on{background:#22d3ee}
 @keyframes mIn{from{opacity:0;transform:scale(.97) translateY(8px)}to{opacity:1;transform:scale(1) translateY(0)}}
@@ -531,7 +538,10 @@ select,input,textarea{box-shadow:inset 0 1px 0 rgba(255,255,255,.03)}
         <!-- Step grid -->
         <div class="mb-3">
           <div class="flex items-center justify-between mb-2">
-            <div class="lbl">Steps</div>
+            <div class="flex items-center gap-2">
+              <div class="lbl">Steps</div>
+              <button id="condModeBtn" class="cond-mode-btn" onclick="toggleCondMode()" title="Enable condition mode: click steps to cycle trig conditions (1:2, 1:4, etc.)">Cond</button>
+            </div>
             <div class="flex gap-3">
               <span id="stepCountDisplay" class="text-xs text-slate-500 mono"></span>
               <span id="densityDisplay" class="text-xs text-slate-700 mono"></span>
@@ -545,11 +555,14 @@ select,input,textarea{box-shadow:inset 0 1px 0 rgba(255,255,255,.03)}
           <span class="lbl whitespace-nowrap">Active:</span>
           <span id="activeSteps" class="mono text-cyan-400 text-xs leading-relaxed break-all"></span>
         </div>
-        <p class="text-[10px] text-slate-700 leading-relaxed">Right-click any active step to cycle probability:
-          <span class="mono text-cyan-600">100%</span> →
-          <span class="mono text-amber-600">75%</span> →
-          <span class="mono text-orange-700">50%</span> →
-          <span class="mono text-rose-900">25%</span> → 100%
+        <p class="text-[10px] text-slate-700 leading-relaxed mt-2">
+          <span class="mono text-slate-600">Right-click</span> active steps → cycle probability:
+          <span class="mono text-cyan-600">100%</span>
+          <span class="mono text-amber-600">75%</span>
+          <span class="mono text-orange-700">50%</span>
+          <span class="mono text-rose-900">25%</span> ·
+          <span class="mono text-violet-700">Cond mode</span> → click steps → cycle trig conditions:
+          <span class="mono text-violet-600">1:2 2:2 1:3 … 1ST !1ST</span>
         </p>
       </div>
     </div>
@@ -561,7 +574,7 @@ select,input,textarea{box-shadow:inset 0 1px 0 rgba(255,255,255,.03)}
           <i class="fas fa-rotate-left text-slate-400"></i> Reset to Recommended
         </button>
         <button onclick="clearPattern()" class="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-slate-300 transition-colors">Clear</button>
-        <button onclick="resetStepProb()" class="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-amber-600 transition-colors" title="Reset all step probabilities to 100%">Reset P</button>
+        <button onclick="resetAllLanes()" class="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-amber-600 transition-colors" title="Reset all step probabilities and conditions">Reset P/Cond</button>
       </div>
       <button onclick="closeModal()" class="px-6 py-1.5 text-sm bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold rounded-lg transition-colors">Done</button>
     </div>
@@ -1019,6 +1032,17 @@ function mkSeed(){return(Math.random()*0xFFFFFFFF)>>>0;}
 function seedHex(s){return s.toString(16).padStart(8,"0");}
 function updateSeedDisplay(){const el=document.getElementById("seedDisplay");if(el)el.textContent=seedHex(S.seed);}
 
+const COND_CYCLE=[null,'1:2','2:2','1:3','2:3','3:3','1:4','2:4','3:4','4:4','1:6','2:6','3:6','4:6','5:6','6:6','1:8','1ST','!1ST'];
+
+function evalCondition(cond,loopIdx){
+  if(!cond)return true;
+  if(cond==='1ST')return loopIdx===0;
+  if(cond==='!1ST')return loopIdx>0;
+  const m=cond.match(/^(\d+):(\d+)$/);
+  if(m){const x=parseInt(m[1]),n=parseInt(m[2]);return loopIdx%n===x-1;}
+  return true;
+}
+
 function inferTrackRole(track){
   const label=`${track.name||""} ${track.role||""}`.toLowerCase();
   if(/pro 3|midi/.test(label))return"midi";
@@ -1039,7 +1063,10 @@ function normalizeTrack(track){
   const midiChannel=clamp(Number(track.midiChannel||(isPro3?1:track.id))||1,1,16);
   const note=clamp(Number(track.note||60)||60,0,127);
   const velocity=clamp(Number(track.velocity||100)||100,1,127);
-  const lanes={probability:{...((track.lanes&&track.lanes.probability)||{})}};
+  const lanes={
+    probability:{...((track.lanes&&track.lanes.probability)||{})},
+    condition:{...((track.lanes&&track.lanes.condition)||{})},
+  };
   return {...track,roleType:role,target,midiChannel,note,velocity,lanes};
 }
 
@@ -1247,6 +1274,8 @@ function schedulePreview(){
           if(step<1||step>tLen)return;
           const prob=t.lanes&&t.lanes.probability&&t.lanes.probability[step]!=null?t.lanes.probability[step]:100;
           if(Math.random()*100>=prob)return;
+          const cond2=t.lanes&&t.lanes.condition&&t.lanes.condition[step];
+          if(cond2&&!evalCondition(cond2,outer))return;
           synthHit(ctx,type,t0+ot+lt+(step-1)*sps);
         });
       }
@@ -1646,16 +1675,24 @@ function renderStepGrid(){
   const track=getTrack(S.editId);if(!track)return;
   const active=track.steps||[];
   const prob=track.lanes&&track.lanes.probability?track.lanes.probability:{};
+  const conds=track.lanes&&track.lanes.condition?track.lanes.condition:{};
   for(let i=1;i<=S.patLen;i++){
     const isOn=active.includes(i);
     const p=isOn?(prob[i]??100):100;
+    const cond=isOn?conds[i]:null;
     const btn=document.createElement("div");
     btn.className="step-btn"+(isOn?" active"+probClass(p):"")+((i-1)%4===0?" bar-s":"");
-    btn.textContent=(isOn&&p<100)?String(p):String(i);
+    const mainLabel=(isOn&&p<100)?String(p):String(i);
+    btn.innerHTML=mainLabel+(cond?`<span class="step-cond">${cond}</span>`:'');
     btn.dataset.step=String(i);
-    btn.onclick=()=>toggleStep(i,btn);
+    if(condMode){
+      btn.onclick=()=>{if(isOn)cycleStepCond(i,btn);};
+      btn.title=isOn?(cond?`Step ${i} · ${cond} — click to cycle condition`:`Step ${i} — click to add condition`):`Step ${i} (inactive)`;
+    } else {
+      btn.onclick=()=>toggleStep(i,btn);
+      btn.title=isOn?(cond?`Step ${i}${p<100?' · '+p+'%':''} · ${cond} (condition)`:(p<100?`Step ${i} · ${p}% probability — right-click to cycle`:`Step ${i} — right-click: probability | enable Cond mode for conditions`)):`Step ${i}`;
+    }
     btn.oncontextmenu=(e)=>{e.preventDefault();if(isOn)cycleStepProb(i,btn);};
-    btn.title=isOn?(p<100?`Step ${i} · ${p}% probability — right-click to cycle`:`Step ${i} · right-click to set probability`):`Step ${i}`;
     g.appendChild(btn);
   }
   updateStepInfo(active);
@@ -1668,12 +1705,13 @@ function toggleStep(step,btn){
   if(idx>-1){
     track.steps.splice(idx,1);
     if(track.lanes&&track.lanes.probability)delete track.lanes.probability[step];
+    if(track.lanes&&track.lanes.condition)delete track.lanes.condition[step];
     btn.className=btn.className.replace(/\s*(active|p75|p50|p25)/g,"");
-    btn.textContent=String(step);
+    btn.innerHTML=String(step);
   } else {
     track.steps.push(step);track.steps.sort((a,b)=>a-b);
     btn.classList.add("active");
-    btn.textContent=String(step);
+    btn.innerHTML=String(step);
   }
   updateStepInfo(track.steps);
 }
@@ -1691,9 +1729,32 @@ function cycleStepProb(step,btn){
   btn.title=next<100?`Step ${step} · ${next}% probability — right-click to cycle`:`Step ${step} · right-click to set probability`;
 }
 
+function cycleStepCond(step,btn){
+  const track=getTrack(S.editId);if(!track)return;
+  if(!track.lanes)track.lanes={probability:{},condition:{}};
+  if(!track.lanes.condition)track.lanes.condition={};
+  const cur=track.lanes.condition[step]??null;
+  const idx=COND_CYCLE.indexOf(cur);
+  const next=COND_CYCLE[(idx+1)%COND_CYCLE.length];
+  if(next==null)delete track.lanes.condition[step];else track.lanes.condition[step]=next;
+  // Rebuild button content
+  const prob=track.lanes.probability&&track.lanes.probability[step]!=null?track.lanes.probability[step]:100;
+  const mainLabel=prob<100?String(prob):String(step);
+  const barS=(step-1)%4===0?' bar-s':'';
+  btn.className=`step-btn active${probClass(prob)}${barS}`;
+  btn.innerHTML=mainLabel+(next?`<span class="step-cond">${next}</span>`:'');
+  btn.title=next?`Step ${step}${prob<100?' · '+prob+'%':''} · ${next} — click to cycle condition`:`Step ${step} — click to add condition`;
+}
+
 function resetStepProb(){
   const t=getTrack(S.editId);if(!t)return;
   if(t.lanes)t.lanes.probability={};
+  renderStepGrid();
+}
+
+function resetAllLanes(){
+  const t=getTrack(S.editId);if(!t)return;
+  if(t.lanes){t.lanes.probability={};t.lanes.condition={};}
   renderStepGrid();
 }
 
@@ -1724,7 +1785,7 @@ function resetToRecommended(){
   const rec=getRecommended(S.genre,S.subgenre).find(t=>t.id===S.editId);
   const curr=getTrack(S.editId);if(!rec||!curr)return;
   curr.steps=[...rec.steps];curr.name=rec.name;curr.desc=rec.desc;
-  if(curr.lanes)curr.lanes.probability={};else curr.lanes={probability:{}};
+  if(curr.lanes){curr.lanes.probability={};curr.lanes.condition={};}else curr.lanes={probability:{},condition:{}};
   document.getElementById("mTrackName").value=curr.name;
   document.getElementById("mDesc").textContent=curr.desc;
   const maxS=curr.steps.length?Math.max(...curr.steps):0;
@@ -1732,7 +1793,7 @@ function resetToRecommended(){
   syncLenBtns();renderStepGrid();
 }
 
-function clearPattern(){const t=getTrack(S.editId);if(t){t.steps=[];if(t.lanes)t.lanes.probability={};renderStepGrid();}}
+function clearPattern(){const t=getTrack(S.editId);if(t){t.steps=[];if(t.lanes){t.lanes.probability={};t.lanes.condition={};}renderStepGrid();}}
 
 function loadRecommendedDefaults(){
   if(!confirm(`Reset all ${S.genre}${S.subgenre?` (${currentSG().name})`:"" } tracks to recommended patterns?`))return;
@@ -1856,6 +1917,14 @@ function randomizeKey(){
   renderHarmonicPanel();
 }
 
+let condMode=false;
+function toggleCondMode(){
+  condMode=!condMode;
+  const btn=document.getElementById('condModeBtn');
+  if(btn)btn.classList.toggle('cond-on',condMode);
+  renderStepGrid();
+}
+
 function showCompositionRules(){
   const params=GEN_PARAMS[S.genre];
   const el=document.getElementById("rulesGenParams");
@@ -1938,6 +2007,8 @@ function buildMidiEvents(tracks,bpm,loops,startAt){
         if(step<1||step>patLen)return;
         const prob=track.lanes&&track.lanes.probability&&track.lanes.probability[step]!=null?track.lanes.probability[step]:100;
         if(Math.random()*100>=prob)return;
+        const cond=track.lanes&&track.lanes.condition&&track.lanes.condition[step];
+        if(cond&&!evalCondition(cond,loop))return;
         const onset=startAt+lo+(step-1)*msPerStep;
         events.push({bytes:[0x90|ch,note,velocity],at:onset});
         events.push({bytes:[0x80|ch,note,0],at:onset+msPerStep*0.45});
