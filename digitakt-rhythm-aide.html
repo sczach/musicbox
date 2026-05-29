@@ -140,7 +140,7 @@ select,input,textarea{box-shadow:none}
         <button id="previewBtn" onclick="togglePreview()" class="px-3 py-1.5 text-xs font-medium bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 rounded-lg flex items-center gap-1.5 transition-colors">
           <i class="fas fa-play text-emerald-400 text-xs"></i> Preview
         </button>
-        <select id="audioOutputSel" onchange="changeAudioOutput()" title="Preview audio output"
+        <select id="audioOutputSel" onchange="changeAudioOutput()" onfocus="unlockAudioDevices()" title="Preview audio output — click to refresh device list"
           class="hidden text-xs bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-slate-400 focus:outline-none focus:border-cyan-600 max-w-[9rem]">
           <option value="">System default</option>
         </select>
@@ -1269,6 +1269,16 @@ async function changeAudioOutput(){
   }
 }
 
+// Briefly request mic permission so Chrome will expose labeled audiooutput devices,
+// then re-populate the selector. No-op if permission already granted or unavailable.
+async function unlockAudioDevices(){
+  try{
+    const s=await navigator.mediaDevices.getUserMedia({audio:true,video:false});
+    s.getTracks().forEach(t=>t.stop());
+  }catch(_){}
+  await populateAudioOutputs();
+}
+
 // Called on devicechange: re-populate the selector and close any idle AudioContext
 // so the next Play creates a fresh one latched to the new OS default.
 // If already playing with the default sink, re-route immediately via setSinkId.
@@ -1699,7 +1709,7 @@ function renderTrackGrid(){
     const isLocked=S.lockedTracks&&S.lockedTracks[track.id];
     const card=document.createElement("div");
     card.className=`track-card tc-${role} border p-2.5 select-none cursor-pointer${isLocked?' border-amber-700/40':' border-slate-800/80'}${isMuted?' pv-muted':''}`;
-    card.innerHTML=`<div class="flex items-center justify-between mb-1.5"><span class="mono text-[10px] text-slate-700 leading-none">${String(track.id).padStart(2,'0')}</span><div class="flex items-center gap-1"><button class="pvtog" onclick="toggleTrackLock(${track.id},event)" title="${isLocked?'Locked — regenerate skips this track':'Click to lock'}"><i class="fas fa-${isLocked?'lock text-amber-400':'lock-open text-slate-700'} text-[10px]"></i></button><button class="pvtog" onclick="event.stopPropagation();togglePreviewMute(${track.id})" title="${isMuted?'Excluded from preview':'In preview — click to mute'}"><i class="fas fa-${isMuted?'volume-xmark text-slate-700':'volume-low text-slate-600'} text-[10px]"></i></button></div></div><div class="font-semibold text-[11px] text-slate-100 leading-tight truncate mb-0.5">${escapeHtml(track.name)}</div><div class="text-[9px] tracking-widest font-bold text-slate-700 uppercase mb-1.5">${ROLE_SHORT[role]||role}</div>${viz}<div class="mt-1.5 rounded-full overflow-hidden" style="height:2px;background:rgba(148,163,184,.07)"><div style="width:${density}%;height:100%;background:var(--tc-rc,#475569);opacity:.55;border-radius:9999px"></div></div><div class="flex items-center justify-between mt-1.5"><span class="text-[9px] font-bold tracking-wide uppercase" style="color:var(--tc-rc,#475569);opacity:.55">${ROUTE_SHORT[track.target]||'MIDI'}</span><span class="text-[9px] mono text-slate-700">ch${track.midiChannel}</span></div>`;
+    card.innerHTML=`<div class="flex items-center justify-between mb-1.5"><span class="mono text-[10px] text-slate-700 leading-none">${String(track.id).padStart(2,'0')}</span><div class="flex items-center gap-1"><button class="pvtog" onclick="toggleTrackLock(${track.id},event)" title="${isLocked?'Locked — regenerate skips this track':'Click to lock'}"><i class="fas fa-${isLocked?'lock text-amber-400':'lock-open text-slate-700'} text-[10px]"></i></button><button class="pvtog" onclick="event.stopPropagation();togglePreviewMute(${track.id})" title="${isMuted?'Excluded from preview':'In preview — click to mute'}"><i class="fas fa-${isMuted?'volume-xmark text-slate-700':'volume-low text-slate-600'} text-[10px]"></i></button></div></div><div class="font-semibold text-[11px] text-slate-100 leading-tight truncate mb-0.5">${escapeHtml(track.name)}</div><div class="text-[9px] tracking-widest font-bold uppercase mb-1.5" style="color:var(--tc-rc,#475569)">${ROLE_SHORT[role]||role}</div>${viz}<div class="mt-1.5 rounded-full overflow-hidden" style="height:2px;background:rgba(148,163,184,.07)"><div style="width:${density}%;height:100%;background:var(--tc-rc,#475569);opacity:.55;border-radius:9999px"></div></div><div class="flex items-center justify-between mt-1.5"><span class="text-[9px] font-bold tracking-wide uppercase" style="color:var(--tc-rc,#475569);opacity:.55">${ROUTE_SHORT[track.target]||'MIDI'}</span><span class="text-[9px] mono text-slate-700">ch${track.midiChannel}</span></div>`;
     card.onclick=()=>openModal(track.id);
     grid.appendChild(card);
   });
