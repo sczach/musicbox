@@ -1,124 +1,138 @@
-# Developer Handoff: Musicbox Composition Machine
+# Musicbox Developer Handoff
 
-This branch is intended to be handed to an implementation developer while preserving the fast, single-file testbed workflow.
+Last updated: 2026-05-29.
 
-## Files to read first
+This repo is still intentionally small. The current source of truth is the standalone browser testbed plus a no-dependency Node test harness.
+
+## Read these files first
 
 1. `digitakt-rhythm-aide.html`
-   - The runnable testbed and current source of truth for UI, genre data, generation, preview, persistence, and Web MIDI send.
-   - Open directly for a quick visual check, or serve from localhost for Web MIDI and future audio-input work.
+   - Runnable single-file app and current implementation source for genre data, UI, generation, audio preview, visualizer, persistence, and Web MIDI send.
 2. `DEVELOPMENT_PLAN.md`
-   - Product roadmap, hardware assumptions, library/project integration plan, visualizer roadmap, non-goals, and milestone definition.
+   - Product roadmap, current development review, known bugs, refactor opportunities, hardware assumptions, and phase priorities.
 3. `docs/IMPLEMENTATION_PSEUDOCODE.md`
-   - Concrete pseudocode for state migration, deterministic generators, MIDI event planning, UI rendering, and visualizer architecture.
-4. `docs/DEVELOPER_HANDOFF.md`
-   - This file: how to approach the codebase and a starter prompt for the next coding agent/developer.
+   - Target-shape pseudocode for the future modular architecture.
+4. `test/smoke.js` and `test/unit.js`
+   - Current safety net. Keep these passing before and after UI changes.
+
+## Current implemented baseline
+
+The app has moved beyond the original static rhythm aide. Before adding new features, assume these are already present:
+
+- Standalone `digitakt-rhythm-aide.html` remains runnable without a build step.
+- No-dependency `npm test` smoke/unit checks are in place.
+- Track metadata is normalized with explicit `target`, `midiChannel`, `note`, `velocity`, `roleType`, and `lanes` fields.
+- Track cards expose route summaries, preview mutes, and lock toggles.
+- The track modal includes editable routing controls for target, MIDI channel, note, velocity, and note-name display.
+- Step editing supports active trigs, right-click probability cycling, condition mode, Euclidean fill, pattern length changes, and lane reset.
+- Seeded regeneration exists for generated track steps and respects locked tracks.
+- Harmony and p-lock guidance exist, with manual key randomization.
+- Browser preview exists and feeds an internal analyser.
+- Visualizer scaffolding exists: preview analyser, external `getUserMedia` audio-input path, canvas fallback, and optional Three.js renderer loaded from CDN.
+- Web MIDI diagnostics exist and MIDI send uses `requestMIDIAccess({ sysex: false })` with scheduled start, clock, note, and stop events.
+- Song-mode send walks the genre song guide and can send only active tracks for each song step.
 
 ## Keep the testbed simple
 
-The user likes being able to download one file and immediately test it. Do not break that workflow.
+The user likes being able to download one file and immediately test ideas. Do not break that workflow.
 
-- Keep `digitakt-rhythm-aide.html` runnable as a standalone testbed.
-- If adding dependencies before the Vite/TypeScript migration, prefer optional CDN-loaded modules with native fallbacks.
+- Keep `digitakt-rhythm-aide.html` usable directly in a browser.
+- Use `http://localhost` or HTTPS for Web MIDI and audio-input permission testing.
+- If adding dependencies before the Vite/TypeScript migration, keep them optional in the standalone file or provide a no-network fallback.
 - If/when a build system is introduced, add a target that emits a single-file artifact such as `dist/musicbox.html`.
-- Do not require a backend server for core composition, preview, or MIDI send.
-- Use localhost for browser APIs that require secure contexts or permissions.
+- Do not require a backend server for core composition, preview, visualizer, or MIDI send.
 
-## How to approach the current codebase
+## Known bugs and correctness risks to tackle next
 
-### Step 1: Stabilize before expanding
+1. **Seed determinism is incomplete.** `regenerateComposition()` uses `mulberry32(S.seed)`, but MIDI probability filtering still uses `Math.random()` inside `buildMidiEvents()`, and `randomizeKey()` also uses `Math.random()`. Inject a seeded RNG into MIDI event planning and key selection so captures are reproducible.
+2. **Per-target output routing is not implemented.** Tracks have target metadata, but `sendToDigitakt()` and song send still use the single selected `#midiOutput`. Browser-as-hub routing to Digitakt USB and Pro 3 USB requires an output map per target.
+3. **Probability/condition UI has a stale-render edge.** Right-clicking probability on a conditioned step rebuilds the button with `textContent`, so the condition badge can disappear visually until the grid re-renders even though lane data remains.
+4. **Export omits new lane/routing metadata.** The text export lists steps and density, but not per-step probability, conditions, target, MIDI channel, note, or velocity.
+5. **Persistence has no schema version.** Storage is migrated defensively, but saved JSON has no explicit schema version or migration log.
+6. **Subgenre/reset flows can overwrite user edits.** Selecting a subgenre or loading recommended defaults replaces patterns and can discard routing/lane decisions unless the user knows this will happen.
+7. **Test harness duplicates production logic.** Unit tests currently copy/re-derive pure functions. This is acceptable while the source is a single HTML file, but extraction should remove duplication quickly.
+8. **Visualizer lifecycle needs polish.** Input streams are stopped when reconnecting, but there is no explicit “disconnect input” control, no calibration controls, and no device-change handling.
 
-- Add a smoke-test command that extracts the inline script and runs `node --check`.
-- Add a simple HTML parser check and required-id assertions for critical controls:
-  - `genreSelect`
-  - `trackGrid`
-  - `midiOutput`
-  - `midiSendBtn`
-  - `harmonyPanel`
-  - `modal`
-- Add tiny pure-function tests before large UI changes.
+## Refactor opportunities
 
-### Step 2: Extract pure modules conceptually first
-
-Even if everything temporarily remains in the single HTML file, treat these as future modules:
+Extract in this order so each step is testable:
 
 ```text
-core/model          normalizeTrack, migrateTrackData, state schema
-core/rhythm         euclidean, generateTrackSteps
+core/model          normalizeTrack, migrateTrackData, storage schema/version
+core/rhythm         euclidean, generateTrackSteps, lane application
+core/random         seed creation, mulberry32, deterministic choice helpers
 core/harmony        key/scale/chord helpers, p-lock tune offsets
-midi/planner        buildMidiEvents, clock events, note events
-midi/devices        Web MIDI discovery and diagnostics
-ui/render           renderTrackGrid, renderCompositionGuide, modal rendering
-audio/preview       existing Web Audio preview
-audio/visualizer    future input analyser + Three.js rendering
+midi/planner        buildMidiEvents with injected rng, clock/transport/note events
+midi/devices        Web MIDI discovery, per-target output map, diagnostics
+ui/render           renderTrackGrid, renderStepGrid, modal rendering helpers
+audio/preview       current Web Audio preview behind a PreviewEngine interface
+audio/visualizer    analyser selection, input lifecycle, calibration, renderer adapter
 ```
 
-### Step 3: Make routing editable
+Refactor guardrails:
 
-The previous pass made routing explicit in data, but the UI mostly displays it. The next implementation pass should add an inspector editor for:
+- Extract pure logic before introducing Vite/TypeScript or framework state.
+- Keep `test/smoke.js` validating the standalone HTML until an equivalent browser smoke test exists.
+- Prefer small adapters around browser APIs rather than letting DOM/Web MIDI/Web Audio calls spread through core functions.
+- Preserve the current app behavior before changing the visual design.
 
-- target: Digitakt audio, Digitakt MIDI, Pro 3 USB, external MIDI.
-- MIDI channel: 1-16.
-- note: 0-127, with note-name display.
-- velocity: 1-127.
-- output device: selected Web MIDI output.
+## UI polish opportunities
 
-### Step 4: Add deterministic generation without losing quick randomize
+- Add an always-visible project/status strip: seed, lock count, selected MIDI output(s), Web MIDI status, visualizer source, and save status.
+- Add lane legends directly above the step grid for probability and condition colors, not only explanatory copy below the grid.
+- Add per-target output selectors in a routing panel: Digitakt, Pro 3, and External MIDI.
+- Add a clear “Regenerate unlocked tracks” button label and show which tracks will be preserved.
+- Add export controls for “Text checklist” vs “Project JSON”.
+- Add undo for destructive actions: subgenre swap, reset all tracks, clear pattern, reset lanes.
+- Add visualizer calibration controls: input disconnect, gain trim, freeze, timebase, and trigger threshold.
+- Improve mobile modal ergonomics: sticky step controls, larger step hit targets, and a compact routing summary.
 
-- Add `seed` to app state and visible UI.
-- Replace `Math.random()` in generation paths with a small seeded RNG.
-- Keep a `New Seed` button for fast exploration.
-- Add track locks so the user can regenerate around good ideas.
+## Suggested next implementation sequence
 
-### Step 5: Add visualizer in safe stages
+1. Fix deterministic MIDI planning by injecting a seeded RNG into `buildMidiEvents()` and adding tests for repeated probability-lane renders with the same seed.
+2. Add per-target MIDI output routing and update diagnostics/status copy.
+3. Make export include routing, probability, conditions, seed, locks, and a JSON project option.
+4. Add storage schema versioning and a tiny migration test.
+5. Extract pure model/rhythm/random/MIDI planner code into modules while keeping the single-file app working.
+6. Add Vite/TypeScript only after pure extraction is stable, with a build target that emits standalone HTML.
+7. Polish visualizer lifecycle and calibration.
+8. Add arrangement scenes/mutation stack after the app has reliable serialization and undo.
 
-1. Internal preview oscilloscope: analyze sounds generated by the browser preview engine.
-2. External input oscilloscope: use `getUserMedia({ audio: true })` and user-selected audio input.
-3. Three.js renderer: draw oscilloscope line and spectrum mesh from analyser data.
-4. AudioWorklet: add only if analyser polling is not stable enough for metering/ring-buffer needs.
-
-## Starter prompt for the next developer or coding agent
+## Starter prompt for onboarding a new Claude Code instance
 
 ```text
-You are working in the Musicbox branch. Start by reading these files in order:
+You are taking over development of Musicbox in /workspace/musicbox.
 
-1. digitakt-rhythm-aide.html
-2. DEVELOPMENT_PLAN.md
+Read these files first, in order:
+1. DEVELOPMENT_PLAN.md
+2. docs/DEVELOPER_HANDOFF.md
 3. docs/IMPLEMENTATION_PSEUDOCODE.md
-4. docs/DEVELOPER_HANDOFF.md
+4. digitakt-rhythm-aide.html
+5. test/smoke.js and test/unit.js
 
-Goal: continue turning the single-file Digitakt II rhythm aide into a production-ready composition machine while preserving the downloadable one-file testbed workflow.
+Current state: Musicbox is still a standalone HTML testbed, but it now has tests, normalized track routing metadata, editable routing in the track modal, seeded regeneration with track locks, probability/condition lanes, Web MIDI diagnostics/send, song-step send, and a preview/input visualizer scaffold.
 
-Important constraints:
+Non-negotiable constraints:
 - Do not break direct use of digitakt-rhythm-aide.html.
-- Keep Web MIDI SysEx disabled unless a separate verified hardware spike proves it is needed.
-- Keep Digitakt pattern/project transfer out of scope for now; focus on live/record-to-Digitakt workflows.
-- Maintain explicit track routing metadata: target, midiChannel, note, velocity.
-- Add tests/smoke checks before refactoring large blocks.
+- Keep Web MIDI SysEx disabled unless a separate verified hardware spike proves it is necessary.
+- Do not claim Digitakt project/pattern SysEx transfer is supported.
+- Keep browser-as-hub and live/record-to-Digitakt workflows as the production path.
 - Any dependency must either be optional in the standalone file or part of a build that emits a standalone HTML artifact.
+- Run npm test before committing.
 
-Suggested first task:
-1. Add a no-dependency smoke test script that extracts the inline JavaScript from digitakt-rhythm-aide.html and runs node --check.
-2. Add required DOM id assertions.
-3. Add a small pure-function test harness for normalizeTrack, euclidean, and buildMidiEvents.
-4. Then add editable routing controls to the track modal.
+Start with this task:
+1. Make MIDI probability planning deterministic by injecting an RNG/seed into buildMidiEvents instead of using Math.random().
+2. Add tests proving identical seed + tracks + probability lanes produce identical MIDI note events.
+3. Fix randomizeKey() to use deterministic seed flow or clearly mark it as an intentional manual random action.
+4. Fix the step-grid stale-render edge where cycling probability can hide an existing condition badge.
+5. Keep the UI and existing standalone behavior intact.
 
-After that, implement seeded generation + track locks, then prototype the visualizer in this order: internal preview oscilloscope, external getUserMedia input, Three.js rendering.
+After that, implement per-target MIDI output routing for Digitakt USB, Pro 3 USB, and External MIDI, then expand export/persistence to include lane and routing metadata.
 ```
-
-## Specific project/library implementation notes
-
-- **Tonal**: best first real dependency candidate because it can replace handwritten theory tables with deterministic note, interval, chord, and scale helpers. Keep a tiny fallback for single-file mode.
-- **Tone.js**: use for richer internal preview only. Do not let it become the hardware MIDI clock source until timing is validated against the current Web MIDI scheduler.
-- **Strudel**: copy the transform vocabulary into Musicbox's own pattern operations first. Avoid embedding a full live-coding environment until the app has stable model serialization.
-- **Scribbletune**: useful as a UX idea for compact motif strings and MIDI export. Implement a small local motif parser before adopting the whole library.
-- **Magenta.js**: experimental and late-stage. Use only in a worker and always constrain output through key, density, role, and hardware range.
-- **Three.js**: use for visualizer rendering, not audio capture. Capture comes from Web Audio/getUserMedia; Three.js draws the waveform/spectrum.
-- **WebMidi.js**: defer until native Web MIDI code becomes painful. The current native layer is still small enough.
 
 ## Hardware notes to keep visible in the UI
 
 - MIDI over USB does not carry audio.
 - Digitakt USB audio or an audio interface must be selected as a browser audio input for oscilloscope monitoring.
 - Pro 3 USB is MIDI only, not audio.
-- Browser permissions and secure context requirements should be diagnosed in the UI rather than hidden in console errors.
+- Browser permissions and secure-context requirements should be diagnosed in the UI rather than hidden in console errors.
