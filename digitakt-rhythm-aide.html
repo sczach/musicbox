@@ -162,6 +162,10 @@ select,input,textarea{box-shadow:inset 0 1px 0 rgba(255,255,255,.03)}
           <button id="previewBtn" onclick="togglePreview()" class="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 rounded-lg flex items-center gap-1.5 transition-colors">
             <i class="fas fa-play text-green-400 text-xs"></i> Preview
           </button>
+          <select id="audioOutputSel" onchange="changeAudioOutput()" title="Preview audio output — select headphones, speakers, or other output"
+            class="hidden text-xs bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-slate-400 focus:outline-none focus:border-cyan-600 max-w-[11rem]">
+            <option value="">System default</option>
+          </select>
           <button onclick="regenerateComposition(true)" class="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg flex items-center gap-1.5 transition-colors">
             <i class="fas fa-dice text-purple-400"></i> New Seed
           </button>
@@ -1124,6 +1128,8 @@ function init(){
   loadGenre("Ambient");
   updateSeedDisplay();
   initMidi();
+  populateAudioOutputs();
+  if(navigator.mediaDevices)navigator.mediaDevices.addEventListener('devicechange',populateAudioOutputs);
   document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!document.getElementById("modal").classList.contains("hidden"))closeModal();});
   // Load Three.js from CDN; fall back to canvas 2D if unavailable
   const tjs=document.createElement('script');
@@ -1175,10 +1181,37 @@ function selectSubgenre(id){
 let audioCtx=null;
 let previewSched=null;
 let previewPlaying=false;
+let previewSinkId='';
 
 function getACtx(){
   if(!audioCtx||audioCtx.state==="closed")audioCtx=new(window.AudioContext||window.webkitAudioContext)();
   return audioCtx;
+}
+
+async function populateAudioOutputs(){
+  const sel=document.getElementById('audioOutputSel');
+  if(!sel)return;
+  if(typeof AudioContext==='undefined'||!AudioContext.prototype.setSinkId)return;
+  try{
+    const devs=await navigator.mediaDevices.enumerateDevices();
+    const outs=devs.filter(d=>d.kind==='audiooutput');
+    if(!outs.length)return;
+    const defaultLabel=outs.find(d=>d.deviceId==='default')?.label||'System default';
+    sel.innerHTML='<option value="">'+escapeHtml(defaultLabel)+'</option>'+
+      outs.filter(d=>d.deviceId!=='default').map(d=>`<option value="${escapeHtml(d.deviceId)}">${escapeHtml(d.label||('Output '+d.deviceId.slice(0,8)))}</option>`).join('');
+    sel.value=previewSinkId;
+    sel.classList.remove('hidden');
+  }catch(e){}
+}
+
+async function changeAudioOutput(){
+  const sel=document.getElementById('audioOutputSel');
+  if(!sel)return;
+  previewSinkId=sel.value;
+  if(audioCtx&&typeof audioCtx.setSinkId==='function'){
+    try{await audioCtx.setSinkId(previewSinkId);}
+    catch(e){console.warn('[audio] setSinkId failed:',e);sel.value='';previewSinkId='';}
+  }
 }
 
 function synthHit(ctx,type,t){
@@ -1287,7 +1320,7 @@ function schedulePreview(){
   return totalMs;
 }
 
-function togglePreview(){
+async function togglePreview(){
   if(previewPlaying){
     previewPlaying=false;
     clearTimeout(previewSched);previewSched=null;
@@ -1297,6 +1330,10 @@ function togglePreview(){
     setPreviewBtn(false);
   } else {
     previewPlaying=true;
+    const ctx=getACtx();
+    if(previewSinkId&&typeof ctx.setSinkId==='function'){
+      await ctx.setSinkId(previewSinkId).catch(e=>console.warn('[audio] setSinkId:',e));
+    }
     const dur=schedulePreview();
     if(dur>0&&vizSrc==='preview'&&_prevAnalyser)vizStart();
     setPreviewBtn(true);
