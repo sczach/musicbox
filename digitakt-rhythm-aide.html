@@ -106,10 +106,6 @@ select,input,textarea{box-shadow:none}
           <div class="text-slate-600 text-[11px]">Digitakt II composition aid · Sequential Pro 3</div>
         </div>
       </div>
-      <div class="flex items-center gap-2">
-        <span class="status-chip"><i class="fas fa-circle-nodes text-slate-600 text-xs"></i> Euclidean</span>
-        <span class="status-chip"><i class="fas fa-usb text-slate-600 text-xs"></i> Web MIDI</span>
-      </div>
     </div>
   </header>
 
@@ -123,25 +119,15 @@ select,input,textarea{box-shadow:none}
       <div>
         <div class="lbl mb-1.5">Genre</div>
         <select id="genreSelect" class="w-full rounded-xl px-3 py-2 text-sm border border-slate-800 focus:outline-none focus:border-cyan-600 bg-slate-900 text-slate-200"></select>
-      </div>
-
-      <!-- BPM + Def.Len -->
-      <div class="grid grid-cols-2 gap-2">
-        <div class="metric-card px-2 py-2.5 text-center">
-          <div class="lbl">BPM</div>
-          <div id="bpmDisplay" class="text-lg font-bold text-cyan-400 mono mt-0.5 leading-none">—</div>
-        </div>
-        <div class="metric-card px-2 py-2.5 text-center">
-          <div class="lbl">Def.Len</div>
-          <div id="defLenDisplay" class="text-lg font-bold text-slate-300 mono mt-0.5 leading-none">—</div>
-        </div>
+        <div id="genreInfo" class="text-[11px] text-slate-600 mono mt-1.5 leading-tight">—</div>
       </div>
 
       <!-- Subgenre pills -->
-      <div>
+      <div id="subgenreSection">
         <div class="lbl mb-1.5">Subgenre</div>
         <div id="subgenreBar" class="flex gap-1.5 flex-wrap"></div>
-        <div id="subgenreNote" class="text-xs text-cyan-700 mt-1.5 leading-relaxed min-h-[1rem]"></div>
+        <!-- subgenreNote retained hidden for JS compatibility -->
+        <div id="subgenreNote" class="hidden"></div>
       </div>
 
     </div>
@@ -154,22 +140,22 @@ select,input,textarea{box-shadow:none}
         <button id="previewBtn" onclick="togglePreview()" class="px-3 py-1.5 text-xs font-medium bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 rounded-lg flex items-center gap-1.5 transition-colors">
           <i class="fas fa-play text-emerald-400 text-xs"></i> Preview
         </button>
-        <select id="audioOutputSel" onchange="changeAudioOutput()" title="Preview audio output — select headphones, speakers, or other output"
-          class="hidden text-xs bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-slate-400 focus:outline-none focus:border-cyan-600 max-w-[10rem]">
+        <select id="audioOutputSel" onchange="changeAudioOutput()" title="Preview audio output"
+          class="hidden text-xs bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-slate-400 focus:outline-none focus:border-cyan-600 max-w-[9rem]">
           <option value="">System default</option>
         </select>
-        <div class="w-px h-4 bg-slate-800 mx-0.5 flex-shrink-0"></div>
-        <button onclick="regenerateComposition(false)" class="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg flex items-center gap-1.5 transition-colors">
-          <i class="fas fa-arrows-rotate text-purple-500 text-xs"></i> Regenerate
-        </button>
-        <button onclick="regenerateComposition(true)" class="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg flex items-center gap-1.5 transition-colors">
-          <i class="fas fa-dice text-purple-500 text-xs"></i> New Seed
-        </button>
-        <span id="seedDisplay" class="mono text-[10px] text-slate-700 tabular-nums px-1 select-all" title="Generation seed — copy to share or replay"></span>
+        <div class="w-px h-4 bg-slate-700 mx-0.5 flex-shrink-0"></div>
+        <!-- Generate + roll-seed as one unit -->
+        <div class="flex rounded-lg overflow-hidden border border-slate-700">
+          <button onclick="regenerateComposition(false)" class="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 flex items-center gap-1.5 transition-colors">
+            <i class="fas fa-arrows-rotate text-purple-400 text-xs"></i> Generate
+          </button>
+          <button onclick="regenerateComposition(true)" class="px-2.5 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 text-slate-500 hover:text-slate-300 border-l border-slate-700 transition-colors" title="New random seed">
+            <i class="fas fa-dice text-xs"></i>
+          </button>
+        </div>
+        <span id="seedDisplay" class="mono text-[10px] text-slate-600 tabular-nums select-all" title="Seed — copy to replay"></span>
         <div class="flex-1 min-w-[1rem]"></div>
-        <button onclick="loadRecommendedDefaults()" class="px-2.5 py-1.5 text-xs bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg text-slate-600 transition-colors">
-          Reset
-        </button>
         <button onclick="exportAllPatterns()" class="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 rounded-lg flex items-center gap-1.5 transition-colors">
           <i class="fas fa-file-export text-xs"></i> Export
         </button>
@@ -188,7 +174,9 @@ select,input,textarea{box-shadow:none}
                 <button id="exportTabJson" onclick="setExportFormat('json')" class="px-2.5 py-1 text-xs font-semibold transition-colors bg-slate-800 text-slate-500 border-l border-slate-700">JSON</button>
               </div>
             </div>
-            <div class="flex gap-2">
+            <div class="flex gap-2 items-center">
+              <button onclick="loadRecommendedDefaults()" class="px-2.5 py-1 text-xs text-slate-600 hover:text-slate-400 transition-colors" title="Reset to genre defaults">Reset defaults</button>
+              <div class="w-px h-3 bg-slate-700"></div>
               <button onclick="doCopy()" class="px-3 py-1 text-xs bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors"><i class="fas fa-copy mr-1"></i><span id="copyLbl">Copy</span></button>
               <button onclick="doDownload()" class="px-3 py-1 text-xs bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors"><i class="fas fa-download mr-1"></i>Save</button>
               <button onclick="document.getElementById('exportPanel').classList.add('hidden')" class="text-slate-500 hover:text-white text-lg px-1 leading-none">×</button>
@@ -239,14 +227,9 @@ select,input,textarea{box-shadow:none}
       <div id="harmonyPanel" class="hardware-card">
         <div class="flex items-center justify-between mb-2.5">
           <div class="lbl">Key / Mode</div>
-          <div class="flex gap-1.5">
-            <button onclick="randomizeKey()" class="px-2 py-1 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg flex items-center gap-1 transition-colors">
-              <i class="fas fa-dice text-slate-400 text-xs"></i> New Key
-            </button>
-            <button onclick="showCompositionRules()" class="px-2 py-1 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg flex items-center gap-1 transition-colors">
-              <i class="fas fa-question-circle text-slate-400 text-xs"></i> How?
-            </button>
-          </div>
+          <button onclick="randomizeKey()" class="px-2 py-1 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg flex items-center gap-1 transition-colors">
+            <i class="fas fa-dice text-slate-400 text-xs"></i> New Key
+          </button>
         </div>
         <div id="harmKeyDisplay" class="text-base font-bold text-white mono mb-0.5"></div>
         <div id="harmMoodDisplay" class="text-xs text-slate-500 mb-2.5"></div>
@@ -305,13 +288,11 @@ select,input,textarea{box-shadow:none}
             <i class="fas fa-list-ol text-purple-400 text-xs"></i> Song Mode
           </button>
         </div>
-        <div class="space-y-1.5" aria-label="MIDI diagnostics">
-          <div class="device-kv"><span>Web MIDI</span><span id="diagWebMidi">checking</span></div>
-          <div class="device-kv"><span>Secure context</span><span id="diagSecure">checking</span></div>
-          <div class="device-kv"><span>SysEx</span><span id="diagSysex">off</span></div>
-          <div class="device-kv"><span>Outputs</span><span id="diagOutputs">0</span></div>
+        <!-- diagnostic elements retained hidden — JS still updates them -->
+        <div class="hidden" aria-hidden="true">
+          <span id="diagWebMidi"></span><span id="diagSecure"></span>
+          <span id="diagSysex"></span><span id="diagOutputs"></span>
         </div>
-        <p class="text-xs text-slate-600 leading-relaxed">Digitakt: <span class="text-slate-400">MIDI → Recv Clock + Transport ON</span> · hold <span class="text-slate-300">REC</span> · Send. Chrome/Edge.</p>
       </div>
 
       <!-- Visualizer Panel -->
@@ -333,7 +314,6 @@ select,input,textarea{box-shadow:none}
           </button>
         </div>
         <div id="vizStatus" class="mono text-[10px] text-slate-600 leading-tight min-h-[1em]"></div>
-        <p class="text-xs text-slate-700 leading-relaxed">USB audio or interface required for Digitakt monitoring. Pro 3 USB is MIDI only.</p>
       </div>
 
     </div>
@@ -1201,8 +1181,7 @@ function init(){
 function loadGenre(genre){
   S.genre=genre;S.subgenre=null;S.keyIdx=0;
   const gd=GENRES[genre];
-  document.getElementById("bpmDisplay").textContent=gd.bpm;
-  document.getElementById("defLenDisplay").textContent=gd.defaultLen;
+  setText("genreInfo",`${gd.bpm} · ${gd.defaultLen} steps`);
   if(!S.trackData[genre])S.trackData[genre]=normalizeTrackCollection(JSON.parse(JSON.stringify(gd.tracks)));
   else S.trackData[genre]=normalizeTrackCollection(S.trackData[genre]);
   // Pre-fill MIDI BPM with genre low end
@@ -1221,9 +1200,8 @@ function selectSubgenre(id){
   renderSubgenreBar();
   renderTrackGrid();
   const sg=currentSG();
-  document.getElementById("subgenreNote").textContent=sg?sg.note:"";
-  if(sg&&sg.bpm)document.getElementById("bpmDisplay").textContent=sg.bpm;
-  else document.getElementById("bpmDisplay").textContent=GENRES[S.genre].bpm;
+  const bpmStr=sg&&sg.bpm?sg.bpm:GENRES[S.genre].bpm;
+  setText("genreInfo",`${bpmStr} · ${GENRES[S.genre].defaultLen} steps`);
   save();
 }
 
@@ -1639,7 +1617,7 @@ function renderSubgenreBar(){
   const bar=document.getElementById("subgenreBar");
   const sgs=SUBGENRES[S.genre]||[];
   bar.innerHTML="";
-  if(!sgs.length){document.getElementById("subgenreNote").textContent="";return;}
+  if(!sgs.length)return;
   sgs.forEach(sg=>{
     const btn=document.createElement("button");
     btn.className="sg-pill"+(S.subgenre===sg.id?" sg-on":"");
@@ -1647,8 +1625,6 @@ function renderSubgenreBar(){
     btn.onclick=()=>selectSubgenre(sg.id);
     bar.appendChild(btn);
   });
-  const sg=currentSG();
-  document.getElementById("subgenreNote").textContent=sg?sg.note:"";
 }
 
 function renderTrackGrid(){
@@ -2514,10 +2490,18 @@ let midiAccess = null;
 function setText(id,value){const el=document.getElementById(id);if(el)el.textContent=value;}
 
 function updateMidiDiagnostics(outputCount){
+  // Update hidden diagnostic elements (still used by legacy paths)
   setText("diagWebMidi",navigator.requestMIDIAccess?"ready":"unsupported");
   setText("diagSecure",window.isSecureContext||location.hostname==="localhost"?"ok":"required");
   setText("diagSysex","disabled");
-  if(outputCount!==undefined)setText("diagOutputs",String(outputCount));
+  if(outputCount!==undefined){
+    setText("diagOutputs",String(outputCount));
+    // Surface important status in the visible status line
+    if(!navigator.requestMIDIAccess)setText("midiStatusMsg","Web MIDI not supported — use Chrome or Edge");
+    else if(!window.isSecureContext&&location.hostname!=="localhost")setText("midiStatusMsg","Secure context (HTTPS) required for Web MIDI");
+    else if(outputCount===0)setText("midiStatusMsg","No MIDI outputs — connect a device");
+    else setText("midiStatusMsg",`${outputCount} output${outputCount===1?"":"s"}`);
+  }
 }
 
 async function initMidi(){
