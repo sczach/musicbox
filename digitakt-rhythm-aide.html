@@ -162,6 +162,10 @@ select,input,textarea{box-shadow:inset 0 1px 0 rgba(255,255,255,.03)}
           <button id="previewBtn" onclick="togglePreview()" class="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 rounded-lg flex items-center gap-1.5 transition-colors">
             <i class="fas fa-play text-green-400 text-xs"></i> Preview
           </button>
+          <select id="audioOutputSel" onchange="changeAudioOutput()" title="Preview audio output — select headphones, speakers, or other output"
+            class="hidden text-xs bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-slate-400 focus:outline-none focus:border-cyan-600 max-w-[11rem]">
+            <option value="">System default</option>
+          </select>
           <button onclick="regenerateComposition(true)" class="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg flex items-center gap-1.5 transition-colors">
             <i class="fas fa-dice text-purple-400"></i> New Seed
           </button>
@@ -1124,6 +1128,8 @@ function init(){
   loadGenre("Ambient");
   updateSeedDisplay();
   initMidi();
+  populateAudioOutputs();
+  if(navigator.mediaDevices)navigator.mediaDevices.addEventListener('devicechange',populateAudioOutputs);
   document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!document.getElementById("modal").classList.contains("hidden"))closeModal();});
   // Load Three.js from CDN; fall back to canvas 2D if unavailable
   const tjs=document.createElement('script');
@@ -1175,10 +1181,37 @@ function selectSubgenre(id){
 let audioCtx=null;
 let previewSched=null;
 let previewPlaying=false;
+let previewSinkId='';
 
 function getACtx(){
   if(!audioCtx||audioCtx.state==="closed")audioCtx=new(window.AudioContext||window.webkitAudioContext)();
   return audioCtx;
+}
+
+async function populateAudioOutputs(){
+  const sel=document.getElementById('audioOutputSel');
+  if(!sel)return;
+  if(typeof AudioContext==='undefined'||!AudioContext.prototype.setSinkId)return;
+  try{
+    const devs=await navigator.mediaDevices.enumerateDevices();
+    const outs=devs.filter(d=>d.kind==='audiooutput');
+    if(!outs.length)return;
+    const defaultLabel=outs.find(d=>d.deviceId==='default')?.label||'System default';
+    sel.innerHTML='<option value="">'+escapeHtml(defaultLabel)+'</option>'+
+      outs.filter(d=>d.deviceId!=='default').map(d=>`<option value="${escapeHtml(d.deviceId)}">${escapeHtml(d.label||('Output '+d.deviceId.slice(0,8)))}</option>`).join('');
+    sel.value=previewSinkId;
+    sel.classList.remove('hidden');
+  }catch(e){}
+}
+
+async function changeAudioOutput(){
+  const sel=document.getElementById('audioOutputSel');
+  if(!sel)return;
+  previewSinkId=sel.value;
+  if(audioCtx&&typeof audioCtx.setSinkId==='function'){
+    try{await audioCtx.setSinkId(previewSinkId);}
+    catch(e){console.warn('[audio] setSinkId failed:',e);sel.value='';previewSinkId='';}
+  }
 }
 
 function synthHit(ctx,type,t){
@@ -1287,7 +1320,7 @@ function schedulePreview(){
   return totalMs;
 }
 
-function togglePreview(){
+async function togglePreview(){
   if(previewPlaying){
     previewPlaying=false;
     clearTimeout(previewSched);previewSched=null;
@@ -1297,6 +1330,10 @@ function togglePreview(){
     setPreviewBtn(false);
   } else {
     previewPlaying=true;
+    const ctx=getACtx();
+    if(previewSinkId&&typeof ctx.setSinkId==='function'){
+      await ctx.setSinkId(previewSinkId).catch(e=>console.warn('[audio] setSinkId:',e));
+    }
     const dur=schedulePreview();
     if(dur>0&&vizSrc==='preview'&&_prevAnalyser)vizStart();
     setPreviewBtn(true);
@@ -1725,7 +1762,9 @@ function cycleStepProb(step,btn){
   if(next>=100)delete track.lanes.probability[step];else track.lanes.probability[step]=next;
   const barS=(step-1)%4===0?' bar-s':'';
   btn.className=`step-btn active${probClass(next)}${barS}`;
-  btn.textContent=next<100?String(next):String(step);
+  const cond=track.lanes&&track.lanes.condition&&track.lanes.condition[step];
+  const mainLabel=next<100?String(next):String(step);
+  btn.innerHTML=mainLabel+(cond?`<span class="step-cond">${cond}</span>`:'');
   btn.title=next<100?`Step ${step} · ${next}% probability — right-click to cycle`:`Step ${step} · right-click to set probability`;
 }
 
@@ -1912,7 +1951,9 @@ function randomizeKey(){
   const keys=HARMONIC[S.genre]||[];
   if(!keys.length)return;
   let next=S.keyIdx;
-  if(keys.length>1)while(next===S.keyIdx)next=Math.floor(Math.random()*keys.length);
+  // Intentional one-shot manual action — each button press generates a fresh seed
+  const rng=mulberry32(mkSeed());
+  if(keys.length>1)while(next===S.keyIdx)next=Math.floor(rng()*keys.length);
   S.keyIdx=next;
   renderHarmonicPanel();
 }
@@ -1985,7 +2026,8 @@ function populateMidiOutputs(){
   if(match)sel.value=prev;
 }
 
-function buildMidiEvents(tracks,bpm,loops,startAt){
+function buildMidiEvents(tracks,bpm,loops,startAt,rng){
+  rng=rng||mulberry32(S.seed);
   let maxStep=GENRES[S.genre].defaultLen;
   tracks.forEach(t=>{if(t.steps&&t.steps.length)maxStep=Math.max(maxStep,...t.steps);});
   const patLen=Math.ceil(maxStep/16)*16;
@@ -2006,7 +2048,7 @@ function buildMidiEvents(tracks,bpm,loops,startAt){
       track.steps.forEach(step=>{
         if(step<1||step>patLen)return;
         const prob=track.lanes&&track.lanes.probability&&track.lanes.probability[step]!=null?track.lanes.probability[step]:100;
-        if(Math.random()*100>=prob)return;
+        if(rng()*100>=prob)return;
         const cond=track.lanes&&track.lanes.condition&&track.lanes.condition[step];
         if(cond&&!evalCondition(cond,loop))return;
         const onset=startAt+lo+(step-1)*msPerStep;

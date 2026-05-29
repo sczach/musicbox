@@ -222,8 +222,9 @@ assert('existing lanes.condition is preserved',
 // ================================================================
 // buildMidiEvents — probability filtering
 // ================================================================
-// Extend buildMidiEvents to accept probability from lanes
-function buildMidiEventsWithProb(tracks, bpm, loops, startAt, defaultLen) {
+// Extend buildMidiEvents to accept probability from lanes and an optional seeded rng
+function buildMidiEventsWithProb(tracks, bpm, loops, startAt, defaultLen, rng) {
+  rng = rng || Math.random.bind(Math);
   let maxStep = defaultLen || 16;
   tracks.forEach(t => { if (t.steps && t.steps.length) maxStep = Math.max(maxStep, ...t.steps); });
   const patLen = Math.ceil(maxStep / 16) * 16;
@@ -245,7 +246,7 @@ function buildMidiEventsWithProb(tracks, bpm, loops, startAt, defaultLen) {
         if (step < 1 || step > patLen) return;
         const prob = track.lanes && track.lanes.probability && track.lanes.probability[step] != null
           ? track.lanes.probability[step] : 100;
-        if (Math.random() * 100 >= prob) return;
+        if (rng() * 100 >= prob) return;
         const onset = startAt + lo + (step - 1) * msPerStep;
         events.push({ bytes: [0x90 | ch, note, velocity], at: onset });
         events.push({ bytes: [0x80 | ch, note, 0], at: onset + msPerStep * 0.45 });
@@ -292,6 +293,67 @@ assert('missing prob entry treated as 100% (always fires)', (() => {
     if (!events.some(e => (e.bytes[0] & 0xF0) === 0x90)) return false;
   }
   return true;
+})());
+
+// ================================================================
+// buildMidiEvents — determinism with seeded RNG
+// ================================================================
+console.log('\nbuildMidiEvents determinism:');
+assert('same seed + same tracks produce identical note-on events', (() => {
+  const t = normalizeTrack({ id: 1, name: 'Kick', midiChannel: 1, note: 36, velocity: 100,
+    steps: [1, 3, 5, 7, 9, 11, 13, 15], lanes: { probability: { 1: 75, 3: 50, 5: 25, 7: 75 } } });
+  const seed = 0xDEADBEEF;
+  const e1 = buildMidiEventsWithProb([t], 120, 4, 0, 16, mulberry32(seed)).events
+    .filter(e => (e.bytes[0] & 0xF0) === 0x90).map(e => e.at);
+  const e2 = buildMidiEventsWithProb([t], 120, 4, 0, 16, mulberry32(seed)).events
+    .filter(e => (e.bytes[0] & 0xF0) === 0x90).map(e => e.at);
+  return deepEqual(e1, e2);
+})());
+assert('different seeds produce different probability outcomes (multi-track)', (() => {
+  const tracks = [
+    normalizeTrack({ id: 1, name: 'Kick', midiChannel: 1, note: 36, velocity: 100,
+      steps: [1,2,3,4,5,6,7,8], lanes: { probability: { 1:50,2:50,3:50,4:50,5:50,6:50,7:50,8:50 } } }),
+    normalizeTrack({ id: 2, name: 'Snare', midiChannel: 2, note: 38, velocity: 100,
+      steps: [1,2,3,4,5,6,7,8], lanes: { probability: { 1:50,2:50,3:50,4:50,5:50,6:50,7:50,8:50 } } }),
+  ];
+  let diffFound = false;
+  for (let s = 0; s < 20; s++) {
+    const e1 = buildMidiEventsWithProb(tracks, 120, 1, 0, 16, mulberry32(s)).events
+      .filter(e => (e.bytes[0] & 0xF0) === 0x90).length;
+    const e2 = buildMidiEventsWithProb(tracks, 120, 1, 0, 16, mulberry32(s + 100)).events
+      .filter(e => (e.bytes[0] & 0xF0) === 0x90).length;
+    if (e1 !== e2) { diffFound = true; break; }
+  }
+  return diffFound;
+})());
+assert('seeded prob=100 always fires regardless of seed', (() => {
+  const t = normalizeTrack({ id: 1, name: 'Kick', midiChannel: 1, note: 36, velocity: 100,
+    steps: [1], lanes: { probability: { 1: 100 } } });
+  for (let seed = 0; seed < 20; seed++) {
+    const { events } = buildMidiEventsWithProb([t], 120, 1, 0, 16, mulberry32(seed));
+    if (!events.some(e => (e.bytes[0] & 0xF0) === 0x90)) return false;
+  }
+  return true;
+})());
+assert('seeded prob=0 never fires regardless of seed', (() => {
+  const t = normalizeTrack({ id: 1, name: 'Kick', midiChannel: 1, note: 36, velocity: 100,
+    steps: [1], lanes: { probability: { 1: 0 } } });
+  for (let seed = 0; seed < 20; seed++) {
+    const { events } = buildMidiEventsWithProb([t], 120, 1, 0, 16, mulberry32(seed));
+    if (events.some(e => (e.bytes[0] & 0xF0) === 0x90)) return false;
+  }
+  return true;
+})());
+assert('repeated sends with same seed produce same event count across 4 loops', (() => {
+  const t = normalizeTrack({ id: 1, name: 'Hat', midiChannel: 3, note: 42, velocity: 80,
+    steps: [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16],
+    lanes: { probability: { 2:75,4:50,6:75,8:50,10:75,12:50,14:25,16:75 } } });
+  const seed = 0x1337CAFE;
+  const count1 = buildMidiEventsWithProb([t], 120, 4, 0, 16, mulberry32(seed))
+    .events.filter(e => (e.bytes[0] & 0xF0) === 0x90).length;
+  const count2 = buildMidiEventsWithProb([t], 120, 4, 0, 16, mulberry32(seed))
+    .events.filter(e => (e.bytes[0] & 0xF0) === 0x90).length;
+  return count1 === count2 && count1 > 0;
 })());
 
 // ================================================================
