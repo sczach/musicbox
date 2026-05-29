@@ -9,7 +9,7 @@
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 *,*::before,*::after{box-sizing:border-box}
-body{font-family:'Space Grotesk',system-ui,sans-serif;background:#070b14;color:#e2e8f0;min-height:100vh}
+body{font-family:'Space Grotesk',system-ui,sans-serif;background:#09111f;color:#e2e8f0;min-height:100vh}
 .mono{font-family:'JetBrains Mono',monospace}
 .track-card{transition:border-color .1s,box-shadow .1s,transform .1s;cursor:pointer}
 .track-card:hover{border-color:#22d3ee!important;box-shadow:0 0 16px rgba(34,211,238,.13);transform:translateY(-1px)}
@@ -62,56 +62,53 @@ body{font-family:'Space Grotesk',system-ui,sans-serif;background:#070b14;color:#
 .viz-src-btn:hover:not(.viz-src-on){background:#182234;color:#608ab0}
 .viz-src-btn.viz-src-on{background:#0a3a58;border-color:#0891b2;color:#22d3ee}
 
-/* Production cockpit polish */
-:root{--mb-bg:#050914;--mb-panel:rgba(9,14,26,.82);--mb-panel-strong:rgba(12,19,34,.94);--mb-border:rgba(148,163,184,.14);--mb-cyan:#22d3ee;--mb-violet:#8b5cf6;--mb-amber:#f59e0b}
-body{background:
-  radial-gradient(circle at 12% 8%,rgba(34,211,238,.14),transparent 30rem),
-  radial-gradient(circle at 88% -4%,rgba(139,92,246,.16),transparent 34rem),
-  linear-gradient(180deg,#07101f 0%,var(--mb-bg) 48%,#020409 100%);}
-body::before{content:"";position:fixed;inset:0;pointer-events:none;background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.02) 1px,transparent 1px);background-size:48px 48px;mask-image:linear-gradient(to bottom,rgba(0,0,0,.8),transparent 78%)}
+/* Palette */
+:root{--mb-panel:rgba(10,17,31,.88);--mb-border:rgba(148,163,184,.1)}
 .app-shell{position:relative;z-index:1}
-.hero{background:linear-gradient(135deg,rgba(15,23,42,.92),rgba(8,13,25,.76));border:1px solid var(--mb-border);box-shadow:0 24px 80px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.05);border-radius:28px;padding:1.25rem 1.4rem;backdrop-filter:blur(18px)}
-.hero-mark{width:3.25rem;height:3.25rem;border-radius:1.15rem;background:linear-gradient(135deg,rgba(34,211,238,.24),rgba(139,92,246,.16));border:1px solid rgba(34,211,238,.34);box-shadow:0 0 28px rgba(34,211,238,.16);display:flex;align-items:center;justify-content:center}
-.status-chip{display:inline-flex;align-items:center;gap:.45rem;border:1px solid var(--mb-border);background:rgba(15,23,42,.72);border-radius:999px;padding:.45rem .7rem;font-size:.72rem;color:#94a3b8;white-space:nowrap}
-.status-chip strong{color:#e2e8f0;font-weight:700}.status-dot{width:.45rem;height:.45rem;border-radius:999px;background:#64748b;box-shadow:0 0 0 4px rgba(100,116,139,.1)}.status-dot.live{background:#22d3ee;box-shadow:0 0 0 4px rgba(34,211,238,.12),0 0 14px rgba(34,211,238,.6)}
-.control-panel,.cockpit-card,.hardware-card{background:var(--mb-panel);border:1px solid var(--mb-border);border-radius:22px;box-shadow:0 18px 60px rgba(0,0,0,.24),inset 0 1px 0 rgba(255,255,255,.035);backdrop-filter:blur(16px)}
+.hero{background:rgba(11,18,33,.75);border:1px solid var(--mb-border);border-radius:14px;padding:.85rem 1.1rem}
+.status-chip{display:inline-flex;align-items:center;gap:.4rem;border:1px solid var(--mb-border);background:rgba(15,23,42,.55);border-radius:999px;padding:.3rem .6rem;font-size:.7rem;color:#64748b;white-space:nowrap}
+.status-chip strong{color:#cbd5e1;font-weight:600}
+.control-panel,.cockpit-card,.hardware-card{background:var(--mb-panel);border:1px solid var(--mb-border);border-radius:20px;box-shadow:0 6px 24px rgba(0,0,0,.2)}
 .control-panel{padding:.9rem}.cockpit-card{padding:1rem}.hardware-card{padding:.85rem}
-.metric-card{background:linear-gradient(180deg,rgba(15,23,42,.78),rgba(6,11,22,.78));border:1px solid var(--mb-border);border-radius:16px;box-shadow:inset 0 1px 0 rgba(255,255,255,.04)}
-.btn-primary{background:linear-gradient(135deg,#0891b2,#7c3aed)!important;border-color:rgba(125,211,252,.45)!important;color:white!important;box-shadow:0 12px 30px rgba(14,165,233,.16)}
-.track-card{background:linear-gradient(180deg,rgba(15,23,42,.88),rgba(5,10,20,.92))!important;border-color:rgba(148,163,184,.13)!important;border-radius:18px!important;box-shadow:0 12px 30px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,255,255,.035)}
-.track-card:hover{border-color:rgba(34,211,238,.55)!important;box-shadow:0 20px 50px rgba(0,0,0,.24),0 0 26px rgba(34,211,238,.13),inset 0 1px 0 rgba(255,255,255,.055)}
-.route-pill{display:inline-flex;align-items:center;gap:.28rem;padding:.18rem .45rem;border-radius:999px;border:1px solid rgba(34,211,238,.18);background:rgba(8,145,178,.08);color:#67e8f9;font-size:.58rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
-.mini-step{width:6px;height:12px;background:#122137}.mini-step.on{background:linear-gradient(180deg,#67e8f9,#0891b2);box-shadow:0 0 10px rgba(34,211,238,.45)}
-.pro-card{background:linear-gradient(180deg,rgba(15,23,42,.76),rgba(2,6,23,.72));border:1px solid var(--mb-border);border-radius:18px;padding:.9rem;position:relative;overflow:hidden}.pro-card::after{content:"";position:absolute;inset:auto -20% -55% -20%;height:80%;background:radial-gradient(circle,rgba(34,211,238,.13),transparent 55%);pointer-events:none}.pro-card-title{font-size:.76rem;font-weight:800;color:#e2e8f0;letter-spacing:.02em}.pro-card-copy{font-size:.7rem;line-height:1.45;color:#64748b;margin-top:.25rem}.device-kv{display:flex;align-items:center;justify-content:space-between;gap:.75rem;font-size:.68rem;color:#64748b;border-top:1px solid rgba(148,163,184,.08);padding-top:.45rem;margin-top:.45rem}.device-kv span:last-child{color:#cbd5e1;font-family:'JetBrains Mono',monospace}
-select,input,textarea{box-shadow:inset 0 1px 0 rgba(255,255,255,.03)}
-@media (max-width:1180px){.app-layout{flex-direction:column}.side-rail,.send-rail{position:static!important;width:100%!important;max-height:none!important}.guide-grid{grid-template-columns:1fr!important}}
-@media (max-width:760px){.hero{border-radius:20px}.hero-row{align-items:flex-start;flex-direction:column}.track-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}.desktop-status{width:100%;justify-content:flex-start;overflow-x:auto}.app-shell{padding-left:.75rem!important;padding-right:.75rem!important}}
+.metric-card{background:rgba(12,20,36,.7);border:1px solid var(--mb-border);border-radius:12px}
+.btn-primary{background:linear-gradient(135deg,#0e7490,#6d28d9)!important;border-color:rgba(6,182,212,.25)!important;color:white!important}
+/* Track card: clean + role-colour accent strip */
+.track-card{background:#0b1422!important;border-color:rgba(148,163,184,.09)!important;border-radius:14px!important;box-shadow:0 3px 12px rgba(0,0,0,.18);position:relative;overflow:hidden}
+.track-card::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:var(--tc-rc,rgba(148,163,184,.14))}
+.track-card:hover{border-color:rgba(148,163,184,.2)!important;box-shadow:0 6px 20px rgba(0,0,0,.26)}
+/* Role colours */
+.tc-kick{--tc-rc:#f43f5e}.tc-snare{--tc-rc:#fb923c}.tc-hat,.tc-shaker{--tc-rc:#94a3b8}
+.tc-bass{--tc-rc:#60a5fa}.tc-harmonic{--tc-rc:#22d3ee}.tc-melody{--tc-rc:#34d399}
+.tc-texture{--tc-rc:#475569}.tc-midi{--tc-rc:#a78bfa}.tc-percussion{--tc-rc:#78716c}
+/* Mini step dots inherit role colour */
+.mini-step{width:5px;height:9px;background:#111d2e;border-radius:1px}
+.mini-step.on{background:var(--tc-rc,#22d3ee)!important;box-shadow:none}
+.route-pill{display:inline-flex;align-items:center;gap:.25rem;padding:.15rem .4rem;border-radius:999px;border:1px solid rgba(148,163,184,.1);background:rgba(148,163,184,.05);color:#94a3b8;font-size:.58rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+.device-kv{display:flex;align-items:center;justify-content:space-between;gap:.75rem;font-size:.68rem;color:#64748b;border-top:1px solid rgba(148,163,184,.07);padding-top:.4rem;margin-top:.4rem}.device-kv span:last-child{color:#cbd5e1;font-family:'JetBrains Mono',monospace}
+select,input,textarea{box-shadow:none}
+@media(max-width:1180px){.app-layout{flex-direction:column}.side-rail,.send-rail{position:static!important;width:100%!important;max-height:none!important}.guide-grid{grid-template-columns:1fr!important}}
+@media(max-width:760px){.track-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}.app-shell{padding-left:.75rem!important;padding-right:.75rem!important}}
 </style>
 </head>
 <body>
 
 <div class="app-shell max-w-[1520px] mx-auto px-5 pt-5 pb-10">
 
-  <!-- HEADER: production cockpit branding -->
-  <header class="hero mb-5">
-    <div class="hero-row flex items-center justify-between gap-5">
-      <div class="flex items-center gap-4 min-w-0">
-        <div class="hero-mark flex-shrink-0">
-          <i class="fas fa-wave-square text-cyan-300 text-xl"></i>
+  <!-- HEADER -->
+  <header class="hero mb-4">
+    <div class="flex items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-xl bg-cyan-950/40 border border-cyan-900/25 flex items-center justify-center flex-shrink-0">
+          <i class="fas fa-wave-square text-cyan-500 text-sm"></i>
         </div>
-        <div class="min-w-0">
-          <div class="flex items-center gap-2 mb-1 flex-wrap">
-            <span class="status-chip"><span class="status-dot live"></span><strong>Musicbox</strong> composition cockpit</span>
-            <span class="status-chip"><i class="fas fa-microchip text-purple-300"></i> Digitakt II + Pro 3</span>
-          </div>
-          <h1 class="text-3xl md:text-4xl font-bold tracking-tight leading-none text-white">Digitakt Composition Machine</h1>
-          <p class="text-slate-400 text-sm mt-2 max-w-3xl">Generate, refine, route, and capture hardware-ready patterns with explicit MIDI mapping, arrangement guidance, and professional live/record workflow controls.</p>
+        <div>
+          <div class="font-bold text-slate-100 text-sm leading-tight tracking-tight">Musicbox</div>
+          <div class="text-slate-600 text-[11px]">Digitakt II composition aid · Sequential Pro 3</div>
         </div>
       </div>
-      <div class="desktop-status flex gap-2 flex-wrap justify-end">
-        <span class="status-chip"><i class="fas fa-circle-nodes text-cyan-300"></i><strong>16</strong> tracks</span>
-        <span class="status-chip"><i class="fas fa-dice-d20 text-violet-300"></i> Euclidean engine</span>
-        <span class="status-chip"><i class="fas fa-usb text-emerald-300"></i> Web MIDI</span>
+      <div class="flex items-center gap-2">
+        <span class="status-chip"><i class="fas fa-circle-nodes text-slate-600 text-xs"></i> Euclidean</span>
+        <span class="status-chip"><i class="fas fa-usb text-slate-600 text-xs"></i> Web MIDI</span>
       </div>
     </div>
   </header>
@@ -153,41 +150,29 @@ select,input,textarea{box-shadow:inset 0 1px 0 rgba(255,255,255,.03)}
     <div class="flex-1 min-w-0 space-y-4 cockpit-card">
 
       <!-- Toolbar -->
-      <div class="flex items-center justify-between gap-3 flex-wrap">
-        <div>
-          <h2 class="font-semibold text-slate-100">Composition Workbench</h2>
-          <p id="paletteSubtitle" class="text-xs text-slate-600 mt-0.5">Click a track to edit triggers, review routing, or mute it from preview</p>
-        </div>
-        <div class="flex gap-2 flex-wrap items-center">
-          <button id="previewBtn" onclick="togglePreview()" class="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 rounded-lg flex items-center gap-1.5 transition-colors">
-            <i class="fas fa-play text-green-400 text-xs"></i> Preview
-          </button>
-          <select id="audioOutputSel" onchange="changeAudioOutput()" title="Preview audio output — select headphones, speakers, or other output"
-            class="hidden text-xs bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-slate-400 focus:outline-none focus:border-cyan-600 max-w-[11rem]">
-            <option value="">System default</option>
-          </select>
-          <button onclick="regenerateComposition(true)" class="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg flex items-center gap-1.5 transition-colors">
-            <i class="fas fa-dice text-purple-400"></i> New Seed
-          </button>
-          <span id="seedDisplay" class="mono text-[10px] text-slate-600 tabular-nums px-1 select-all" title="Generation seed — copy to share or replay this composition"></span>
-          <button onclick="regenerateComposition(false)" class="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg flex items-center gap-1.5 transition-colors">
-            <i class="fas fa-wand-magic-sparkles text-purple-400"></i> Regenerate
-          </button>
-          <button onclick="loadRecommendedDefaults()" class="px-3 py-1.5 text-xs bg-slate-900 hover:bg-slate-800 border border-slate-700 rounded-lg flex items-center gap-1.5 transition-colors">
-            <i class="fas fa-rotate-left text-slate-400"></i> Recommended
-          </button>
-          <button onclick="exportAllPatterns()" class="px-3 py-1.5 text-xs bg-cyan-950/50 hover:bg-cyan-900/50 border border-cyan-800/40 text-cyan-300 rounded-lg flex items-center gap-1.5 transition-colors">
-            <i class="fas fa-file-export"></i> Export All
-          </button>
-        </div>
-      </div>
-
-      <!-- Track Grid -->
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
-        <div class="pro-card"><div class="pro-card-title"><i class="fas fa-lock text-cyan-300 mr-1"></i>Lockable roles</div><p class="pro-card-copy">Treat every track as a musical job: drums, bass, texture, chord, MIDI, or Pro 3 voice.</p></div>
-        <div class="pro-card"><div class="pro-card-title"><i class="fas fa-route text-purple-300 mr-1"></i>Explicit routing</div><p class="pro-card-copy">No hidden channel-by-index hacks; each card now exposes target and channel.</p></div>
-        <div class="pro-card"><div class="pro-card-title"><i class="fas fa-sliders text-amber-300 mr-1"></i>Mutation ready</div><p class="pro-card-copy">The next engine can add probability, microtiming, note, and CC lanes to this model.</p></div>
-        <div class="pro-card"><div class="pro-card-title"><i class="fas fa-record-vinyl text-emerald-300 mr-1"></i>Capture first</div><p class="pro-card-copy">Optimized for browser → Digitakt recording before any risky pattern SysEx work.</p></div>
+      <div class="flex items-center gap-2 flex-wrap">
+        <button id="previewBtn" onclick="togglePreview()" class="px-3 py-1.5 text-xs font-medium bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 rounded-lg flex items-center gap-1.5 transition-colors">
+          <i class="fas fa-play text-emerald-400 text-xs"></i> Preview
+        </button>
+        <select id="audioOutputSel" onchange="changeAudioOutput()" title="Preview audio output — select headphones, speakers, or other output"
+          class="hidden text-xs bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-slate-400 focus:outline-none focus:border-cyan-600 max-w-[10rem]">
+          <option value="">System default</option>
+        </select>
+        <div class="w-px h-4 bg-slate-800 mx-0.5 flex-shrink-0"></div>
+        <button onclick="regenerateComposition(false)" class="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg flex items-center gap-1.5 transition-colors">
+          <i class="fas fa-arrows-rotate text-purple-500 text-xs"></i> Regenerate
+        </button>
+        <button onclick="regenerateComposition(true)" class="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg flex items-center gap-1.5 transition-colors">
+          <i class="fas fa-dice text-purple-500 text-xs"></i> New Seed
+        </button>
+        <span id="seedDisplay" class="mono text-[10px] text-slate-700 tabular-nums px-1 select-all" title="Generation seed — copy to share or replay"></span>
+        <div class="flex-1 min-w-[1rem]"></div>
+        <button onclick="loadRecommendedDefaults()" class="px-2.5 py-1.5 text-xs bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg text-slate-600 transition-colors">
+          Reset
+        </button>
+        <button onclick="exportAllPatterns()" class="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 rounded-lg flex items-center gap-1.5 transition-colors">
+          <i class="fas fa-file-export text-xs"></i> Export
+        </button>
       </div>
 
       <div id="trackGrid" class="track-grid grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2"></div>
