@@ -148,6 +148,53 @@ assert('note is clamped in output bytes', (() => {
 })());
 
 // ================================================================
+// mulberry32 seeded RNG
+// ================================================================
+function mulberry32(seed) {
+  return function() {
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+console.log('\nmulberry32 seeded RNG:');
+assert('output is in [0,1)', (() => { const rng = mulberry32(42); for (let i = 0; i < 100; i++) { const v = rng(); if (v < 0 || v >= 1) return false; } return true; })());
+assert('same seed produces same sequence', (() => {
+  const r1 = mulberry32(12345), r2 = mulberry32(12345);
+  for (let i = 0; i < 20; i++) if (r1() !== r2()) return false;
+  return true;
+})());
+assert('different seeds produce different sequences', (() => {
+  const r1 = mulberry32(1), r2 = mulberry32(2);
+  const seq1 = Array.from({ length: 10 }, r1);
+  const seq2 = Array.from({ length: 10 }, r2);
+  return seq1.some((v, i) => v !== seq2[i]);
+})());
+assert('generateTrackSteps is deterministic with seeded rng', (() => {
+  // Re-derive generateTrackSteps with rng param (same logic as source)
+  const GEN_PARAMS_KICK = { kick: [3, 5], percussion: [1, 3], pLen: 16 };
+  function gts(type, pLen, params, rng) {
+    rng = rng || Math.random.bind(Math);
+    if (type === 'texture') return [];
+    const range = params[type] || (Array.isArray(params.percussion) ? params.percussion : [1, 3]);
+    if (!Array.isArray(range)) return [];
+    const [mn, mx] = range;
+    if (mx === 0) return [];
+    const pulses = mn === mx ? mn : mn + Math.floor(rng() * (mx - mn + 1));
+    if (pulses === 0) return [];
+    const maxOff = Math.max(1, Math.floor(pLen / pulses));
+    const offset = Math.floor(rng() * maxOff);
+    return euclidean(pulses, pLen, offset);
+  }
+  const r1 = mulberry32(99999), r2 = mulberry32(99999);
+  const s1 = gts('kick', 16, GEN_PARAMS_KICK, r1);
+  const s2 = gts('kick', 16, GEN_PARAMS_KICK, r2);
+  return deepEqual(s1, s2);
+})());
+
+// ================================================================
 // Summary
 // ================================================================
 console.log(`\n${pass} passed, ${fail} failed.`);

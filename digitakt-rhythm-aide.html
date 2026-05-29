@@ -145,11 +145,15 @@ select,input,textarea{box-shadow:inset 0 1px 0 rgba(255,255,255,.03)}
           <h2 class="font-semibold text-slate-100">Composition Workbench</h2>
           <p id="paletteSubtitle" class="text-xs text-slate-600 mt-0.5">Click a track to edit triggers, review routing, or mute it from preview</p>
         </div>
-        <div class="flex gap-2 flex-wrap">
+        <div class="flex gap-2 flex-wrap items-center">
           <button id="previewBtn" onclick="togglePreview()" class="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 rounded-lg flex items-center gap-1.5 transition-colors">
             <i class="fas fa-play text-green-400 text-xs"></i> Preview
           </button>
-          <button onclick="regenerateComposition()" class="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg flex items-center gap-1.5 transition-colors">
+          <button onclick="regenerateComposition(true)" class="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg flex items-center gap-1.5 transition-colors">
+            <i class="fas fa-dice text-purple-400"></i> New Seed
+          </button>
+          <span id="seedDisplay" class="mono text-[10px] text-slate-600 tabular-nums px-1 select-all" title="Generation seed — copy to share or replay this composition"></span>
+          <button onclick="regenerateComposition(false)" class="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg flex items-center gap-1.5 transition-colors">
             <i class="fas fa-wand-magic-sparkles text-purple-400"></i> Regenerate
           </button>
           <button onclick="loadRecommendedDefaults()" class="px-3 py-1.5 text-xs bg-slate-900 hover:bg-slate-800 border border-slate-700 rounded-lg flex items-center gap-1.5 transition-colors">
@@ -962,10 +966,23 @@ function euclidean(pulses,steps,offset){
 const STORAGE_KEY="dt2aide_v5";
 const LEGACY_STORAGE_KEY="dt2aide_v4";
 const TARGET_LABELS={"digitakt-audio":"DT Audio","digitakt-midi":"DT MIDI","pro3-usb":"Pro 3","external-midi":"MIDI"};
-let S={genre:"Ambient",subgenre:null,trackData:{},editId:null,patLen:64,keyIdx:0,previewMuted:{}};
+let S={genre:"Ambient",subgenre:null,trackData:{},editId:null,patLen:64,keyIdx:0,previewMuted:{},seed:0,lockedTracks:{}};
 
 function clamp(n,min,max){return Math.max(min,Math.min(max,n));}
 function escapeHtml(value){return String(value??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch]));}
+
+// Mulberry32 seeded PRNG — returns a function yielding floats in [0,1)
+function mulberry32(seed){
+  return function(){
+    seed|=0;seed=seed+0x6D2B79F5|0;
+    let t=Math.imul(seed^seed>>>15,1|seed);
+    t=t+Math.imul(t^t>>>7,61|t)^t;
+    return((t^t>>>14)>>>0)/4294967296;
+  };
+}
+function mkSeed(){return(Math.random()*0xFFFFFFFF)>>>0;}
+function seedHex(s){return s.toString(16).padStart(8,"0");}
+function updateSeedDisplay(){const el=document.getElementById("seedDisplay");if(el)el.textContent=seedHex(S.seed);}
 
 function inferTrackRole(track){
   const label=`${track.name||""} ${track.role||""}`.toLowerCase();
@@ -1029,8 +1046,20 @@ function init(){
   Object.keys(GENRES).forEach(g=>{const o=document.createElement("option");o.value=g;o.textContent=g;sel.appendChild(o);});
   sel.value="Ambient";
   sel.onchange=()=>loadGenre(sel.value);
-  try{const sv=localStorage.getItem(STORAGE_KEY)||localStorage.getItem(LEGACY_STORAGE_KEY);if(sv)S.trackData=migrateTrackData(JSON.parse(sv));}catch(e){S.trackData=migrateTrackData({});}
+  S.seed=mkSeed();
+  try{
+    const sv=localStorage.getItem(STORAGE_KEY)||localStorage.getItem(LEGACY_STORAGE_KEY);
+    if(sv){
+      const parsed=JSON.parse(sv);
+      // Support both old format (direct trackData obj) and new wrapped format
+      const raw=parsed&&typeof parsed==="object"&&parsed.trackData?parsed.trackData:parsed;
+      S.trackData=migrateTrackData(raw);
+      if(parsed.seed!==undefined)S.seed=parsed.seed;
+      if(parsed.lockedTracks&&typeof parsed.lockedTracks==="object")S.lockedTracks=parsed.lockedTracks;
+    }
+  }catch(e){S.trackData=migrateTrackData({});}
   loadGenre("Ambient");
+  updateSeedDisplay();
   initMidi();
   document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!document.getElementById("modal").classList.contains("hidden"))closeModal();});
 }
@@ -1243,10 +1272,11 @@ function renderTrackGrid(){
     }
     viz+='</div>';
     const isMuted=S.previewMuted&&S.previewMuted[track.id];
+    const isLocked=S.lockedTracks&&S.lockedTracks[track.id];
     const routeLabel=TARGET_LABELS[track.target]||"MIDI";
     const card=document.createElement("div");
-    card.className=`track-card bg-slate-900/80 border border-slate-800 rounded-xl p-3 select-none${isMuted?" pv-muted":""}`;
-    card.innerHTML=`<div class="flex items-start justify-between mb-2"><div class="flex items-center gap-1.5"><span class="text-base leading-none">${escapeHtml(track.icon)}</span><span class="lbl text-slate-600">${String(track.id).padStart(2,"0")}</span></div><div class="flex items-center gap-1.5"><button class="pvtog" onclick="event.stopPropagation();togglePreviewMute(${track.id})" title="${isMuted?"Excluded from preview — click to include":"Included in preview — click to exclude"}"><i class="fas fa-${isMuted?"volume-xmark text-slate-600":"volume-low text-cyan-600"} text-xs"></i></button><span class="lbl text-cyan-600 tabular-nums">${sc}</span></div></div><div class="font-semibold text-xs text-slate-100 mb-0.5 leading-tight truncate">${escapeHtml(track.name)}</div><div class="text-xs text-slate-500 mb-2 leading-tight truncate">${escapeHtml(track.role)}</div><div class="flex items-center justify-between gap-2 mb-2"><span class="route-pill"><i class="fas fa-route"></i>${escapeHtml(routeLabel)}</span><span class="text-[10px] mono text-slate-500">CH ${track.midiChannel} · N ${track.note}</span></div>${viz}`;
+    card.className=`track-card bg-slate-900/80 border rounded-xl p-3 select-none${isLocked?" border-amber-700/50 bg-amber-950/10":" border-slate-800"}${isMuted?" pv-muted":""}`;
+    card.innerHTML=`<div class="flex items-start justify-between mb-2"><div class="flex items-center gap-1.5"><span class="text-base leading-none">${escapeHtml(track.icon)}</span><span class="lbl ${isLocked?"text-amber-600":"text-slate-600"}">${String(track.id).padStart(2,"0")}</span></div><div class="flex items-center gap-1.5"><button class="pvtog" onclick="toggleTrackLock(${track.id},event)" title="${isLocked?"Locked — regenerate skips this track":"Unlocked — click to lock"}"><i class="fas fa-${isLocked?"lock text-amber-400":"lock-open text-slate-600"} text-xs"></i></button><button class="pvtog" onclick="event.stopPropagation();togglePreviewMute(${track.id})" title="${isMuted?"Excluded from preview — click to include":"Included in preview — click to exclude"}"><i class="fas fa-${isMuted?"volume-xmark text-slate-600":"volume-low text-cyan-600"} text-xs"></i></button><span class="lbl text-cyan-600 tabular-nums">${sc}</span></div></div><div class="font-semibold text-xs text-slate-100 mb-0.5 leading-tight truncate">${escapeHtml(track.name)}</div><div class="text-xs text-slate-500 mb-2 leading-tight truncate">${escapeHtml(track.role)}</div><div class="flex items-center justify-between gap-2 mb-2"><span class="route-pill"><i class="fas fa-route"></i>${escapeHtml(routeLabel)}</span><span class="text-[10px] mono text-slate-500">CH ${track.midiChannel} · N ${track.note}</span></div>${viz}`;
     card.onclick=()=>openModal(track.id);
     grid.appendChild(card);
   });
@@ -1256,6 +1286,14 @@ function togglePreviewMute(id){
   if(!S.previewMuted)S.previewMuted={};
   S.previewMuted[id]=!S.previewMuted[id];
   renderTrackGrid();
+}
+
+function toggleTrackLock(id,evt){
+  evt.stopPropagation();
+  if(!S.lockedTracks)S.lockedTracks={};
+  S.lockedTracks[id]=!S.lockedTracks[id];
+  renderTrackGrid();
+  save();
 }
 
 function renderCompositionGuide(){
@@ -1454,32 +1492,40 @@ function classifyTrack(track){
   return"percussion";
 }
 
-function generateTrackSteps(type,pLen,params){
+function generateTrackSteps(type,pLen,params,rng){
+  rng=rng||Math.random.bind(Math);
   if(type==="texture")return[];
   const range=params[type]||(Array.isArray(params.percussion)?params.percussion:[1,3]);
   if(!Array.isArray(range))return[];
   const [mn,mx]=range;
   if(mx===0)return[];
-  const pulses=mn===mx?mn:mn+Math.floor(Math.random()*(mx-mn+1));
+  const pulses=mn===mx?mn:mn+Math.floor(rng()*(mx-mn+1));
   if(pulses===0)return[];
   const maxOff=Math.max(1,Math.floor(pLen/pulses));
-  const offset=Math.floor(Math.random()*maxOff);
+  const offset=Math.floor(rng()*maxOff);
   return euclidean(pulses,pLen,offset);
 }
 
-function regenerateComposition(){
+function regenerateComposition(newSeed){
+  if(newSeed){S.seed=mkSeed();updateSeedDisplay();}
+  const rng=mulberry32(S.seed);
   const params=GEN_PARAMS[S.genre]||GEN_PARAMS["Ambient"];
   const pLen=params.pLen||16;
-  const tracks=JSON.parse(JSON.stringify(GENRES[S.genre].tracks));
-  tracks.forEach(t=>{
+  const current=S.trackData[S.genre]||[];
+  const base=JSON.parse(JSON.stringify(GENRES[S.genre].tracks));
+  base.forEach(t=>{
+    const locked=S.lockedTracks&&S.lockedTracks[t.id];
+    if(locked){
+      const existing=current.find(c=>c.id===t.id);
+      if(existing){Object.assign(t,existing);return;}
+    }
     const type=classifyTrack(t);
-    t.steps=generateTrackSteps(type,pLen,params);
+    t.steps=generateTrackSteps(type,pLen,params,rng);
   });
-  S.trackData[S.genre]=normalizeTrackCollection(tracks);
+  S.trackData[S.genre]=normalizeTrackCollection(base);
   const keys=HARMONIC[S.genre]||[];
   if(keys.length){
-    let next=S.keyIdx;
-    if(keys.length>1)while(next===S.keyIdx)next=Math.floor(Math.random()*keys.length);
+    let next=rng()<0.5||keys.length<2?S.keyIdx:Math.floor(rng()*keys.length);
     S.keyIdx=next;
   }
   renderTrackGrid();
@@ -1723,7 +1769,7 @@ function sendCurrentSongStep(){
 // ================================================================
 // SECTION 15 — PERSISTENCE
 // ================================================================
-function save(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(S.trackData));}catch(e){}}
+function save(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify({trackData:S.trackData,seed:S.seed,lockedTracks:S.lockedTracks}));}catch(e){}}
 
 window.onload=init;
 </script>
