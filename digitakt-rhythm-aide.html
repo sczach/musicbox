@@ -14,10 +14,20 @@ body{font-family:'Space Grotesk',system-ui,sans-serif;background:#070b14;color:#
 .track-card{transition:border-color .1s,box-shadow .1s,transform .1s;cursor:pointer}
 .track-card:hover{border-color:#22d3ee!important;box-shadow:0 0 16px rgba(34,211,238,.13);transform:translateY(-1px)}
 .track-card:active{transform:translateY(0)}
-.step-btn{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:.58rem;font-weight:500;border-radius:4px;border:1px solid #1a2540;background:#0e1828;color:#2a3d58;cursor:pointer;user-select:none;transition:all .06s}
+.step-btn{aspect-ratio:1;display:flex;flex-direction:column;gap:0;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:.58rem;font-weight:500;border-radius:4px;border:1px solid #1a2540;background:#0e1828;color:#2a3d58;cursor:pointer;user-select:none;transition:all .06s}
 .step-btn:hover:not(.active){background:#182234;color:#4a6080;border-color:#253550}
 .step-btn.active{background:#22d3ee;color:#030d18;font-weight:700;border-color:#0891b2;box-shadow:0 0 6px rgba(34,211,238,.4)}
+.step-btn.active.p75{background:#b45309;color:#fef3c7;border-color:#92400e;box-shadow:0 0 5px rgba(180,83,9,.35)}
+.step-btn.active.p50{background:#7c3a17;color:#fed7aa;border-color:#6b2f13;box-shadow:0 0 4px rgba(124,58,23,.3)}
+.step-btn.active.p25{background:#3b1414;color:#fca5a5;border-color:#2e1010}
 .step-btn.bar-s{border-color:#253550}
+.step-cond{font-size:.38rem;font-weight:700;color:#a78bfa;line-height:1;display:block;letter-spacing:0}
+.step-btn.active.p75 .step-cond{color:#fcd34d}
+.step-btn.active.p50 .step-cond{color:#fb923c}
+.step-btn.active.p25 .step-cond{color:#f87171}
+.cond-mode-btn{padding:.2rem .6rem;font-size:.68rem;font-weight:600;border-radius:4px;border:1px solid #1a2540;background:#0e1828;color:#3a5070;cursor:pointer;transition:all .1s;font-family:'JetBrains Mono',monospace}
+.cond-mode-btn:hover:not(.cond-on){background:#182234;color:#a78bfa}
+.cond-mode-btn.cond-on{background:#1e0a4a;border-color:#7c3aed;color:#a78bfa}
 .mini-step{flex-shrink:0;width:5px;height:10px;border-radius:2px;background:#111e30}
 .mini-step.on{background:#22d3ee}
 @keyframes mIn{from{opacity:0;transform:scale(.97) translateY(8px)}to{opacity:1;transform:scale(1) translateY(0)}}
@@ -48,6 +58,9 @@ body{font-family:'Space Grotesk',system-ui,sans-serif;background:#070b14;color:#
 .track-card.pv-muted .mini-step.on{background:#2a3d58}
 .pvtog{background:none;border:none;padding:0;cursor:pointer;line-height:1;flex-shrink:0}
 .pvtog:hover i{opacity:.7}
+.viz-src-btn{background:#0e1828;border:1px solid #1a2540;color:#3a5070;border-radius:4px;font-size:.68rem;font-weight:600;padding:.2rem .6rem;cursor:pointer;transition:all .1s;font-family:'JetBrains Mono',monospace}
+.viz-src-btn:hover:not(.viz-src-on){background:#182234;color:#608ab0}
+.viz-src-btn.viz-src-on{background:#0a3a58;border-color:#0891b2;color:#22d3ee}
 
 /* Production cockpit polish */
 :root{--mb-bg:#050914;--mb-panel:rgba(9,14,26,.82);--mb-panel-strong:rgba(12,19,34,.94);--mb-border:rgba(148,163,184,.14);--mb-cyan:#22d3ee;--mb-violet:#8b5cf6;--mb-amber:#f59e0b}
@@ -145,11 +158,15 @@ select,input,textarea{box-shadow:inset 0 1px 0 rgba(255,255,255,.03)}
           <h2 class="font-semibold text-slate-100">Composition Workbench</h2>
           <p id="paletteSubtitle" class="text-xs text-slate-600 mt-0.5">Click a track to edit triggers, review routing, or mute it from preview</p>
         </div>
-        <div class="flex gap-2 flex-wrap">
+        <div class="flex gap-2 flex-wrap items-center">
           <button id="previewBtn" onclick="togglePreview()" class="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 rounded-lg flex items-center gap-1.5 transition-colors">
             <i class="fas fa-play text-green-400 text-xs"></i> Preview
           </button>
-          <button onclick="regenerateComposition()" class="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg flex items-center gap-1.5 transition-colors">
+          <button onclick="regenerateComposition(true)" class="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg flex items-center gap-1.5 transition-colors">
+            <i class="fas fa-dice text-purple-400"></i> New Seed
+          </button>
+          <span id="seedDisplay" class="mono text-[10px] text-slate-600 tabular-nums px-1 select-all" title="Generation seed — copy to share or replay this composition"></span>
+          <button onclick="regenerateComposition(false)" class="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg flex items-center gap-1.5 transition-colors">
             <i class="fas fa-wand-magic-sparkles text-purple-400"></i> Regenerate
           </button>
           <button onclick="loadRecommendedDefaults()" class="px-3 py-1.5 text-xs bg-slate-900 hover:bg-slate-800 border border-slate-700 rounded-lg flex items-center gap-1.5 transition-colors">
@@ -281,6 +298,28 @@ select,input,textarea{box-shadow:inset 0 1px 0 rgba(255,255,255,.03)}
           <div class="device-kv"><span>Outputs</span><span id="diagOutputs">0</span></div>
         </div>
         <p class="text-xs text-slate-600 leading-relaxed">Digitakt: <span class="text-slate-400">MIDI → Recv Clock + Transport ON</span> · hold <span class="text-slate-300">REC</span> · Send. Chrome/Edge.</p>
+      </div>
+
+      <!-- Visualizer Panel -->
+      <div class="hardware-card space-y-2">
+        <div class="flex items-center justify-between">
+          <div class="lbl">Scope</div>
+          <div class="flex gap-1">
+            <button id="vizBtnPreview" class="viz-src-btn viz-src-on" onclick="setVizSource('preview')">Preview</button>
+            <button id="vizBtnInput" class="viz-src-btn" onclick="setVizSource('input')">Input</button>
+          </div>
+        </div>
+        <canvas id="vizCanvas" width="560" height="200" style="display:block;width:100%;height:100px;background:#030609;border-radius:6px;border:1px solid #1a2540"></canvas>
+        <div id="vizInputRow" class="hidden space-y-1.5">
+          <select id="vizInputSel" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-cyan-600">
+            <option value="">— select audio input —</option>
+          </select>
+          <button onclick="connectVizInput()" class="w-full py-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-slate-300 transition-colors flex items-center justify-center gap-1.5">
+            <i class="fas fa-microphone text-cyan-500 text-xs"></i> Connect Input
+          </button>
+        </div>
+        <div id="vizStatus" class="mono text-[10px] text-slate-600 leading-tight min-h-[1em]"></div>
+        <p class="text-xs text-slate-700 leading-relaxed">USB audio or interface required for Digitakt monitoring. Pro 3 USB is MIDI only.</p>
       </div>
 
     </div>
@@ -430,7 +469,38 @@ select,input,textarea{box-shadow:inset 0 1px 0 rgba(255,255,255,.03)}
         <div id="mRole" class="text-sm text-slate-300 mb-4"></div>
         <div class="lbl mb-1">Description</div>
         <div id="mDesc" class="text-xs text-slate-400 leading-relaxed mb-4"></div>
-        <div id="mSubNote" class="hidden text-xs text-cyan-700 bg-cyan-950/30 border border-cyan-900/40 rounded-lg p-2.5 leading-relaxed"></div>
+        <div id="mSubNote" class="hidden text-xs text-cyan-700 bg-cyan-950/30 border border-cyan-900/40 rounded-lg p-2.5 leading-relaxed mb-4"></div>
+
+        <!-- Routing inspector -->
+        <div class="border-t border-slate-800 pt-4">
+          <div class="lbl mb-2.5">Routing</div>
+          <div class="space-y-2.5">
+            <div>
+              <div class="lbl mb-1 text-slate-600">Target</div>
+              <select id="routeTarget" onchange="updateRouting()" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-cyan-600">
+                <option value="digitakt-audio">DT Audio (tracks 1–16)</option>
+                <option value="digitakt-midi">DT MIDI track</option>
+                <option value="pro3-usb">Pro 3 USB</option>
+                <option value="external-midi">External MIDI</option>
+              </select>
+            </div>
+            <div class="grid grid-cols-3 gap-2">
+              <div>
+                <div class="lbl mb-1 text-slate-600">CH</div>
+                <input id="routeChannel" type="number" min="1" max="16" onchange="updateRouting()" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-center text-white focus:outline-none focus:border-cyan-600 mono">
+              </div>
+              <div>
+                <div class="lbl mb-1 text-slate-600">Note</div>
+                <input id="routeNote" type="number" min="0" max="127" onchange="updateRouting()" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-center text-white focus:outline-none focus:border-cyan-600 mono">
+              </div>
+              <div>
+                <div class="lbl mb-1 text-slate-600">Vel</div>
+                <input id="routeVelocity" type="number" min="1" max="127" onchange="updateRouting()" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-center text-white focus:outline-none focus:border-cyan-600 mono">
+              </div>
+            </div>
+            <div id="routeNoteName" class="mono text-cyan-400 text-xs text-center"></div>
+          </div>
+        </div>
       </div>
 
       <!-- Right: step editor -->
@@ -468,7 +538,10 @@ select,input,textarea{box-shadow:inset 0 1px 0 rgba(255,255,255,.03)}
         <!-- Step grid -->
         <div class="mb-3">
           <div class="flex items-center justify-between mb-2">
-            <div class="lbl">Steps</div>
+            <div class="flex items-center gap-2">
+              <div class="lbl">Steps</div>
+              <button id="condModeBtn" class="cond-mode-btn" onclick="toggleCondMode()" title="Enable condition mode: click steps to cycle trig conditions (1:2, 1:4, etc.)">Cond</button>
+            </div>
             <div class="flex gap-3">
               <span id="stepCountDisplay" class="text-xs text-slate-500 mono"></span>
               <span id="densityDisplay" class="text-xs text-slate-700 mono"></span>
@@ -477,11 +550,20 @@ select,input,textarea{box-shadow:inset 0 1px 0 rgba(255,255,255,.03)}
           <div id="stepGrid" class="p-3 bg-slate-950 rounded-xl border border-slate-800/80" style="display:grid;grid-template-columns:repeat(16,minmax(0,1fr));gap:3px"></div>
         </div>
 
-        <!-- Active steps -->
-        <div class="flex items-baseline gap-2 flex-wrap">
+        <!-- Active steps + probability hint -->
+        <div class="flex items-baseline gap-2 flex-wrap mb-2">
           <span class="lbl whitespace-nowrap">Active:</span>
           <span id="activeSteps" class="mono text-cyan-400 text-xs leading-relaxed break-all"></span>
         </div>
+        <p class="text-[10px] text-slate-700 leading-relaxed mt-2">
+          <span class="mono text-slate-600">Right-click</span> active steps → cycle probability:
+          <span class="mono text-cyan-600">100%</span>
+          <span class="mono text-amber-600">75%</span>
+          <span class="mono text-orange-700">50%</span>
+          <span class="mono text-rose-900">25%</span> ·
+          <span class="mono text-violet-700">Cond mode</span> → click steps → cycle trig conditions:
+          <span class="mono text-violet-600">1:2 2:2 1:3 … 1ST !1ST</span>
+        </p>
       </div>
     </div>
 
@@ -492,6 +574,7 @@ select,input,textarea{box-shadow:inset 0 1px 0 rgba(255,255,255,.03)}
           <i class="fas fa-rotate-left text-slate-400"></i> Reset to Recommended
         </button>
         <button onclick="clearPattern()" class="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-slate-300 transition-colors">Clear</button>
+        <button onclick="resetAllLanes()" class="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-amber-600 transition-colors" title="Reset all step probabilities and conditions">Reset P/Cond</button>
       </div>
       <button onclick="closeModal()" class="px-6 py-1.5 text-sm bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold rounded-lg transition-colors">Done</button>
     </div>
@@ -931,10 +1014,34 @@ function euclidean(pulses,steps,offset){
 const STORAGE_KEY="dt2aide_v5";
 const LEGACY_STORAGE_KEY="dt2aide_v4";
 const TARGET_LABELS={"digitakt-audio":"DT Audio","digitakt-midi":"DT MIDI","pro3-usb":"Pro 3","external-midi":"MIDI"};
-let S={genre:"Ambient",subgenre:null,trackData:{},editId:null,patLen:64,keyIdx:0,previewMuted:{}};
+let S={genre:"Ambient",subgenre:null,trackData:{},editId:null,patLen:64,keyIdx:0,previewMuted:{},seed:0,lockedTracks:{}};
 
 function clamp(n,min,max){return Math.max(min,Math.min(max,n));}
 function escapeHtml(value){return String(value??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch]));}
+
+// Mulberry32 seeded PRNG — returns a function yielding floats in [0,1)
+function mulberry32(seed){
+  return function(){
+    seed|=0;seed=seed+0x6D2B79F5|0;
+    let t=Math.imul(seed^seed>>>15,1|seed);
+    t=t+Math.imul(t^t>>>7,61|t)^t;
+    return((t^t>>>14)>>>0)/4294967296;
+  };
+}
+function mkSeed(){return(Math.random()*0xFFFFFFFF)>>>0;}
+function seedHex(s){return s.toString(16).padStart(8,"0");}
+function updateSeedDisplay(){const el=document.getElementById("seedDisplay");if(el)el.textContent=seedHex(S.seed);}
+
+const COND_CYCLE=[null,'1:2','2:2','1:3','2:3','3:3','1:4','2:4','3:4','4:4','1:6','2:6','3:6','4:6','5:6','6:6','1:8','1ST','!1ST'];
+
+function evalCondition(cond,loopIdx){
+  if(!cond)return true;
+  if(cond==='1ST')return loopIdx===0;
+  if(cond==='!1ST')return loopIdx>0;
+  const m=cond.match(/^(\d+):(\d+)$/);
+  if(m){const x=parseInt(m[1]),n=parseInt(m[2]);return loopIdx%n===x-1;}
+  return true;
+}
 
 function inferTrackRole(track){
   const label=`${track.name||""} ${track.role||""}`.toLowerCase();
@@ -956,10 +1063,17 @@ function normalizeTrack(track){
   const midiChannel=clamp(Number(track.midiChannel||(isPro3?1:track.id))||1,1,16);
   const note=clamp(Number(track.note||60)||60,0,127);
   const velocity=clamp(Number(track.velocity||100)||100,1,127);
-  return {...track,roleType:role,target,midiChannel,note,velocity};
+  const lanes={
+    probability:{...((track.lanes&&track.lanes.probability)||{})},
+    condition:{...((track.lanes&&track.lanes.condition)||{})},
+  };
+  return {...track,roleType:role,target,midiChannel,note,velocity,lanes};
 }
 
 function normalizeTrackCollection(tracks){return (tracks||[]).map(normalizeTrack);}
+
+const NOTE_NAMES=["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+function midiNoteName(n){return NOTE_NAMES[n%12]+String(Math.floor(n/12)-1);}
 
 function migrateTrackData(data){
   const migrated={};
@@ -995,10 +1109,31 @@ function init(){
   Object.keys(GENRES).forEach(g=>{const o=document.createElement("option");o.value=g;o.textContent=g;sel.appendChild(o);});
   sel.value="Ambient";
   sel.onchange=()=>loadGenre(sel.value);
-  try{const sv=localStorage.getItem(STORAGE_KEY)||localStorage.getItem(LEGACY_STORAGE_KEY);if(sv)S.trackData=migrateTrackData(JSON.parse(sv));}catch(e){S.trackData=migrateTrackData({});}
+  S.seed=mkSeed();
+  try{
+    const sv=localStorage.getItem(STORAGE_KEY)||localStorage.getItem(LEGACY_STORAGE_KEY);
+    if(sv){
+      const parsed=JSON.parse(sv);
+      // Support both old format (direct trackData obj) and new wrapped format
+      const raw=parsed&&typeof parsed==="object"&&parsed.trackData?parsed.trackData:parsed;
+      S.trackData=migrateTrackData(raw);
+      if(parsed.seed!==undefined)S.seed=parsed.seed;
+      if(parsed.lockedTracks&&typeof parsed.lockedTracks==="object")S.lockedTracks=parsed.lockedTracks;
+    }
+  }catch(e){S.trackData=migrateTrackData({});}
   loadGenre("Ambient");
+  updateSeedDisplay();
   initMidi();
   document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!document.getElementById("modal").classList.contains("hidden"))closeModal();});
+  // Load Three.js from CDN; fall back to canvas 2D if unavailable
+  const tjs=document.createElement('script');
+  tjs.src='https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.min.js';
+  tjs.onload=()=>{if(document.getElementById('vizCanvas'))initVizThree();};
+  tjs.onerror=()=>console.log('[viz] Three.js not available — canvas 2D active');
+  document.head.appendChild(tjs);
+  // Show initial status
+  const st=document.getElementById('vizStatus');
+  if(st)st.textContent='start preview to activate scope';
 }
 
 // ================================================================
@@ -1049,7 +1184,7 @@ function getACtx(){
 function synthHit(ctx,type,t){
   const g=ctx.createGain();
   g.gain.setValueAtTime(0.001,t);
-  g.connect(ctx.destination);
+  g.connect(getPreviewDest(ctx));
   if(type==="kick"){
     const o=ctx.createOscillator();
     o.type="sine";
@@ -1137,6 +1272,10 @@ function schedulePreview(){
         const lt=tl*tLen*sps;
         t.steps.forEach(step=>{
           if(step<1||step>tLen)return;
+          const prob=t.lanes&&t.lanes.probability&&t.lanes.probability[step]!=null?t.lanes.probability[step]:100;
+          if(Math.random()*100>=prob)return;
+          const cond2=t.lanes&&t.lanes.condition&&t.lanes.condition[step];
+          if(cond2&&!evalCondition(cond2,outer))return;
           synthHit(ctx,type,t0+ot+lt+(step-1)*sps);
         });
       }
@@ -1152,11 +1291,14 @@ function togglePreview(){
   if(previewPlaying){
     previewPlaying=false;
     clearTimeout(previewSched);previewSched=null;
+    if(vizSrc==='preview')vizStop();
+    _prevAnalyser=null;
     if(audioCtx){audioCtx.close();audioCtx=null;}
     setPreviewBtn(false);
   } else {
     previewPlaying=true;
-    schedulePreview();
+    const dur=schedulePreview();
+    if(dur>0&&vizSrc==='preview'&&_prevAnalyser)vizStart();
     setPreviewBtn(true);
   }
 }
@@ -1171,6 +1313,218 @@ function setPreviewBtn(playing){
     btn.innerHTML='<i class="fas fa-play text-green-400 text-xs"></i> Preview';
     btn.classList.remove("bg-red-950/60","border-red-800/50");
     btn.classList.add("bg-slate-800","border-slate-600");
+  }
+}
+
+// ================================================================
+// SECTION 7c — VISUALIZER
+// ================================================================
+let _prevAnalyser=null; // AnalyserNode attached to the preview chain
+let vizSrc='preview';   // 'preview' | 'input'
+let vizRafId=null;
+let vizStream=null;       // MediaStream from getUserMedia
+let vizStreamSrc=null;    // MediaStreamAudioSourceNode
+let vizInputCtx=null;     // AudioContext used for input monitoring
+let vizInputAnalyser=null;
+let vizScope=null;        // Three.js renderer object | null
+
+// Returns the node synthHit outputs should connect to.
+// Creates analyser → destination chain on the given ctx.
+function getPreviewDest(ctx){
+  if(!_prevAnalyser||_prevAnalyser.context!==ctx){
+    _prevAnalyser=ctx.createAnalyser();
+    _prevAnalyser.fftSize=2048;
+    _prevAnalyser.smoothingTimeConstant=0.8;
+    _prevAnalyser.connect(ctx.destination);
+  }
+  return _prevAnalyser;
+}
+
+function _activeAnalyser(){
+  return vizSrc==='input'?vizInputAnalyser:_prevAnalyser;
+}
+
+function vizFrame(){
+  const an=_activeAnalyser();
+  if(!an){vizRafId=null;return;}
+  const td=new Uint8Array(an.fftSize);
+  const fd=new Uint8Array(an.frequencyBinCount);
+  an.getByteTimeDomainData(td);
+  an.getByteFrequencyData(fd);
+  if(vizScope){vizScope.updateWaveform(td);vizScope.updateSpectrum(fd);vizScope.render();}
+  else vizDraw2D(td,fd);
+  vizRafId=requestAnimationFrame(vizFrame);
+}
+
+function vizStart(){
+  if(vizRafId)cancelAnimationFrame(vizRafId);
+  vizRafId=requestAnimationFrame(vizFrame);
+  const st=document.getElementById('vizStatus');
+  if(st)st.textContent=vizSrc==='preview'?'preview':'input';
+}
+
+function vizStop(){
+  if(vizRafId){cancelAnimationFrame(vizRafId);vizRafId=null;}
+  const canvas=document.getElementById('vizCanvas');
+  if(!canvas)return;
+  if(!vizScope){
+    const c2=canvas.getContext('2d');
+    if(c2){c2.fillStyle='#030609';c2.fillRect(0,0,canvas.width,canvas.height);}
+  }
+  const st=document.getElementById('vizStatus');
+  if(st)st.textContent='';
+}
+
+function setVizSource(src){
+  vizSrc=src;
+  const pb=document.getElementById('vizBtnPreview');
+  const ib=document.getElementById('vizBtnInput');
+  if(pb)pb.classList.toggle('viz-src-on',src==='preview');
+  if(ib)ib.classList.toggle('viz-src-on',src==='input');
+  const row=document.getElementById('vizInputRow');
+  if(row)row.classList.toggle('hidden',src!=='input');
+  if(src==='input'){
+    populateVizInputs();
+    vizStop();
+    const st=document.getElementById('vizStatus');if(st)st.textContent='select an audio input above';
+  } else {
+    if(_prevAnalyser&&previewPlaying)vizStart();
+    else{
+      vizStop();
+      const st=document.getElementById('vizStatus');
+      if(st)st.textContent=previewPlaying?'':'start preview to activate scope';
+    }
+  }
+}
+
+function vizDraw2D(td,fd){
+  const canvas=document.getElementById('vizCanvas');if(!canvas)return;
+  const ctx=canvas.getContext('2d');if(!ctx)return;
+  const W=canvas.width,H=canvas.height,midY=H*0.4;
+  ctx.fillStyle='#030609';ctx.fillRect(0,0,W,H);
+  // Waveform
+  ctx.strokeStyle='#22d3ee';ctx.lineWidth=1.5;ctx.beginPath();
+  const wSlice=W/td.length;
+  for(let i=0;i<td.length;i++){
+    const y=((td[i]/128)-1)*midY*0.85+midY;
+    if(i===0)ctx.moveTo(0,y);else ctx.lineTo(i*wSlice,y);
+  }
+  ctx.stroke();
+  // Spectrum
+  const BINS=128,step=Math.floor(fd.length/BINS),bW=W/BINS,bottom=H-2,maxBarH=H*0.55;
+  for(let i=0;i<BINS;i++){
+    const v=fd[i*step]/255;
+    const bH=v*maxBarH;
+    ctx.fillStyle=`hsl(${180+(i/BINS)*80},80%,${35+v*25}%)`;
+    ctx.fillRect(i*bW,bottom-bH,Math.max(1,bW-1),bH);
+  }
+}
+
+async function populateVizInputs(){
+  const sel=document.getElementById('vizInputSel');if(!sel)return;
+  sel.innerHTML='<option value="">— select audio input —</option>';
+  const st=document.getElementById('vizStatus');
+  try{
+    const tmp=await navigator.mediaDevices.getUserMedia({audio:true});
+    tmp.getTracks().forEach(t=>t.stop());
+    const devs=await navigator.mediaDevices.enumerateDevices();
+    devs.filter(d=>d.kind==='audioinput').forEach(d=>{
+      const o=document.createElement('option');
+      o.value=d.deviceId;
+      o.textContent=d.label||`Input ${d.deviceId.slice(0,8)}`;
+      sel.appendChild(o);
+    });
+    if(st)st.textContent='select an audio input above';
+  }catch(e){
+    if(st)st.textContent='mic permission denied — check browser settings';
+  }
+}
+
+async function connectVizInput(){
+  const deviceId=document.getElementById('vizInputSel').value;
+  const st=document.getElementById('vizStatus');
+  if(!deviceId){if(st)st.textContent='select a device first';return;}
+  if(vizStream){vizStream.getTracks().forEach(t=>t.stop());vizStream=null;}
+  if(vizStreamSrc){vizStreamSrc.disconnect();vizStreamSrc=null;}
+  if(vizInputCtx){await vizInputCtx.close();vizInputCtx=null;vizInputAnalyser=null;}
+  try{
+    vizStream=await navigator.mediaDevices.getUserMedia({
+      audio:{deviceId:{exact:deviceId},echoCancellation:false,noiseSuppression:false,autoGainControl:false}
+    });
+    vizInputCtx=new(window.AudioContext||window.webkitAudioContext)();
+    vizStreamSrc=vizInputCtx.createMediaStreamSource(vizStream);
+    vizInputAnalyser=vizInputCtx.createAnalyser();
+    vizInputAnalyser.fftSize=2048;
+    vizInputAnalyser.smoothingTimeConstant=0.8;
+    vizStreamSrc.connect(vizInputAnalyser);
+    // Do NOT connect analyser to destination — avoids feedback loop
+    vizStart();
+  }catch(e){
+    if(st)st.textContent=`error: ${e.message}`;
+  }
+}
+
+function initVizThree(){
+  const canvas=document.getElementById('vizCanvas');
+  if(!canvas||!window.THREE)return;
+  const THREE=window.THREE;
+  try{
+    const dpr=window.devicePixelRatio||1;
+    const W=canvas.offsetWidth||280,H=canvas.offsetHeight||100;
+    canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);
+    const renderer=new THREE.WebGLRenderer({canvas,antialias:false,alpha:false});
+    renderer.setSize(W,H);renderer.setPixelRatio(dpr);
+    renderer.setClearColor(0x030609,1);
+    const scene=new THREE.Scene();
+    const camera=new THREE.OrthographicCamera(-1,1,1,-1,0.1,10);
+    camera.position.z=1;
+    // Waveform line
+    const N=512;
+    const wavePos=new Float32Array(N*3);
+    const waveGeo=new THREE.BufferGeometry();
+    waveGeo.setAttribute('position',new THREE.BufferAttribute(wavePos,3));
+    const waveLine=new THREE.Line(waveGeo,new THREE.LineBasicMaterial({color:0x22d3ee}));
+    waveLine.position.y=0.38;
+    scene.add(waveLine);
+    // Spectrum bars (instanced)
+    const BINS=64;
+    const barGeo=new THREE.PlaneGeometry((1.8/BINS)*0.85,1);
+    const barMat=new THREE.MeshBasicMaterial();
+    const barMesh=new THREE.InstancedMesh(barGeo,barMat,BINS);
+    barMesh.instanceColor=new THREE.InstancedBufferAttribute(new Float32Array(BINS*3),3);
+    barMesh.position.y=-0.15;
+    scene.add(barMesh);
+    const dummy=new THREE.Object3D(),col=new THREE.Color();
+    function updateWaveform(td){
+      const slice=Math.max(1,Math.floor(td.length/N));
+      for(let i=0;i<N;i++){
+        wavePos[i*3]=(i/(N-1))*2-1;
+        wavePos[i*3+1]=(td[Math.min(i*slice,td.length-1)]/128-1)*0.35;
+        wavePos[i*3+2]=0;
+      }
+      waveGeo.attributes.position.needsUpdate=true;
+    }
+    function updateSpectrum(fd){
+      const step=Math.max(1,Math.floor(fd.length/BINS));
+      for(let i=0;i<BINS;i++){
+        const v=fd[Math.min(i*step,fd.length-1)]/255;
+        const h=Math.max(0.004,v*0.55);
+        dummy.position.set((i/BINS)*2-1+(1/BINS),-0.5+h/2,0);
+        dummy.scale.set(1,h,1);dummy.updateMatrix();
+        barMesh.setMatrixAt(i,dummy.matrix);
+        col.setHSL(0.5+(i/BINS)*0.22,0.8,0.35+v*0.25);
+        barMesh.setColorAt(i,col);
+      }
+      barMesh.instanceMatrix.needsUpdate=true;
+      if(barMesh.instanceColor)barMesh.instanceColor.needsUpdate=true;
+    }
+    function render(){renderer.render(scene,camera);}
+    vizScope={updateWaveform,updateSpectrum,render};
+    const st=document.getElementById('vizStatus');
+    if(st&&!st.textContent)st.textContent='WebGL scope ready';
+  }catch(e){
+    console.warn('[viz] Three.js scope init failed, using canvas 2D',e);
+    vizScope=null;
   }
 }
 
@@ -1209,10 +1563,11 @@ function renderTrackGrid(){
     }
     viz+='</div>';
     const isMuted=S.previewMuted&&S.previewMuted[track.id];
+    const isLocked=S.lockedTracks&&S.lockedTracks[track.id];
     const routeLabel=TARGET_LABELS[track.target]||"MIDI";
     const card=document.createElement("div");
-    card.className=`track-card bg-slate-900/80 border border-slate-800 rounded-xl p-3 select-none${isMuted?" pv-muted":""}`;
-    card.innerHTML=`<div class="flex items-start justify-between mb-2"><div class="flex items-center gap-1.5"><span class="text-base leading-none">${escapeHtml(track.icon)}</span><span class="lbl text-slate-600">${String(track.id).padStart(2,"0")}</span></div><div class="flex items-center gap-1.5"><button class="pvtog" onclick="event.stopPropagation();togglePreviewMute(${track.id})" title="${isMuted?"Excluded from preview — click to include":"Included in preview — click to exclude"}"><i class="fas fa-${isMuted?"volume-xmark text-slate-600":"volume-low text-cyan-600"} text-xs"></i></button><span class="lbl text-cyan-600 tabular-nums">${sc}</span></div></div><div class="font-semibold text-xs text-slate-100 mb-0.5 leading-tight truncate">${escapeHtml(track.name)}</div><div class="text-xs text-slate-500 mb-2 leading-tight truncate">${escapeHtml(track.role)}</div><div class="flex items-center justify-between gap-2 mb-2"><span class="route-pill"><i class="fas fa-route"></i>${escapeHtml(routeLabel)}</span><span class="text-[10px] mono text-slate-500">CH ${track.midiChannel} · N ${track.note}</span></div>${viz}`;
+    card.className=`track-card bg-slate-900/80 border rounded-xl p-3 select-none${isLocked?" border-amber-700/50 bg-amber-950/10":" border-slate-800"}${isMuted?" pv-muted":""}`;
+    card.innerHTML=`<div class="flex items-start justify-between mb-2"><div class="flex items-center gap-1.5"><span class="text-base leading-none">${escapeHtml(track.icon)}</span><span class="lbl ${isLocked?"text-amber-600":"text-slate-600"}">${String(track.id).padStart(2,"0")}</span></div><div class="flex items-center gap-1.5"><button class="pvtog" onclick="toggleTrackLock(${track.id},event)" title="${isLocked?"Locked — regenerate skips this track":"Unlocked — click to lock"}"><i class="fas fa-${isLocked?"lock text-amber-400":"lock-open text-slate-600"} text-xs"></i></button><button class="pvtog" onclick="event.stopPropagation();togglePreviewMute(${track.id})" title="${isMuted?"Excluded from preview — click to include":"Included in preview — click to exclude"}"><i class="fas fa-${isMuted?"volume-xmark text-slate-600":"volume-low text-cyan-600"} text-xs"></i></button><span class="lbl text-cyan-600 tabular-nums">${sc}</span></div></div><div class="font-semibold text-xs text-slate-100 mb-0.5 leading-tight truncate">${escapeHtml(track.name)}</div><div class="text-xs text-slate-500 mb-2 leading-tight truncate">${escapeHtml(track.role)}</div><div class="flex items-center justify-between gap-2 mb-2"><span class="route-pill"><i class="fas fa-route"></i>${escapeHtml(routeLabel)}</span><span class="text-[10px] mono text-slate-500">CH ${track.midiChannel} · N ${track.note}</span></div>${viz}`;
     card.onclick=()=>openModal(track.id);
     grid.appendChild(card);
   });
@@ -1222,6 +1577,14 @@ function togglePreviewMute(id){
   if(!S.previewMuted)S.previewMuted={};
   S.previewMuted[id]=!S.previewMuted[id];
   renderTrackGrid();
+}
+
+function toggleTrackLock(id,evt){
+  evt.stopPropagation();
+  if(!S.lockedTracks)S.lockedTracks={};
+  S.lockedTracks[id]=!S.lockedTracks[id];
+  renderTrackGrid();
+  save();
 }
 
 function renderCompositionGuide(){
@@ -1271,6 +1634,11 @@ function openModal(trackId){
   const sg=currentSG();const snEl=document.getElementById("mSubNote");
   if(sg&&sg.ov&&sg.ov[trackId]){snEl.textContent=`Subgenre note (${sg.name}): ${sg.note}`;snEl.classList.remove("hidden");}
   else snEl.classList.add("hidden");
+  document.getElementById("routeTarget").value=track.target||"digitakt-audio";
+  document.getElementById("routeChannel").value=track.midiChannel||1;
+  document.getElementById("routeNote").value=track.note||60;
+  document.getElementById("routeVelocity").value=track.velocity||100;
+  document.getElementById("routeNoteName").textContent=midiNoteName(track.note||60);
   document.getElementById("modal").classList.remove("hidden");
   syncLenBtns();renderStepGrid();
 }
@@ -1284,18 +1652,47 @@ function updateTrackName(v){
   const t=getTrack(S.editId);if(t&&v.trim())t.name=v.trim();
 }
 
+function updateRouting(){
+  const t=getTrack(S.editId);if(!t)return;
+  t.target=document.getElementById("routeTarget").value;
+  t.midiChannel=clamp(parseInt(document.getElementById("routeChannel").value)||1,1,16);
+  t.note=clamp(parseInt(document.getElementById("routeNote").value)||60,0,127);
+  t.velocity=clamp(parseInt(document.getElementById("routeVelocity").value)||100,1,127);
+  document.getElementById("routeChannel").value=t.midiChannel;
+  document.getElementById("routeNote").value=t.note;
+  document.getElementById("routeVelocity").value=t.velocity;
+  document.getElementById("routeNoteName").textContent=midiNoteName(t.note);
+  save();
+}
+
 // ================================================================
 // SECTION 10 — STEP GRID
 // ================================================================
+function probClass(p){return p>=100?'':(p>=75?' p75':p>=50?' p50':' p25');}
+
 function renderStepGrid(){
   const g=document.getElementById("stepGrid");g.innerHTML="";
   const track=getTrack(S.editId);if(!track)return;
   const active=track.steps||[];
+  const prob=track.lanes&&track.lanes.probability?track.lanes.probability:{};
+  const conds=track.lanes&&track.lanes.condition?track.lanes.condition:{};
   for(let i=1;i<=S.patLen;i++){
+    const isOn=active.includes(i);
+    const p=isOn?(prob[i]??100):100;
+    const cond=isOn?conds[i]:null;
     const btn=document.createElement("div");
-    btn.className="step-btn"+(active.includes(i)?" active":"")+((i-1)%4===0?" bar-s":"");
-    btn.textContent=i;btn.dataset.step=String(i);
-    btn.onclick=()=>toggleStep(i,btn);
+    btn.className="step-btn"+(isOn?" active"+probClass(p):"")+((i-1)%4===0?" bar-s":"");
+    const mainLabel=(isOn&&p<100)?String(p):String(i);
+    btn.innerHTML=mainLabel+(cond?`<span class="step-cond">${cond}</span>`:'');
+    btn.dataset.step=String(i);
+    if(condMode){
+      btn.onclick=()=>{if(isOn)cycleStepCond(i,btn);};
+      btn.title=isOn?(cond?`Step ${i} · ${cond} — click to cycle condition`:`Step ${i} — click to add condition`):`Step ${i} (inactive)`;
+    } else {
+      btn.onclick=()=>toggleStep(i,btn);
+      btn.title=isOn?(cond?`Step ${i}${p<100?' · '+p+'%':''} · ${cond} (condition)`:(p<100?`Step ${i} · ${p}% probability — right-click to cycle`:`Step ${i} — right-click: probability | enable Cond mode for conditions`)):`Step ${i}`;
+    }
+    btn.oncontextmenu=(e)=>{e.preventDefault();if(isOn)cycleStepProb(i,btn);};
     g.appendChild(btn);
   }
   updateStepInfo(active);
@@ -1305,9 +1702,60 @@ function toggleStep(step,btn){
   const track=getTrack(S.editId);if(!track)return;
   if(!track.steps)track.steps=[];
   const idx=track.steps.indexOf(step);
-  if(idx>-1){track.steps.splice(idx,1);btn.classList.remove("active");}
-  else{track.steps.push(step);track.steps.sort((a,b)=>a-b);btn.classList.add("active");}
+  if(idx>-1){
+    track.steps.splice(idx,1);
+    if(track.lanes&&track.lanes.probability)delete track.lanes.probability[step];
+    if(track.lanes&&track.lanes.condition)delete track.lanes.condition[step];
+    btn.className=btn.className.replace(/\s*(active|p75|p50|p25)/g,"");
+    btn.innerHTML=String(step);
+  } else {
+    track.steps.push(step);track.steps.sort((a,b)=>a-b);
+    btn.classList.add("active");
+    btn.innerHTML=String(step);
+  }
   updateStepInfo(track.steps);
+}
+
+function cycleStepProb(step,btn){
+  const track=getTrack(S.editId);if(!track)return;
+  if(!track.lanes)track.lanes={probability:{}};
+  if(!track.lanes.probability)track.lanes.probability={};
+  const cur=track.lanes.probability[step]??100;
+  const next=cur>=100?75:cur>=75?50:cur>=50?25:100;
+  if(next>=100)delete track.lanes.probability[step];else track.lanes.probability[step]=next;
+  const barS=(step-1)%4===0?' bar-s':'';
+  btn.className=`step-btn active${probClass(next)}${barS}`;
+  btn.textContent=next<100?String(next):String(step);
+  btn.title=next<100?`Step ${step} · ${next}% probability — right-click to cycle`:`Step ${step} · right-click to set probability`;
+}
+
+function cycleStepCond(step,btn){
+  const track=getTrack(S.editId);if(!track)return;
+  if(!track.lanes)track.lanes={probability:{},condition:{}};
+  if(!track.lanes.condition)track.lanes.condition={};
+  const cur=track.lanes.condition[step]??null;
+  const idx=COND_CYCLE.indexOf(cur);
+  const next=COND_CYCLE[(idx+1)%COND_CYCLE.length];
+  if(next==null)delete track.lanes.condition[step];else track.lanes.condition[step]=next;
+  // Rebuild button content
+  const prob=track.lanes.probability&&track.lanes.probability[step]!=null?track.lanes.probability[step]:100;
+  const mainLabel=prob<100?String(prob):String(step);
+  const barS=(step-1)%4===0?' bar-s':'';
+  btn.className=`step-btn active${probClass(prob)}${barS}`;
+  btn.innerHTML=mainLabel+(next?`<span class="step-cond">${next}</span>`:'');
+  btn.title=next?`Step ${step}${prob<100?' · '+prob+'%':''} · ${next} — click to cycle condition`:`Step ${step} — click to add condition`;
+}
+
+function resetStepProb(){
+  const t=getTrack(S.editId);if(!t)return;
+  if(t.lanes)t.lanes.probability={};
+  renderStepGrid();
+}
+
+function resetAllLanes(){
+  const t=getTrack(S.editId);if(!t)return;
+  if(t.lanes){t.lanes.probability={};t.lanes.condition={};}
+  renderStepGrid();
 }
 
 function updateStepInfo(steps){
@@ -1337,6 +1785,7 @@ function resetToRecommended(){
   const rec=getRecommended(S.genre,S.subgenre).find(t=>t.id===S.editId);
   const curr=getTrack(S.editId);if(!rec||!curr)return;
   curr.steps=[...rec.steps];curr.name=rec.name;curr.desc=rec.desc;
+  if(curr.lanes){curr.lanes.probability={};curr.lanes.condition={};}else curr.lanes={probability:{},condition:{}};
   document.getElementById("mTrackName").value=curr.name;
   document.getElementById("mDesc").textContent=curr.desc;
   const maxS=curr.steps.length?Math.max(...curr.steps):0;
@@ -1344,7 +1793,7 @@ function resetToRecommended(){
   syncLenBtns();renderStepGrid();
 }
 
-function clearPattern(){const t=getTrack(S.editId);if(t){t.steps=[];renderStepGrid();}}
+function clearPattern(){const t=getTrack(S.editId);if(t){t.steps=[];if(t.lanes){t.lanes.probability={};t.lanes.condition={};}renderStepGrid();}}
 
 function loadRecommendedDefaults(){
   if(!confirm(`Reset all ${S.genre}${S.subgenre?` (${currentSG().name})`:"" } tracks to recommended patterns?`))return;
@@ -1402,32 +1851,40 @@ function classifyTrack(track){
   return"percussion";
 }
 
-function generateTrackSteps(type,pLen,params){
+function generateTrackSteps(type,pLen,params,rng){
+  rng=rng||Math.random.bind(Math);
   if(type==="texture")return[];
   const range=params[type]||(Array.isArray(params.percussion)?params.percussion:[1,3]);
   if(!Array.isArray(range))return[];
   const [mn,mx]=range;
   if(mx===0)return[];
-  const pulses=mn===mx?mn:mn+Math.floor(Math.random()*(mx-mn+1));
+  const pulses=mn===mx?mn:mn+Math.floor(rng()*(mx-mn+1));
   if(pulses===0)return[];
   const maxOff=Math.max(1,Math.floor(pLen/pulses));
-  const offset=Math.floor(Math.random()*maxOff);
+  const offset=Math.floor(rng()*maxOff);
   return euclidean(pulses,pLen,offset);
 }
 
-function regenerateComposition(){
+function regenerateComposition(newSeed){
+  if(newSeed){S.seed=mkSeed();updateSeedDisplay();}
+  const rng=mulberry32(S.seed);
   const params=GEN_PARAMS[S.genre]||GEN_PARAMS["Ambient"];
   const pLen=params.pLen||16;
-  const tracks=JSON.parse(JSON.stringify(GENRES[S.genre].tracks));
-  tracks.forEach(t=>{
+  const current=S.trackData[S.genre]||[];
+  const base=JSON.parse(JSON.stringify(GENRES[S.genre].tracks));
+  base.forEach(t=>{
+    const locked=S.lockedTracks&&S.lockedTracks[t.id];
+    if(locked){
+      const existing=current.find(c=>c.id===t.id);
+      if(existing){Object.assign(t,existing);return;}
+    }
     const type=classifyTrack(t);
-    t.steps=generateTrackSteps(type,pLen,params);
+    t.steps=generateTrackSteps(type,pLen,params,rng);
   });
-  S.trackData[S.genre]=normalizeTrackCollection(tracks);
+  S.trackData[S.genre]=normalizeTrackCollection(base);
   const keys=HARMONIC[S.genre]||[];
   if(keys.length){
-    let next=S.keyIdx;
-    if(keys.length>1)while(next===S.keyIdx)next=Math.floor(Math.random()*keys.length);
+    let next=rng()<0.5||keys.length<2?S.keyIdx:Math.floor(rng()*keys.length);
     S.keyIdx=next;
   }
   renderTrackGrid();
@@ -1458,6 +1915,14 @@ function randomizeKey(){
   if(keys.length>1)while(next===S.keyIdx)next=Math.floor(Math.random()*keys.length);
   S.keyIdx=next;
   renderHarmonicPanel();
+}
+
+let condMode=false;
+function toggleCondMode(){
+  condMode=!condMode;
+  const btn=document.getElementById('condModeBtn');
+  if(btn)btn.classList.toggle('cond-on',condMode);
+  renderStepGrid();
 }
 
 function showCompositionRules(){
@@ -1540,6 +2005,10 @@ function buildMidiEvents(tracks,bpm,loops,startAt){
       const velocity=clamp(Number(track.velocity)||100,1,127);
       track.steps.forEach(step=>{
         if(step<1||step>patLen)return;
+        const prob=track.lanes&&track.lanes.probability&&track.lanes.probability[step]!=null?track.lanes.probability[step]:100;
+        if(Math.random()*100>=prob)return;
+        const cond=track.lanes&&track.lanes.condition&&track.lanes.condition[step];
+        if(cond&&!evalCondition(cond,loop))return;
         const onset=startAt+lo+(step-1)*msPerStep;
         events.push({bytes:[0x90|ch,note,velocity],at:onset});
         events.push({bytes:[0x80|ch,note,0],at:onset+msPerStep*0.45});
@@ -1671,7 +2140,7 @@ function sendCurrentSongStep(){
 // ================================================================
 // SECTION 15 — PERSISTENCE
 // ================================================================
-function save(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(S.trackData));}catch(e){}}
+function save(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify({trackData:S.trackData,seed:S.seed,lockedTracks:S.lockedTracks}));}catch(e){}}
 
 window.onload=init;
 </script>

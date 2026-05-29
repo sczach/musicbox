@@ -1,0 +1,7 @@
+{
+  "name": "musicbox",
+  "private": true,
+  "scripts": {
+    "test": "node test/smoke.js && node test/unit.js"
+  }
+}
