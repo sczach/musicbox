@@ -120,3 +120,53 @@ function renderCompositionCockpit(project) {
 4. Add explicit routing controls before adding any new MIDI features.
 5. Add seeded generation and lockable tracks only after the current random generator is test-covered.
 6. Treat full Digitakt project/pattern transfer as a separate hardware research spike, not part of the initial production milestone.
+
+
+## 6. Oscilloscope / Three.js visualizer pseudocode
+
+```ts
+async function startVisualizer({ source }) {
+  const audioContext = new AudioContext();
+  const analyser = audioContext.createAnalyser();
+  analyser.fftSize = 2048;
+
+  if (source.kind === 'internal-preview') {
+    previewEngine.connectAnalyser(analyser);
+  }
+
+  if (source.kind === 'external-input') {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        deviceId: source.deviceId ? { exact: source.deviceId } : undefined,
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false,
+      },
+    });
+    const input = audioContext.createMediaStreamSource(stream);
+    input.connect(analyser);
+  }
+
+  const scope = createThreeScopeRenderer(canvas);
+  const timeDomain = new Uint8Array(analyser.fftSize);
+  const frequency = new Uint8Array(analyser.frequencyBinCount);
+
+  function frame() {
+    analyser.getByteTimeDomainData(timeDomain);
+    analyser.getByteFrequencyData(frequency);
+    scope.updateWaveform(timeDomain);
+    scope.updateSpectrum(frequency);
+    scope.render();
+    requestAnimationFrame(frame);
+  }
+
+  frame();
+}
+```
+
+Implementation notes:
+
+- Start with internal preview because it works without hardware.
+- External Digitakt monitoring requires an audio input device visible to the browser; USB MIDI alone is not enough.
+- Three.js should receive normalized analysis arrays and stay independent from capture details.
+- Add an `AudioWorklet` later only if analyser polling is insufficient for stable peak/RMS history or low-latency ring-buffer behavior.
