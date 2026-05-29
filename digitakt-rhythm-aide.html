@@ -48,6 +48,9 @@ body{font-family:'Space Grotesk',system-ui,sans-serif;background:#070b14;color:#
 .track-card.pv-muted .mini-step.on{background:#2a3d58}
 .pvtog{background:none;border:none;padding:0;cursor:pointer;line-height:1;flex-shrink:0}
 .pvtog:hover i{opacity:.7}
+.viz-src-btn{background:#0e1828;border:1px solid #1a2540;color:#3a5070;border-radius:4px;font-size:.68rem;font-weight:600;padding:.2rem .6rem;cursor:pointer;transition:all .1s;font-family:'JetBrains Mono',monospace}
+.viz-src-btn:hover:not(.viz-src-on){background:#182234;color:#608ab0}
+.viz-src-btn.viz-src-on{background:#0a3a58;border-color:#0891b2;color:#22d3ee}
 
 /* Production cockpit polish */
 :root{--mb-bg:#050914;--mb-panel:rgba(9,14,26,.82);--mb-panel-strong:rgba(12,19,34,.94);--mb-border:rgba(148,163,184,.14);--mb-cyan:#22d3ee;--mb-violet:#8b5cf6;--mb-amber:#f59e0b}
@@ -285,6 +288,28 @@ select,input,textarea{box-shadow:inset 0 1px 0 rgba(255,255,255,.03)}
           <div class="device-kv"><span>Outputs</span><span id="diagOutputs">0</span></div>
         </div>
         <p class="text-xs text-slate-600 leading-relaxed">Digitakt: <span class="text-slate-400">MIDI → Recv Clock + Transport ON</span> · hold <span class="text-slate-300">REC</span> · Send. Chrome/Edge.</p>
+      </div>
+
+      <!-- Visualizer Panel -->
+      <div class="hardware-card space-y-2">
+        <div class="flex items-center justify-between">
+          <div class="lbl">Scope</div>
+          <div class="flex gap-1">
+            <button id="vizBtnPreview" class="viz-src-btn viz-src-on" onclick="setVizSource('preview')">Preview</button>
+            <button id="vizBtnInput" class="viz-src-btn" onclick="setVizSource('input')">Input</button>
+          </div>
+        </div>
+        <canvas id="vizCanvas" width="560" height="200" style="display:block;width:100%;height:100px;background:#030609;border-radius:6px;border:1px solid #1a2540"></canvas>
+        <div id="vizInputRow" class="hidden space-y-1.5">
+          <select id="vizInputSel" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-cyan-600">
+            <option value="">— select audio input —</option>
+          </select>
+          <button onclick="connectVizInput()" class="w-full py-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-slate-300 transition-colors flex items-center justify-center gap-1.5">
+            <i class="fas fa-microphone text-cyan-500 text-xs"></i> Connect Input
+          </button>
+        </div>
+        <div id="vizStatus" class="mono text-[10px] text-slate-600 leading-tight min-h-[1em]"></div>
+        <p class="text-xs text-slate-700 leading-relaxed">USB audio or interface required for Digitakt monitoring. Pro 3 USB is MIDI only.</p>
       </div>
 
     </div>
@@ -1062,6 +1087,15 @@ function init(){
   updateSeedDisplay();
   initMidi();
   document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!document.getElementById("modal").classList.contains("hidden"))closeModal();});
+  // Load Three.js from CDN; fall back to canvas 2D if unavailable
+  const tjs=document.createElement('script');
+  tjs.src='https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.min.js';
+  tjs.onload=()=>{if(document.getElementById('vizCanvas'))initVizThree();};
+  tjs.onerror=()=>console.log('[viz] Three.js not available — canvas 2D active');
+  document.head.appendChild(tjs);
+  // Show initial status
+  const st=document.getElementById('vizStatus');
+  if(st)st.textContent='start preview to activate scope';
 }
 
 // ================================================================
@@ -1112,7 +1146,7 @@ function getACtx(){
 function synthHit(ctx,type,t){
   const g=ctx.createGain();
   g.gain.setValueAtTime(0.001,t);
-  g.connect(ctx.destination);
+  g.connect(getPreviewDest(ctx));
   if(type==="kick"){
     const o=ctx.createOscillator();
     o.type="sine";
@@ -1215,11 +1249,14 @@ function togglePreview(){
   if(previewPlaying){
     previewPlaying=false;
     clearTimeout(previewSched);previewSched=null;
+    if(vizSrc==='preview')vizStop();
+    _prevAnalyser=null;
     if(audioCtx){audioCtx.close();audioCtx=null;}
     setPreviewBtn(false);
   } else {
     previewPlaying=true;
-    schedulePreview();
+    const dur=schedulePreview();
+    if(dur>0&&vizSrc==='preview'&&_prevAnalyser)vizStart();
     setPreviewBtn(true);
   }
 }
@@ -1234,6 +1271,218 @@ function setPreviewBtn(playing){
     btn.innerHTML='<i class="fas fa-play text-green-400 text-xs"></i> Preview';
     btn.classList.remove("bg-red-950/60","border-red-800/50");
     btn.classList.add("bg-slate-800","border-slate-600");
+  }
+}
+
+// ================================================================
+// SECTION 7c — VISUALIZER
+// ================================================================
+let _prevAnalyser=null; // AnalyserNode attached to the preview chain
+let vizSrc='preview';   // 'preview' | 'input'
+let vizRafId=null;
+let vizStream=null;       // MediaStream from getUserMedia
+let vizStreamSrc=null;    // MediaStreamAudioSourceNode
+let vizInputCtx=null;     // AudioContext used for input monitoring
+let vizInputAnalyser=null;
+let vizScope=null;        // Three.js renderer object | null
+
+// Returns the node synthHit outputs should connect to.
+// Creates analyser → destination chain on the given ctx.
+function getPreviewDest(ctx){
+  if(!_prevAnalyser||_prevAnalyser.context!==ctx){
+    _prevAnalyser=ctx.createAnalyser();
+    _prevAnalyser.fftSize=2048;
+    _prevAnalyser.smoothingTimeConstant=0.8;
+    _prevAnalyser.connect(ctx.destination);
+  }
+  return _prevAnalyser;
+}
+
+function _activeAnalyser(){
+  return vizSrc==='input'?vizInputAnalyser:_prevAnalyser;
+}
+
+function vizFrame(){
+  const an=_activeAnalyser();
+  if(!an){vizRafId=null;return;}
+  const td=new Uint8Array(an.fftSize);
+  const fd=new Uint8Array(an.frequencyBinCount);
+  an.getByteTimeDomainData(td);
+  an.getByteFrequencyData(fd);
+  if(vizScope){vizScope.updateWaveform(td);vizScope.updateSpectrum(fd);vizScope.render();}
+  else vizDraw2D(td,fd);
+  vizRafId=requestAnimationFrame(vizFrame);
+}
+
+function vizStart(){
+  if(vizRafId)cancelAnimationFrame(vizRafId);
+  vizRafId=requestAnimationFrame(vizFrame);
+  const st=document.getElementById('vizStatus');
+  if(st)st.textContent=vizSrc==='preview'?'preview':'input';
+}
+
+function vizStop(){
+  if(vizRafId){cancelAnimationFrame(vizRafId);vizRafId=null;}
+  const canvas=document.getElementById('vizCanvas');
+  if(!canvas)return;
+  if(!vizScope){
+    const c2=canvas.getContext('2d');
+    if(c2){c2.fillStyle='#030609';c2.fillRect(0,0,canvas.width,canvas.height);}
+  }
+  const st=document.getElementById('vizStatus');
+  if(st)st.textContent='';
+}
+
+function setVizSource(src){
+  vizSrc=src;
+  const pb=document.getElementById('vizBtnPreview');
+  const ib=document.getElementById('vizBtnInput');
+  if(pb)pb.classList.toggle('viz-src-on',src==='preview');
+  if(ib)ib.classList.toggle('viz-src-on',src==='input');
+  const row=document.getElementById('vizInputRow');
+  if(row)row.classList.toggle('hidden',src!=='input');
+  if(src==='input'){
+    populateVizInputs();
+    vizStop();
+    const st=document.getElementById('vizStatus');if(st)st.textContent='select an audio input above';
+  } else {
+    if(_prevAnalyser&&previewPlaying)vizStart();
+    else{
+      vizStop();
+      const st=document.getElementById('vizStatus');
+      if(st)st.textContent=previewPlaying?'':'start preview to activate scope';
+    }
+  }
+}
+
+function vizDraw2D(td,fd){
+  const canvas=document.getElementById('vizCanvas');if(!canvas)return;
+  const ctx=canvas.getContext('2d');if(!ctx)return;
+  const W=canvas.width,H=canvas.height,midY=H*0.4;
+  ctx.fillStyle='#030609';ctx.fillRect(0,0,W,H);
+  // Waveform
+  ctx.strokeStyle='#22d3ee';ctx.lineWidth=1.5;ctx.beginPath();
+  const wSlice=W/td.length;
+  for(let i=0;i<td.length;i++){
+    const y=((td[i]/128)-1)*midY*0.85+midY;
+    if(i===0)ctx.moveTo(0,y);else ctx.lineTo(i*wSlice,y);
+  }
+  ctx.stroke();
+  // Spectrum
+  const BINS=128,step=Math.floor(fd.length/BINS),bW=W/BINS,bottom=H-2,maxBarH=H*0.55;
+  for(let i=0;i<BINS;i++){
+    const v=fd[i*step]/255;
+    const bH=v*maxBarH;
+    ctx.fillStyle=`hsl(${180+(i/BINS)*80},80%,${35+v*25}%)`;
+    ctx.fillRect(i*bW,bottom-bH,Math.max(1,bW-1),bH);
+  }
+}
+
+async function populateVizInputs(){
+  const sel=document.getElementById('vizInputSel');if(!sel)return;
+  sel.innerHTML='<option value="">— select audio input —</option>';
+  const st=document.getElementById('vizStatus');
+  try{
+    const tmp=await navigator.mediaDevices.getUserMedia({audio:true});
+    tmp.getTracks().forEach(t=>t.stop());
+    const devs=await navigator.mediaDevices.enumerateDevices();
+    devs.filter(d=>d.kind==='audioinput').forEach(d=>{
+      const o=document.createElement('option');
+      o.value=d.deviceId;
+      o.textContent=d.label||`Input ${d.deviceId.slice(0,8)}`;
+      sel.appendChild(o);
+    });
+    if(st)st.textContent='select an audio input above';
+  }catch(e){
+    if(st)st.textContent='mic permission denied — check browser settings';
+  }
+}
+
+async function connectVizInput(){
+  const deviceId=document.getElementById('vizInputSel').value;
+  const st=document.getElementById('vizStatus');
+  if(!deviceId){if(st)st.textContent='select a device first';return;}
+  if(vizStream){vizStream.getTracks().forEach(t=>t.stop());vizStream=null;}
+  if(vizStreamSrc){vizStreamSrc.disconnect();vizStreamSrc=null;}
+  if(vizInputCtx){await vizInputCtx.close();vizInputCtx=null;vizInputAnalyser=null;}
+  try{
+    vizStream=await navigator.mediaDevices.getUserMedia({
+      audio:{deviceId:{exact:deviceId},echoCancellation:false,noiseSuppression:false,autoGainControl:false}
+    });
+    vizInputCtx=new(window.AudioContext||window.webkitAudioContext)();
+    vizStreamSrc=vizInputCtx.createMediaStreamSource(vizStream);
+    vizInputAnalyser=vizInputCtx.createAnalyser();
+    vizInputAnalyser.fftSize=2048;
+    vizInputAnalyser.smoothingTimeConstant=0.8;
+    vizStreamSrc.connect(vizInputAnalyser);
+    // Do NOT connect analyser to destination — avoids feedback loop
+    vizStart();
+  }catch(e){
+    if(st)st.textContent=`error: ${e.message}`;
+  }
+}
+
+function initVizThree(){
+  const canvas=document.getElementById('vizCanvas');
+  if(!canvas||!window.THREE)return;
+  const THREE=window.THREE;
+  try{
+    const dpr=window.devicePixelRatio||1;
+    const W=canvas.offsetWidth||280,H=canvas.offsetHeight||100;
+    canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);
+    const renderer=new THREE.WebGLRenderer({canvas,antialias:false,alpha:false});
+    renderer.setSize(W,H);renderer.setPixelRatio(dpr);
+    renderer.setClearColor(0x030609,1);
+    const scene=new THREE.Scene();
+    const camera=new THREE.OrthographicCamera(-1,1,1,-1,0.1,10);
+    camera.position.z=1;
+    // Waveform line
+    const N=512;
+    const wavePos=new Float32Array(N*3);
+    const waveGeo=new THREE.BufferGeometry();
+    waveGeo.setAttribute('position',new THREE.BufferAttribute(wavePos,3));
+    const waveLine=new THREE.Line(waveGeo,new THREE.LineBasicMaterial({color:0x22d3ee}));
+    waveLine.position.y=0.38;
+    scene.add(waveLine);
+    // Spectrum bars (instanced)
+    const BINS=64;
+    const barGeo=new THREE.PlaneGeometry((1.8/BINS)*0.85,1);
+    const barMat=new THREE.MeshBasicMaterial();
+    const barMesh=new THREE.InstancedMesh(barGeo,barMat,BINS);
+    barMesh.instanceColor=new THREE.InstancedBufferAttribute(new Float32Array(BINS*3),3);
+    barMesh.position.y=-0.15;
+    scene.add(barMesh);
+    const dummy=new THREE.Object3D(),col=new THREE.Color();
+    function updateWaveform(td){
+      const slice=Math.max(1,Math.floor(td.length/N));
+      for(let i=0;i<N;i++){
+        wavePos[i*3]=(i/(N-1))*2-1;
+        wavePos[i*3+1]=(td[Math.min(i*slice,td.length-1)]/128-1)*0.35;
+        wavePos[i*3+2]=0;
+      }
+      waveGeo.attributes.position.needsUpdate=true;
+    }
+    function updateSpectrum(fd){
+      const step=Math.max(1,Math.floor(fd.length/BINS));
+      for(let i=0;i<BINS;i++){
+        const v=fd[Math.min(i*step,fd.length-1)]/255;
+        const h=Math.max(0.004,v*0.55);
+        dummy.position.set((i/BINS)*2-1+(1/BINS),-0.5+h/2,0);
+        dummy.scale.set(1,h,1);dummy.updateMatrix();
+        barMesh.setMatrixAt(i,dummy.matrix);
+        col.setHSL(0.5+(i/BINS)*0.22,0.8,0.35+v*0.25);
+        barMesh.setColorAt(i,col);
+      }
+      barMesh.instanceMatrix.needsUpdate=true;
+      if(barMesh.instanceColor)barMesh.instanceColor.needsUpdate=true;
+    }
+    function render(){renderer.render(scene,camera);}
+    vizScope={updateWaveform,updateSpectrum,render};
+    const st=document.getElementById('vizStatus');
+    if(st&&!st.textContent)st.textContent='WebGL scope ready';
+  }catch(e){
+    console.warn('[viz] Three.js scope init failed, using canvas 2D',e);
+    vizScope=null;
   }
 }
 
