@@ -155,6 +155,10 @@ select,input,textarea{box-shadow:none}
           </button>
         </div>
         <span id="seedDisplay" class="mono text-[10px] text-slate-600 tabular-nums select-all" title="Seed — copy to replay"></span>
+        <span id="lockBadge" class="hidden mono text-[10px] text-amber-500/60 flex items-center gap-0.5 ml-0.5" title="Locked tracks are skipped on Generate">
+          <i class="fas fa-lock text-[9px]"></i><span id="lockCountNum"></span>
+        </span>
+        <button id="undoBtn" onclick="undo()" class="hidden text-slate-600 hover:text-slate-300 transition-colors px-1 text-sm leading-none" title="Undo last change (Ctrl+Z)">↩</button>
         <div class="flex-1 min-w-[1rem]"></div>
         <button onclick="exportAllPatterns()" class="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 rounded-lg flex items-center gap-1.5 transition-colors">
           <i class="fas fa-file-export text-xs"></i> Export
@@ -309,7 +313,7 @@ select,input,textarea{box-shadow:none}
           <select id="vizInputSel" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-cyan-600">
             <option value="">— select audio input —</option>
           </select>
-          <button onclick="connectVizInput()" class="w-full py-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-slate-300 transition-colors flex items-center justify-center gap-1.5">
+          <button id="vizConnectBtn" onclick="toggleVizInput()" class="w-full py-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-slate-300 transition-colors flex items-center justify-center gap-1.5">
             <i class="fas fa-microphone text-cyan-500 text-xs"></i> Connect Input
           </button>
         </div>
@@ -1048,6 +1052,22 @@ const TARGET_LABELS={"digitakt-audio":"DT Audio","digitakt-midi":"DT MIDI","pro3
 const ROLE_SHORT={kick:'KICK',snare:'SNARE',hat:'HAT',shaker:'SHAKER',bass:'BASS',harmonic:'CHORD',melody:'LEAD',texture:'TEXTURE',midi:'MIDI',percussion:'PERC'};
 const ROUTE_SHORT={'digitakt-audio':'DT','digitakt-midi':'DT MIDI','pro3-usb':'PRO 3','external-midi':'EXT'};
 let S={genre:"Ambient",subgenre:null,trackData:{},editId:null,patLen:64,keyIdx:0,previewMuted:{},seed:0,lockedTracks:{}};
+// Single-level undo: snapshot taken before any destructive change
+let _undoState=null;
+function saveUndoPoint(){
+  _undoState={genre:S.genre,tracks:JSON.parse(JSON.stringify(S.trackData[S.genre]||[])),seed:S.seed,keyIdx:S.keyIdx};
+  _updateUndoBtn();
+}
+function undo(){
+  if(!_undoState)return;
+  S.trackData[_undoState.genre]=_undoState.tracks;
+  if(_undoState.genre===S.genre){
+    S.seed=_undoState.seed;S.keyIdx=_undoState.keyIdx;
+    updateSeedDisplay();renderTrackGrid();renderHarmonicPanel();save();
+  }
+  _undoState=null;_updateUndoBtn();
+}
+function _updateUndoBtn(){const b=document.getElementById("undoBtn");if(b)b.classList.toggle("hidden",!_undoState);}
 
 function clamp(n,min,max){return Math.max(min,Math.min(max,n));}
 function escapeHtml(value){return String(value??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch]));}
@@ -1163,7 +1183,10 @@ function init(){
   initMidi();
   populateAudioOutputs();
   if(navigator.mediaDevices)navigator.mediaDevices.addEventListener('devicechange',onDeviceChange);
-  document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!document.getElementById("modal").classList.contains("hidden"))closeModal();});
+  document.addEventListener("keydown",e=>{
+    if(e.key==="Escape"&&!document.getElementById("modal").classList.contains("hidden"))closeModal();
+    if(e.key==="z"&&(e.ctrlKey||e.metaKey)&&!e.shiftKey){e.preventDefault();undo();}
+  });
   // Load Three.js from CDN; fall back to canvas 2D if unavailable
   const tjs=document.createElement('script');
   tjs.src='https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.min.js';
@@ -1195,6 +1218,7 @@ function loadGenre(genre){
 }
 
 function selectSubgenre(id){
+  saveUndoPoint(); // selecting a subgenre replaces all patterns — allow ↩
   S.subgenre=(S.subgenre===id)?null:id;
   S.trackData[S.genre]=getRecommended(S.genre,S.subgenre);
   renderSubgenreBar();
@@ -1541,9 +1565,26 @@ async function connectVizInput(){
     vizStreamSrc.connect(vizInputAnalyser);
     // Do NOT connect analyser to destination — avoids feedback loop
     vizStart();
+    const btn=document.getElementById('vizConnectBtn');
+    if(btn)btn.innerHTML='<i class="fas fa-microphone-slash text-red-400 text-xs"></i> Disconnect';
+    if(st)st.textContent='input connected';
   }catch(e){
     if(st)st.textContent=`error: ${e.message}`;
   }
+}
+
+function toggleVizInput(){
+  if(vizStream)disconnectVizInput();
+  else connectVizInput();
+}
+
+function disconnectVizInput(){
+  if(vizStream){vizStream.getTracks().forEach(t=>t.stop());vizStream=null;}
+  if(vizStreamSrc){vizStreamSrc.disconnect();vizStreamSrc=null;}
+  setVizSource('preview');
+  const btn=document.getElementById('vizConnectBtn');
+  if(btn)btn.innerHTML='<i class="fas fa-microphone text-cyan-500 text-xs"></i> Connect Input';
+  setText('vizStatus','input disconnected');
 }
 
 function initVizThree(){
@@ -1630,6 +1671,11 @@ function renderSubgenreBar(){
 function renderTrackGrid(){
   const grid=document.getElementById("trackGrid");grid.innerHTML="";
   const tracks=currentTracks();
+  // Update lock count badge
+  const lockN=Object.values(S.lockedTracks||{}).filter(Boolean).length;
+  const badge=document.getElementById("lockBadge");
+  const countEl=document.getElementById("lockCountNum");
+  if(badge){badge.classList.toggle("hidden",lockN===0);if(countEl)countEl.textContent=lockN;}
   tracks.forEach(track=>{
     const sc=track.steps?track.steps.length:0;
     const role=track.roleType||inferTrackRole(track);
@@ -1885,6 +1931,7 @@ function clearPattern(){const t=getTrack(S.editId);if(t){t.steps=[];if(t.lanes){
 
 function loadRecommendedDefaults(){
   if(!confirm(`Reset all ${S.genre}${S.subgenre?` (${currentSG().name})`:"" } tracks to recommended patterns?`))return;
+  saveUndoPoint();
   S.trackData[S.genre]=getRecommended(S.genre,S.subgenre);
   renderTrackGrid();save();
 }
@@ -2393,6 +2440,7 @@ function generateTrackSteps(type,pLen,params,rng){
 }
 
 function regenerateComposition(newSeed){
+  saveUndoPoint(); // allow ↩ back to this state
   if(newSeed){S.seed=mkSeed();updateSeedDisplay();}
   const rng=mulberry32(S.seed);
   const params=GEN_PARAMS[S.genre]||GEN_PARAMS["Ambient"];
