@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Digitakt II • Rhythm Aide</title>
+<title>Musicbox • Digitakt Composition Machine</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <style>
@@ -48,28 +48,66 @@ body{font-family:'Space Grotesk',system-ui,sans-serif;background:#070b14;color:#
 .track-card.pv-muted .mini-step.on{background:#2a3d58}
 .pvtog{background:none;border:none;padding:0;cursor:pointer;line-height:1;flex-shrink:0}
 .pvtog:hover i{opacity:.7}
+
+/* Production cockpit polish */
+:root{--mb-bg:#050914;--mb-panel:rgba(9,14,26,.82);--mb-panel-strong:rgba(12,19,34,.94);--mb-border:rgba(148,163,184,.14);--mb-cyan:#22d3ee;--mb-violet:#8b5cf6;--mb-amber:#f59e0b}
+body{background:
+  radial-gradient(circle at 12% 8%,rgba(34,211,238,.14),transparent 30rem),
+  radial-gradient(circle at 88% -4%,rgba(139,92,246,.16),transparent 34rem),
+  linear-gradient(180deg,#07101f 0%,var(--mb-bg) 48%,#020409 100%);}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.02) 1px,transparent 1px);background-size:48px 48px;mask-image:linear-gradient(to bottom,rgba(0,0,0,.8),transparent 78%)}
+.app-shell{position:relative;z-index:1}
+.hero{background:linear-gradient(135deg,rgba(15,23,42,.92),rgba(8,13,25,.76));border:1px solid var(--mb-border);box-shadow:0 24px 80px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.05);border-radius:28px;padding:1.25rem 1.4rem;backdrop-filter:blur(18px)}
+.hero-mark{width:3.25rem;height:3.25rem;border-radius:1.15rem;background:linear-gradient(135deg,rgba(34,211,238,.24),rgba(139,92,246,.16));border:1px solid rgba(34,211,238,.34);box-shadow:0 0 28px rgba(34,211,238,.16);display:flex;align-items:center;justify-content:center}
+.status-chip{display:inline-flex;align-items:center;gap:.45rem;border:1px solid var(--mb-border);background:rgba(15,23,42,.72);border-radius:999px;padding:.45rem .7rem;font-size:.72rem;color:#94a3b8;white-space:nowrap}
+.status-chip strong{color:#e2e8f0;font-weight:700}.status-dot{width:.45rem;height:.45rem;border-radius:999px;background:#64748b;box-shadow:0 0 0 4px rgba(100,116,139,.1)}.status-dot.live{background:#22d3ee;box-shadow:0 0 0 4px rgba(34,211,238,.12),0 0 14px rgba(34,211,238,.6)}
+.control-panel,.cockpit-card,.hardware-card{background:var(--mb-panel);border:1px solid var(--mb-border);border-radius:22px;box-shadow:0 18px 60px rgba(0,0,0,.24),inset 0 1px 0 rgba(255,255,255,.035);backdrop-filter:blur(16px)}
+.control-panel{padding:.9rem}.cockpit-card{padding:1rem}.hardware-card{padding:.85rem}
+.metric-card{background:linear-gradient(180deg,rgba(15,23,42,.78),rgba(6,11,22,.78));border:1px solid var(--mb-border);border-radius:16px;box-shadow:inset 0 1px 0 rgba(255,255,255,.04)}
+.btn-primary{background:linear-gradient(135deg,#0891b2,#7c3aed)!important;border-color:rgba(125,211,252,.45)!important;color:white!important;box-shadow:0 12px 30px rgba(14,165,233,.16)}
+.track-card{background:linear-gradient(180deg,rgba(15,23,42,.88),rgba(5,10,20,.92))!important;border-color:rgba(148,163,184,.13)!important;border-radius:18px!important;box-shadow:0 12px 30px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,255,255,.035)}
+.track-card:hover{border-color:rgba(34,211,238,.55)!important;box-shadow:0 20px 50px rgba(0,0,0,.24),0 0 26px rgba(34,211,238,.13),inset 0 1px 0 rgba(255,255,255,.055)}
+.route-pill{display:inline-flex;align-items:center;gap:.28rem;padding:.18rem .45rem;border-radius:999px;border:1px solid rgba(34,211,238,.18);background:rgba(8,145,178,.08);color:#67e8f9;font-size:.58rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+.mini-step{width:6px;height:12px;background:#122137}.mini-step.on{background:linear-gradient(180deg,#67e8f9,#0891b2);box-shadow:0 0 10px rgba(34,211,238,.45)}
+.pro-card{background:linear-gradient(180deg,rgba(15,23,42,.76),rgba(2,6,23,.72));border:1px solid var(--mb-border);border-radius:18px;padding:.9rem;position:relative;overflow:hidden}.pro-card::after{content:"";position:absolute;inset:auto -20% -55% -20%;height:80%;background:radial-gradient(circle,rgba(34,211,238,.13),transparent 55%);pointer-events:none}.pro-card-title{font-size:.76rem;font-weight:800;color:#e2e8f0;letter-spacing:.02em}.pro-card-copy{font-size:.7rem;line-height:1.45;color:#64748b;margin-top:.25rem}.device-kv{display:flex;align-items:center;justify-content:space-between;gap:.75rem;font-size:.68rem;color:#64748b;border-top:1px solid rgba(148,163,184,.08);padding-top:.45rem;margin-top:.45rem}.device-kv span:last-child{color:#cbd5e1;font-family:'JetBrains Mono',monospace}
+select,input,textarea{box-shadow:inset 0 1px 0 rgba(255,255,255,.03)}
+@media (max-width:1180px){.app-layout{flex-direction:column}.side-rail,.send-rail{position:static!important;width:100%!important;max-height:none!important}.guide-grid{grid-template-columns:1fr!important}}
+@media (max-width:760px){.hero{border-radius:20px}.hero-row{align-items:flex-start;flex-direction:column}.track-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}.desktop-status{width:100%;justify-content:flex-start;overflow-x:auto}.app-shell{padding-left:.75rem!important;padding-right:.75rem!important}}
 </style>
 </head>
 <body>
 
-<div class="max-w-[1480px] mx-auto px-4 pt-5 pb-10">
+<div class="app-shell max-w-[1520px] mx-auto px-5 pt-5 pb-10">
 
-  <!-- HEADER: slim branding only -->
-  <header class="flex items-center gap-3 mb-5 pb-4 border-b border-slate-800/50">
-    <div class="w-9 h-9 rounded-xl bg-cyan-500/10 border border-cyan-500/25 flex items-center justify-center flex-shrink-0">
-      <i class="fas fa-drum text-cyan-400 text-sm"></i>
-    </div>
-    <div>
-      <h1 class="text-xl font-bold tracking-tight leading-none">Digitakt II <span class="text-slate-500 font-normal text-base">Rhythm Aide</span></h1>
-      <p class="text-slate-600 text-xs mt-0.5">16-track pattern companion · Euclidean rhythms · MIDI send</p>
+  <!-- HEADER: production cockpit branding -->
+  <header class="hero mb-5">
+    <div class="hero-row flex items-center justify-between gap-5">
+      <div class="flex items-center gap-4 min-w-0">
+        <div class="hero-mark flex-shrink-0">
+          <i class="fas fa-wave-square text-cyan-300 text-xl"></i>
+        </div>
+        <div class="min-w-0">
+          <div class="flex items-center gap-2 mb-1 flex-wrap">
+            <span class="status-chip"><span class="status-dot live"></span><strong>Musicbox</strong> composition cockpit</span>
+            <span class="status-chip"><i class="fas fa-microchip text-purple-300"></i> Digitakt II + Pro 3</span>
+          </div>
+          <h1 class="text-3xl md:text-4xl font-bold tracking-tight leading-none text-white">Digitakt Composition Machine</h1>
+          <p class="text-slate-400 text-sm mt-2 max-w-3xl">Generate, refine, route, and capture hardware-ready patterns with explicit MIDI mapping, arrangement guidance, and professional live/record workflow controls.</p>
+        </div>
+      </div>
+      <div class="desktop-status flex gap-2 flex-wrap justify-end">
+        <span class="status-chip"><i class="fas fa-circle-nodes text-cyan-300"></i><strong>16</strong> tracks</span>
+        <span class="status-chip"><i class="fas fa-dice-d20 text-violet-300"></i> Euclidean engine</span>
+        <span class="status-chip"><i class="fas fa-usb text-emerald-300"></i> Web MIDI</span>
+      </div>
     </div>
   </header>
 
   <!-- THREE-COLUMN LAYOUT -->
-  <div class="flex gap-5 items-start">
+  <div class="app-layout flex gap-5 items-start">
 
     <!-- ──────────────── LEFT: Configure ──────────────── -->
-    <div class="w-52 flex-shrink-0 space-y-3 sticky top-4 max-h-[calc(100vh-6rem)] overflow-y-auto pr-0.5">
+    <div class="side-rail control-panel w-56 flex-shrink-0 space-y-3 sticky top-4 max-h-[calc(100vh-6rem)] overflow-y-auto pr-0.5">
 
       <!-- Genre select -->
       <div>
@@ -79,11 +117,11 @@ body{font-family:'Space Grotesk',system-ui,sans-serif;background:#070b14;color:#
 
       <!-- BPM + Def.Len -->
       <div class="grid grid-cols-2 gap-2">
-        <div class="bg-slate-900/60 border border-slate-800 rounded-xl px-2 py-2.5 text-center">
+        <div class="metric-card px-2 py-2.5 text-center">
           <div class="lbl">BPM</div>
           <div id="bpmDisplay" class="text-lg font-bold text-cyan-400 mono mt-0.5 leading-none">—</div>
         </div>
-        <div class="bg-slate-900/60 border border-slate-800 rounded-xl px-2 py-2.5 text-center">
+        <div class="metric-card px-2 py-2.5 text-center">
           <div class="lbl">Def.Len</div>
           <div id="defLenDisplay" class="text-lg font-bold text-slate-300 mono mt-0.5 leading-none">—</div>
         </div>
@@ -99,13 +137,13 @@ body{font-family:'Space Grotesk',system-ui,sans-serif;background:#070b14;color:#
     </div>
 
     <!-- ──────────────── CENTER: Build ──────────────── -->
-    <div class="flex-1 min-w-0 space-y-4">
+    <div class="flex-1 min-w-0 space-y-4 cockpit-card">
 
       <!-- Toolbar -->
       <div class="flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <h2 class="font-semibold text-slate-200">Track Palette</h2>
-          <p id="paletteSubtitle" class="text-xs text-slate-600 mt-0.5">Click any track to open the pattern editor</p>
+          <h2 class="font-semibold text-slate-100">Composition Workbench</h2>
+          <p id="paletteSubtitle" class="text-xs text-slate-600 mt-0.5">Click a track to edit triggers, review routing, or mute it from preview</p>
         </div>
         <div class="flex gap-2 flex-wrap">
           <button id="previewBtn" onclick="togglePreview()" class="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 rounded-lg flex items-center gap-1.5 transition-colors">
@@ -124,7 +162,14 @@ body{font-family:'Space Grotesk',system-ui,sans-serif;background:#070b14;color:#
       </div>
 
       <!-- Track Grid -->
-      <div id="trackGrid" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2"></div>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+        <div class="pro-card"><div class="pro-card-title"><i class="fas fa-lock text-cyan-300 mr-1"></i>Lockable roles</div><p class="pro-card-copy">Treat every track as a musical job: drums, bass, texture, chord, MIDI, or Pro 3 voice.</p></div>
+        <div class="pro-card"><div class="pro-card-title"><i class="fas fa-route text-purple-300 mr-1"></i>Explicit routing</div><p class="pro-card-copy">No hidden channel-by-index hacks; each card now exposes target and channel.</p></div>
+        <div class="pro-card"><div class="pro-card-title"><i class="fas fa-sliders text-amber-300 mr-1"></i>Mutation ready</div><p class="pro-card-copy">The next engine can add probability, microtiming, note, and CC lanes to this model.</p></div>
+        <div class="pro-card"><div class="pro-card-title"><i class="fas fa-record-vinyl text-emerald-300 mr-1"></i>Capture first</div><p class="pro-card-copy">Optimized for browser → Digitakt recording before any risky pattern SysEx work.</p></div>
+      </div>
+
+      <div id="trackGrid" class="track-grid grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2"></div>
 
       <!-- Export Panel -->
       <div id="exportPanel" class="hidden">
@@ -141,7 +186,7 @@ body{font-family:'Space Grotesk',system-ui,sans-serif;background:#070b14;color:#
       </div>
 
       <!-- Composition Guide + Workflow Tips -->
-      <div class="grid grid-cols-2 gap-5 pt-1">
+      <div class="guide-grid grid grid-cols-2 gap-5 pt-1">
 
         <!-- Composition Guide -->
         <div>
@@ -175,10 +220,10 @@ body{font-family:'Space Grotesk',system-ui,sans-serif;background:#070b14;color:#
     </div>
 
     <!-- ──────────────── RIGHT: Harmonize + Send ──────────────── -->
-    <div class="w-64 flex-shrink-0 space-y-3 sticky top-4 max-h-[calc(100vh-6rem)] overflow-y-auto pl-0.5">
+    <div class="send-rail w-72 flex-shrink-0 space-y-3 sticky top-4 max-h-[calc(100vh-6rem)] overflow-y-auto pl-0.5">
 
       <!-- Harmony Panel -->
-      <div id="harmonyPanel" class="p-3 bg-slate-900/60 border border-slate-800 rounded-xl">
+      <div id="harmonyPanel" class="hardware-card">
         <div class="flex items-center justify-between mb-2.5">
           <div class="lbl">Key / Mode</div>
           <div class="flex gap-1.5">
@@ -202,7 +247,7 @@ body{font-family:'Space Grotesk',system-ui,sans-serif;background:#070b14;color:#
       </div>
 
       <!-- MIDI Send Panel -->
-      <div class="p-3 bg-slate-900/60 border border-slate-800 rounded-xl space-y-2.5">
+      <div class="hardware-card space-y-2.5">
         <div class="flex items-center gap-2">
           <i class="fas fa-plug text-cyan-600 text-sm"></i>
           <span class="font-semibold text-sm text-slate-200">Send to Digitakt</span>
@@ -222,14 +267,20 @@ body{font-family:'Space Grotesk',system-ui,sans-serif;background:#070b14;color:#
           </div>
         </div>
         <div class="grid grid-cols-2 gap-2">
-          <button id="midiSendBtn" onclick="sendToDigitakt()" class="py-2 text-xs bg-cyan-700 hover:bg-cyan-600 text-white font-bold rounded-lg flex items-center justify-center gap-1.5 transition-colors">
+          <button id="midiSendBtn" onclick="sendToDigitakt()" class="btn-primary py-2 text-xs bg-cyan-700 hover:bg-cyan-600 text-white font-bold rounded-lg flex items-center justify-center gap-1.5 transition-colors">
             <i class="fas fa-paper-plane text-xs"></i> Send
           </button>
           <button onclick="openSongSend()" class="py-2 text-xs bg-slate-700 hover:bg-slate-600 border border-slate-600 text-slate-200 rounded-lg flex items-center justify-center gap-1.5 transition-colors">
             <i class="fas fa-list-ol text-purple-400 text-xs"></i> Song Mode
           </button>
         </div>
-        <p class="text-xs text-slate-700 leading-relaxed">Digitakt: <span class="text-slate-600">MIDI → Recv Clock + Transport ON</span> · hold <span class="text-slate-500">REC</span> · Send. Chrome/Edge.</p>
+        <div class="space-y-1.5" aria-label="MIDI diagnostics">
+          <div class="device-kv"><span>Web MIDI</span><span id="diagWebMidi">checking</span></div>
+          <div class="device-kv"><span>Secure context</span><span id="diagSecure">checking</span></div>
+          <div class="device-kv"><span>SysEx</span><span id="diagSysex">off</span></div>
+          <div class="device-kv"><span>Outputs</span><span id="diagOutputs">0</span></div>
+        </div>
+        <p class="text-xs text-slate-600 leading-relaxed">Digitakt: <span class="text-slate-400">MIDI → Recv Clock + Transport ON</span> · hold <span class="text-slate-300">REC</span> · Send. Chrome/Edge.</p>
       </div>
 
     </div>
@@ -877,18 +928,57 @@ function euclidean(pulses,steps,offset){
 // ================================================================
 // SECTION 5 — APP STATE & HELPERS
 // ================================================================
+const STORAGE_KEY="dt2aide_v5";
+const LEGACY_STORAGE_KEY="dt2aide_v4";
+const TARGET_LABELS={"digitakt-audio":"DT Audio","digitakt-midi":"DT MIDI","pro3-usb":"Pro 3","external-midi":"MIDI"};
 let S={genre:"Ambient",subgenre:null,trackData:{},editId:null,patLen:64,keyIdx:0,previewMuted:{}};
+
+function clamp(n,min,max){return Math.max(min,Math.min(max,n));}
+function escapeHtml(value){return String(value??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch]));}
+
+function inferTrackRole(track){
+  const label=`${track.name||""} ${track.role||""}`.toLowerCase();
+  if(/pro 3|midi/.test(label))return"midi";
+  if(/kick|thud|808/.test(label))return"kick";
+  if(/snare|clap|rim/.test(label))return"snare";
+  if(/hat|shaker|ride/.test(label))return"hat";
+  if(/bass|sub/.test(label))return"bass";
+  if(/pad|chord|drone|harmon/.test(label))return"harmonic";
+  if(/lead|melod/.test(label))return"melody";
+  if(/field|texture|noise|glitch|fx|space|reverse/.test(label))return"texture";
+  return classifyTrack(track);
+}
+
+function normalizeTrack(track){
+  const role=track.roleType||inferTrackRole(track);
+  const isPro3=/pro 3/i.test(`${track.name||""} ${track.desc||""}`);
+  const target=track.target||(isPro3?"pro3-usb":role==="midi"?"digitakt-midi":"digitakt-audio");
+  const midiChannel=clamp(Number(track.midiChannel||(isPro3?1:track.id))||1,1,16);
+  const note=clamp(Number(track.note||60)||60,0,127);
+  const velocity=clamp(Number(track.velocity||100)||100,1,127);
+  return {...track,roleType:role,target,midiChannel,note,velocity};
+}
+
+function normalizeTrackCollection(tracks){return (tracks||[]).map(normalizeTrack);}
+
+function migrateTrackData(data){
+  const migrated={};
+  Object.keys(GENRES).forEach(genre=>{
+    migrated[genre]=normalizeTrackCollection(data&&Array.isArray(data[genre])?data[genre]:GENRES[genre].tracks);
+  });
+  return migrated;
+}
 
 function getRecommended(genre,subId){
   const base=JSON.parse(JSON.stringify(GENRES[genre].tracks));
-  if(!subId)return base;
+  if(!subId)return normalizeTrackCollection(base);
   const sg=(SUBGENRES[genre]||[]).find(s=>s.id===subId);
-  if(!sg)return base;
-  return base.map(t=>{
+  if(!sg)return normalizeTrackCollection(base);
+  return normalizeTrackCollection(base.map(t=>{
     const ov=sg.ov&&sg.ov[t.id];
     if(ov){if(ov.steps!==undefined)t.steps=[...ov.steps];}
     return t;
-  });
+  }));
 }
 
 function currentTracks(){return S.trackData[S.genre]||[];}
@@ -905,7 +995,7 @@ function init(){
   Object.keys(GENRES).forEach(g=>{const o=document.createElement("option");o.value=g;o.textContent=g;sel.appendChild(o);});
   sel.value="Ambient";
   sel.onchange=()=>loadGenre(sel.value);
-  try{const sv=localStorage.getItem("dt2aide_v4");if(sv)S.trackData=JSON.parse(sv);}catch(e){}
+  try{const sv=localStorage.getItem(STORAGE_KEY)||localStorage.getItem(LEGACY_STORAGE_KEY);if(sv)S.trackData=migrateTrackData(JSON.parse(sv));}catch(e){S.trackData=migrateTrackData({});}
   loadGenre("Ambient");
   initMidi();
   document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!document.getElementById("modal").classList.contains("hidden"))closeModal();});
@@ -919,7 +1009,8 @@ function loadGenre(genre){
   const gd=GENRES[genre];
   document.getElementById("bpmDisplay").textContent=gd.bpm;
   document.getElementById("defLenDisplay").textContent=gd.defaultLen;
-  if(!S.trackData[genre])S.trackData[genre]=JSON.parse(JSON.stringify(gd.tracks));
+  if(!S.trackData[genre])S.trackData[genre]=normalizeTrackCollection(JSON.parse(JSON.stringify(gd.tracks)));
+  else S.trackData[genre]=normalizeTrackCollection(S.trackData[genre]);
   // Pre-fill MIDI BPM with genre low end
   const bpmEl=document.getElementById("midiBpm");
   if(bpmEl){const m=gd.bpm.match(/\d+/);if(m)bpmEl.value=m[0];}
@@ -1118,9 +1209,10 @@ function renderTrackGrid(){
     }
     viz+='</div>';
     const isMuted=S.previewMuted&&S.previewMuted[track.id];
+    const routeLabel=TARGET_LABELS[track.target]||"MIDI";
     const card=document.createElement("div");
     card.className=`track-card bg-slate-900/80 border border-slate-800 rounded-xl p-3 select-none${isMuted?" pv-muted":""}`;
-    card.innerHTML=`<div class="flex items-start justify-between mb-1.5"><div class="flex items-center gap-1.5"><span class="text-base leading-none">${track.icon}</span><span class="lbl text-slate-700">${String(track.id).padStart(2,"0")}</span></div><div class="flex items-center gap-1.5"><button class="pvtog" onclick="event.stopPropagation();togglePreviewMute(${track.id})" title="${isMuted?"Excluded from preview — click to include":"Included in preview — click to exclude"}"><i class="fas fa-${isMuted?"volume-xmark text-slate-600":"volume-low text-cyan-700"} text-xs"></i></button><span class="lbl text-cyan-700 tabular-nums">${sc}</span></div></div><div class="font-semibold text-xs text-slate-200 mb-0.5 leading-tight truncate">${track.name}</div><div class="text-xs text-slate-600 mb-2 leading-tight truncate">${track.role}</div>${viz}`;
+    card.innerHTML=`<div class="flex items-start justify-between mb-2"><div class="flex items-center gap-1.5"><span class="text-base leading-none">${escapeHtml(track.icon)}</span><span class="lbl text-slate-600">${String(track.id).padStart(2,"0")}</span></div><div class="flex items-center gap-1.5"><button class="pvtog" onclick="event.stopPropagation();togglePreviewMute(${track.id})" title="${isMuted?"Excluded from preview — click to include":"Included in preview — click to exclude"}"><i class="fas fa-${isMuted?"volume-xmark text-slate-600":"volume-low text-cyan-600"} text-xs"></i></button><span class="lbl text-cyan-600 tabular-nums">${sc}</span></div></div><div class="font-semibold text-xs text-slate-100 mb-0.5 leading-tight truncate">${escapeHtml(track.name)}</div><div class="text-xs text-slate-500 mb-2 leading-tight truncate">${escapeHtml(track.role)}</div><div class="flex items-center justify-between gap-2 mb-2"><span class="route-pill"><i class="fas fa-route"></i>${escapeHtml(routeLabel)}</span><span class="text-[10px] mono text-slate-500">CH ${track.midiChannel} · N ${track.note}</span></div>${viz}`;
     card.onclick=()=>openModal(track.id);
     grid.appendChild(card);
   });
@@ -1331,7 +1423,7 @@ function regenerateComposition(){
     const type=classifyTrack(t);
     t.steps=generateTrackSteps(type,pLen,params);
   });
-  S.trackData[S.genre]=tracks;
+  S.trackData[S.genre]=normalizeTrackCollection(tracks);
   const keys=HARMONIC[S.genre]||[];
   if(keys.length){
     let next=S.keyIdx;
@@ -1390,8 +1482,18 @@ function showCompositionRules(){
 // ================================================================
 let midiAccess = null;
 
+function setText(id,value){const el=document.getElementById(id);if(el)el.textContent=value;}
+
+function updateMidiDiagnostics(outputCount){
+  setText("diagWebMidi",navigator.requestMIDIAccess?"ready":"unsupported");
+  setText("diagSecure",window.isSecureContext||location.hostname==="localhost"?"ok":"required");
+  setText("diagSysex","disabled");
+  if(outputCount!==undefined)setText("diagOutputs",String(outputCount));
+}
+
 async function initMidi(){
   const statusEl=document.getElementById("midiStatusMsg");
+  updateMidiDiagnostics(0);
   if(!navigator.requestMIDIAccess){statusEl.textContent="Web MIDI not supported — use Chrome or Edge";return;}
   try{
     midiAccess=await navigator.requestMIDIAccess({sysex:false});
@@ -1406,6 +1508,7 @@ function populateMidiOutputs(){
   const prev=sel.value;
   sel.innerHTML="";
   const outputs=[...midiAccess.outputs.values()];
+  updateMidiDiagnostics(outputs.length);
   if(!outputs.length){sel.innerHTML='<option value="">— no MIDI devices found —</option>';return;}
   outputs.forEach(o=>{
     const opt=document.createElement("option");
@@ -1417,8 +1520,7 @@ function populateMidiOutputs(){
   if(match)sel.value=prev;
 }
 
-// Core MIDI send — shared by single-send and song-mode-send
-function doMidiSend(output,tracks,bpm,loops,onDone){
+function buildMidiEvents(tracks,bpm,loops,startAt){
   let maxStep=GENRES[S.genre].defaultLen;
   tracks.forEach(t=>{if(t.steps&&t.steps.length)maxStep=Math.max(maxStep,...t.steps);});
   const patLen=Math.ceil(maxStep/16)*16;
@@ -1426,26 +1528,34 @@ function doMidiSend(output,tracks,bpm,loops,onDone){
   const patDuration=msPerStep*patLen;
   const totalDuration=patDuration*loops;
   const msPerClock=(60/bpm/24)*1000;
+  const events=[{bytes:[0xFA],at:startAt}];
   const clockCount=Math.ceil(totalDuration/msPerClock)+32;
-  const t0=performance.now()+20;
-  output.send([0xFA],t0);
-  for(let i=0;i<clockCount;i++)output.send([0xF8],t0+i*msPerClock);
+  for(let i=0;i<clockCount;i++)events.push({bytes:[0xF8],at:startAt+i*msPerClock});
   for(let loop=0;loop<loops;loop++){
     const lo=loop*patDuration;
-    tracks.forEach((track,idx)=>{
+    tracks.forEach(track=>{
       if(!track.steps||!track.steps.length)return;
-      const ch=idx&0x0F;
+      const ch=clamp(Number(track.midiChannel)||1,1,16)-1;
+      const note=clamp(Number(track.note)||60,0,127);
+      const velocity=clamp(Number(track.velocity)||100,1,127);
       track.steps.forEach(step=>{
         if(step<1||step>patLen)return;
-        const onset=t0+lo+(step-1)*msPerStep;
-        output.send([0x90|ch,60,100],onset);
-        output.send([0x80|ch,60,0],onset+msPerStep*0.45);
+        const onset=startAt+lo+(step-1)*msPerStep;
+        events.push({bytes:[0x90|ch,note,velocity],at:onset});
+        events.push({bytes:[0x80|ch,note,0],at:onset+msPerStep*0.45});
       });
     });
   }
-  output.send([0xFC],t0+totalDuration+msPerStep);
-  if(onDone)setTimeout(onDone,totalDuration+msPerStep+150);
-  return totalDuration;
+  events.push({bytes:[0xFC],at:startAt+totalDuration+msPerStep});
+  return {events,totalDuration,msPerStep,patLen};
+}
+
+// Core MIDI send — shared by single-send and song-mode-send
+function doMidiSend(output,tracks,bpm,loops,onDone){
+  const plan=buildMidiEvents(normalizeTrackCollection(tracks),bpm,loops,performance.now()+35);
+  plan.events.forEach(evt=>output.send(evt.bytes,evt.at));
+  if(onDone)setTimeout(onDone,plan.totalDuration+plan.msPerStep+150);
+  return plan.totalDuration;
 }
 
 function getMidiOutput(){
@@ -1561,7 +1671,7 @@ function sendCurrentSongStep(){
 // ================================================================
 // SECTION 15 — PERSISTENCE
 // ================================================================
-function save(){try{localStorage.setItem("dt2aide_v4",JSON.stringify(S.trackData));}catch(e){}}
+function save(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(S.trackData));}catch(e){}}
 
 window.onload=init;
 </script>
