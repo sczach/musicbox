@@ -2095,54 +2095,84 @@ function classifyTrack(track){
 // Each builder returns a step array (1-indexed, patLen-bounded).
 // ================================================================
 
+// Tile a phrase-length base pattern across pLen with optional per-phrase variation.
+// base: steps in 1..nl space; nl: native phrase length (from GEN_PARAMS pLen)
+// vfn(phraseIdx, totalPhrases, base, nl, tiledStepsForThisPhrase, offset, rng) → steps[]
+function _expandPhrases(base,nl,pLen,rng,vfn){
+  if(pLen<=nl)return base.filter(s=>s>=1&&s<=pLen);
+  const n=Math.round(pLen/nl);
+  const out=[];
+  for(let p=0;p<n;p++){
+    const off=p*nl;
+    let ps=base.map(s=>s+off).filter(s=>s<=pLen);
+    if(vfn&&p>0)ps=vfn(p,n,base,nl,ps,off,rng);
+    out.push(...ps);
+  }
+  return[...new Set(out)].sort((a,b)=>a-b);
+}
+
 function _buildKick(genre,pLen,rng){
   switch(genre){
     case"Techno":{
-      // 4-on-floor (1,5,9,13) — occasionally drop beat 3 (step 9) for controlled tension
+      // 4-on-floor anchored to phrase; later phrases may drop beat 3 or add pickup
       const base=[1,5,9,13];
-      if(rng()<0.15)return base.filter(s=>s!==9); // 15% chance: omit beat 3 for tension
-      if(rng()<0.2)return[...base,16].sort((a,b)=>a-b); // 20% chance: add pickup before bar 2
-      return base;
+      return _expandPhrases(base,16,pLen,rng,(p,total,base,nl,ps,off,rng)=>{
+        if(rng()<0.18)ps=ps.filter(s=>s!==off+9); // drop beat 3 for tension
+        if(p===total-1&&rng()<0.3)ps=[...ps,off+16].filter(s=>s<=pLen); // pickup into loop
+        return ps;
+      });
     }
     case"House":{
       // Strict 4-on-floor — house lives and dies by this grid
-      return[1,5,9,13];
+      return _expandPhrases([1,5,9,13],16,pLen,rng,null);
     }
     case"DnB":{
-      // Two-step feel: beat 1 + syncopated second kick in the back half of the bar
-      const offPositions=[19,21,23]; // classic DnB syncopated second kick zones in 32-step
-      return[1,offPositions[Math.floor(rng()*offPositions.length)]];
+      // Two-step: phrases alternate between two syncopated second-kick positions
+      const offs=[19,21,23];
+      const i0=Math.floor(rng()*offs.length);
+      const base=[1,offs[i0]];
+      return _expandPhrases(base,32,pLen,rng,(p,total,base,nl,ps,off,rng)=>{
+        const alt=offs[(i0+p)%offs.length];
+        return[1+off,alt+off].filter(s=>s<=pLen);
+      });
     }
     case"Jungle / Breakbeat":{
-      // Amen-break-inspired: irregular, syncopated, never mechanical
-      const templates=[[1,5,11,19],[1,7,13,21],[1,5,9,23],[1,3,11,17],[1,9,17,25]];
-      return templates[Math.floor(rng()*templates.length)];
+      // Amen-inspired: each phrase picks a different irregular template
+      const tmpls=[[1,5,11,19],[1,7,13,21],[1,5,9,23],[1,3,11,17],[1,9,17,25]];
+      const i0=Math.floor(rng()*tmpls.length);
+      return _expandPhrases(tmpls[i0],32,pLen,rng,(p,total,base,nl,ps,off,rng)=>{
+        return tmpls[(i0+p)%tmpls.length].map(s=>s+off).filter(s=>s<=pLen);
+      });
     }
     case"IDM / Glitch":{
-      // Anti-grid: deliberate kick placement away from downbeats
+      // Anti-grid: deliberate kick placement scattered across full pattern
       const pulses=1+Math.floor(rng()*4);
-      const offset=Math.floor(rng()*pLen); // large offset pushes away from beat 1
+      const offset=Math.floor(rng()*pLen);
       return euclidean(pulses,pLen,offset);
     }
     case"Trap":{
-      // Hard downbeat + sparse 808-style hits; space = drama in trap
+      // Hard downbeat + sparse 808s per phrase; space = drama in trap
       const extras=[5,9,13,17,21,25,29];
       const n=1+Math.floor(rng()*2);
-      const picked=extras.slice().sort(()=>rng()-0.5).slice(0,n);
-      return[1,...picked].sort((a,b)=>a-b);
+      const base=[1,...extras.slice().sort(()=>rng()-0.5).slice(0,n)].sort((a,b)=>a-b);
+      return _expandPhrases(base,32,pLen,rng,(p,total,base,nl,ps,off,rng)=>{
+        const n2=1+Math.floor(rng()*2);
+        const picked=extras.map(e=>e+off).filter(e=>e<=pLen).sort(()=>rng()-0.5).slice(0,n2);
+        return[1+off,...picked].sort((a,b)=>a-b).filter(s=>s<=pLen);
+      });
     }
     case"Ambient":
     case"Dark Ambient":{
-      // 0–1 kicks — the absence of kick IS the composition in dark ambient
+      // 0–1 kicks — the absence of kick IS the composition
       if(rng()<0.5)return[];
       return[1+Math.floor(rng()*Math.floor(pLen/4))];
     }
     case"Ambient Dub":{
-      // Lazy, behind-the-beat feel — 2 kicks, offset creates the dub pocket
+      // Lazy, behind-the-beat feel
       return euclidean(2,pLen,1+Math.floor(rng()*6));
     }
     case"Downtempo":{
-      // 2–3 kicks, swung placement, moderate density
+      // 2–3 kicks, swung placement
       return euclidean(2+Math.floor(rng()*2),pLen,Math.floor(rng()*5));
     }
     default:{
@@ -2156,42 +2186,59 @@ function _buildKick(genre,pLen,rng){
 function _buildSnare(genre,pLen,rng,kickSteps){
   switch(genre){
     case"Techno":{
-      // Rigid backbeat (5,13) + optional ghost hits for groove depth
+      // Rigid backbeat + optional ghosts; last phrase gets a snare roll
       const base=[5,13];
       if(rng()<0.5){
         const ghosts=[3,4,7,8,11,12,15,16].filter(s=>!kickSteps.includes(s));
         const n=1+Math.floor(rng()*2);
         ghosts.sort(()=>rng()-0.5).slice(0,n).forEach(s=>base.push(s));
       }
-      return base.sort((a,b)=>a-b);
+      base.sort((a,b)=>a-b);
+      return _expandPhrases(base,16,pLen,rng,(p,total,base,nl,ps,off,rng)=>{
+        if(p===total-1&&rng()<0.4)return[...ps,off+15,off+16].filter(s=>s<=pLen);
+        return ps;
+      });
     }
     case"House":{
-      // Pure backbeat — house snare never deviates from 5,13
-      return[5,13];
+      // Pure backbeat — last phrase may add an anticipation hit
+      return _expandPhrases([5,13],16,pLen,rng,(p,total,base,nl,ps,off,rng)=>{
+        if(p===total-1&&rng()<0.35)return[...ps,off+4].filter(s=>s<=pLen);
+        return ps;
+      });
     }
     case"DnB":{
-      // Backbeat on 9,25 in 32-step (beats 3 and 7) + snare roll toward bar end
+      // Backbeat on beats 3+7 (steps 9,25) + snare roll; even phrases get rolls
       const base=[9,25];
-      if(rng()<0.6)base.push(...[29,31].slice(0,1+Math.floor(rng()*2))); // roll before loop
-      return base.sort((a,b)=>a-b);
+      if(rng()<0.6)base.push(...[29,31].slice(0,1+Math.floor(rng()*2)));
+      base.sort((a,b)=>a-b);
+      return _expandPhrases(base,32,pLen,rng,(p,total,base,nl,ps,off,rng)=>{
+        if(p%2===1&&rng()<0.5)return[...ps,off+29,off+31].filter(s=>s<=pLen);
+        return ps;
+      });
     }
     case"Jungle / Breakbeat":{
-      // Dense, syncopated, Amen-referencing — snare is everywhere in jungle
-      const templates=[[3,7,9,11,13,27],[3,9,11,25,27,31],[5,9,13,23,27,29],[3,7,11,17,25,31]];
-      return templates[Math.floor(rng()*templates.length)];
+      // Dense syncopated snare — each phrase rotates through Amen templates
+      const tmpls=[[3,7,9,11,13,27],[3,9,11,25,27,31],[5,9,13,23,27,29],[3,7,11,17,25,31]];
+      const i0=Math.floor(rng()*tmpls.length);
+      return _expandPhrases(tmpls[i0],32,pLen,rng,(p,total,base,nl,ps,off,rng)=>{
+        return tmpls[(i0+p)%tmpls.length].map(s=>s+off).filter(s=>s<=pLen);
+      });
     }
     case"IDM / Glitch":{
-      // Irregular and unpredictable — prime-count euclidean for maximum irregularity
       const primes=[3,5,7];
       const p=Math.min(primes[Math.floor(rng()*primes.length)],pLen);
       return euclidean(p,pLen,Math.floor(rng()*pLen));
     }
     case"Trap":{
-      // Clap on downbeat 3 (step 9 in 32) + optional stutter roll
+      // Clap on beat 3 + optional stutter; stutter rolls vary per phrase
       const base=[9];
-      if(rng()<0.5)base.push(5);   // anticipation hit
-      if(rng()<0.4)base.push(10,11); // stutter roll
-      return[...new Set(base)].sort((a,b)=>a-b);
+      if(rng()<0.5)base.push(5);
+      if(rng()<0.4)base.push(10,11);
+      base.sort((a,b)=>a-b);
+      return _expandPhrases([...new Set(base)],32,pLen,rng,(p,total,base,nl,ps,off,rng)=>{
+        const hasRoll=rng()<0.4;
+        return[...ps.filter(s=>s<off+10||s>off+11),...(hasRoll?[off+10,off+11]:[])].filter(s=>s<=pLen).sort((a,b)=>a-b);
+      });
     }
     case"Ambient":
     case"Dark Ambient":{
@@ -2201,7 +2248,6 @@ function _buildSnare(genre,pLen,rng,kickSteps){
       return[Math.floor(pLen/4)+1,Math.floor(3*pLen/4)+1];
     }
     case"Downtempo":{
-      // Offset backbeat — the laziness is intentional
       return euclidean(2,pLen,4);
     }
     default:{
@@ -2214,49 +2260,60 @@ function _buildSnare(genre,pLen,rng,kickSteps){
 function _buildHat(genre,pLen,rng,kickSteps){
   switch(genre){
     case"Techno":{
-      // 8th-note drivers (1,3,5,7,9,11,13,15) — the classic techno groove motor
-      const base=[1,3,5,7,9,11,13,15];
-      // Thin steps that coincide with kick — Techno keeps most overlap (driving, locked feel)
-      return base.filter(s=>!kickSteps.includes(s)||rng()<0.7);
+      // 8th-note groove motor; penultimate phrase thins for energy arc
+      const base=[1,3,5,7,9,11,13,15].filter(s=>!kickSteps.includes(s)||rng()<0.7);
+      return _expandPhrases(base,16,pLen,rng,(p,total,base,nl,ps,off,rng)=>{
+        if(total>=4&&p===total-2)return ps.filter(()=>rng()<0.35); // breakdown phrase
+        return ps;
+      });
     }
     case"House":{
-      // 16th-note hats + open hat accents on offbeats for the house bounce
+      // Dense 16ths; penultimate phrase drops, final phrase adds open-hat accents
       const all16=Array.from({length:16},(_,i)=>i+1);
-      // Remove a few for breathing room (6–10 drops from full 16ths)
-      const drops=new Set();
-      const nDrops=3+Math.floor(rng()*4);
-      while(drops.size<nDrops){
-        const s=1+Math.floor(rng()*16);
-        if(!kickSteps.includes(s))drops.add(s); // never drop on kick
-      }
-      return all16.filter(s=>!drops.has(s));
+      const drops=new Set();const nDrops=3+Math.floor(rng()*4);
+      while(drops.size<nDrops){const s=1+Math.floor(rng()*16);if(!kickSteps.includes(s))drops.add(s);}
+      const base=all16.filter(s=>!drops.has(s));
+      return _expandPhrases(base,16,pLen,rng,(p,total,base,nl,ps,off,rng)=>{
+        if(total>=4&&p===total-2)return ps.filter(()=>rng()<0.4);
+        if(p===total-1){const opens=[3,7,11,15].map(s=>s+off).filter(s=>s<=pLen);return[...new Set([...ps,...opens])].sort((a,b)=>a-b);}
+        return ps;
+      });
     }
     case"DnB":{
-      // Dense 16ths in 32-step with deliberate drop points — the DnB "energy engine"
+      // Dense 32-step hats; middle phrase thins for breakdown arc
       const all32=Array.from({length:32},(_,i)=>i+1);
-      const nDrops=5+Math.floor(rng()*5);
-      const drops=new Set();
+      const nDrops=5+Math.floor(rng()*5);const drops=new Set();
       while(drops.size<nDrops)drops.add(1+Math.floor(rng()*32));
-      return all32.filter(s=>!drops.has(s));
+      const base=all32.filter(s=>!drops.has(s));
+      return _expandPhrases(base,32,pLen,rng,(p,total,base,nl,ps,off,rng)=>{
+        if(total>=4&&p===Math.floor(total/2))return ps.filter(()=>rng()<0.25);
+        return ps;
+      });
     }
     case"Jungle / Breakbeat":{
-      // Dense and syncopated — approximates Amen break hi-hat scatter
       const density=12+Math.floor(rng()*5);
       return euclidean(density,pLen,Math.floor(rng()*4));
     }
     case"IDM / Glitch":{
-      // Anti-grid: prime-number Euclidean with rotating offset
       const primes=[7,11,13,5,9];
       const p=Math.min(primes[Math.floor(rng()*primes.length)],pLen);
       return euclidean(p,pLen,Math.floor(rng()*pLen));
     }
     case"Trap":{
-      // Dense hat roll with gaps — 32nds implied by density in 32-step
+      // Dense roll; phrase 2 gets denser for the trap hat crescendo
       const all32=Array.from({length:32},(_,i)=>i+1);
-      const nDrops=8+Math.floor(rng()*5);
-      const drops=new Set();
+      const nDrops=8+Math.floor(rng()*5);const drops=new Set();
       while(drops.size<nDrops)drops.add(1+Math.floor(rng()*32));
-      return all32.filter(s=>!drops.has(s));
+      const base=all32.filter(s=>!drops.has(s));
+      return _expandPhrases(base,32,pLen,rng,(p,total,base,nl,ps,off,rng)=>{
+        if(p===1){
+          const dense=Array.from({length:32},(_,i)=>i+1+off);
+          const dDrops=new Set();const nd=3+Math.floor(rng()*3);
+          while(dDrops.size<nd)dDrops.add(off+1+Math.floor(rng()*32));
+          return dense.filter(s=>!dDrops.has(s)&&s<=pLen);
+        }
+        return ps;
+      });
     }
     case"Ambient":
     case"Dark Ambient":{
@@ -2264,11 +2321,9 @@ function _buildHat(genre,pLen,rng,kickSteps){
       return n?euclidean(n,pLen,Math.floor(rng()*Math.floor(pLen/4))):[];
     }
     case"Ambient Dub":{
-      // Off-beat 6-per-bar feel — the dub hi-hat weaves around the kick
       return euclidean(6,pLen,2);
     }
     case"Downtempo":{
-      // 8th-note feel (8 hits in 32 steps) — swing is applied later
       return euclidean(8,pLen,0);
     }
     default:{
@@ -2311,9 +2366,13 @@ function _buildBass(genre,pLen,rng,kickSteps){
       return[...new Set(base)].sort((a,b)=>a-b);
     }
     case"House":{
-      // Walking house bass — quarter or 8th note movement with melodic bounce
+      // Walking house bass — alternates between two patterns across phrases
       const patterns=[[1,5,9,13],[1,3,9,11],[1,7,9,15],[1,3,5,7,9,11,13,15]];
-      return patterns[Math.floor(rng()*patterns.length)];
+      const i0=Math.floor(rng()*patterns.length);
+      const base=patterns[i0];
+      return _expandPhrases(base,16,pLen,rng,(p,total,base,nl,ps,off,rng)=>{
+        return patterns[(i0+p)%patterns.length].map(s=>s+off).filter(s=>s<=pLen);
+      });
     }
     case"DnB":{
       // Sub bass offset from kick — syncopated sub hits create DnB low-end tension
