@@ -206,20 +206,14 @@ select,input,textarea{box-shadow:none}
               <div id="compContent"></div>
             </div>
             <div>
-              <div class="text-xs font-semibold text-slate-600 mb-2">Workflow Tips</div>
-              <div class="grid grid-cols-2 gap-2">
-                <div class="ccard p-2.5"><div class="flex items-center gap-1.5 mb-1"><i class="fas fa-water text-cyan-700 text-xs"></i><span class="text-xs font-semibold">Sparse Patterns</span></div><p class="text-xs text-slate-500 leading-relaxed">32–64 step patterns with 2–4 active trigs per track. At 70 BPM a 64-step pattern is ~27 seconds — an event, not a loop.</p></div>
-                <div class="ccard p-2.5"><div class="flex items-center gap-1.5 mb-1"><i class="fas fa-lock text-cyan-700 text-xs"></i><span class="text-xs font-semibold">Parameter Locks</span></div><p class="text-xs text-slate-500 leading-relaxed">Hold any trig and turn a knob. Lock filter, reverb send, or sample start per step. The primary tool for making patterns feel alive.</p></div>
-                <div class="ccard p-2.5"><div class="flex items-center gap-1.5 mb-1"><i class="fas fa-shuffle text-cyan-700 text-xs"></i><span class="text-xs font-semibold">Conditional Trigs</span></div><p class="text-xs text-slate-500 leading-relaxed">Hold trig + right arrow. 1:2 fires every other loop, 1:4 every fourth. Simple patterns that never repeat.</p></div>
-                <div class="ccard p-2.5"><div class="flex items-center gap-1.5 mb-1"><i class="fas fa-copy text-cyan-700 text-xs"></i><span class="text-xs font-semibold">Copy → Paste → Vary</span></div><p class="text-xs text-slate-500 leading-relaxed">FUNC+COPY, move to next slot, FUNC+PASTE, edit 1–2 trigs. Keeps musical continuity.</p></div>
-                <div class="ccard p-2.5"><div class="flex items-center gap-1.5 mb-1"><i class="fas fa-circle-nodes text-cyan-700 text-xs"></i><span class="text-xs font-semibold">Euclidean Rhythms</span></div><p class="text-xs text-slate-500 leading-relaxed">E(3,8), E(5,13), E(7,16) distribute pulses evenly. Use the Euclidean Generator in any track editor.</p></div>
-                <div class="ccard p-2.5"><div class="flex items-center gap-1.5 mb-1"><i class="fas fa-wave-square text-cyan-700 text-xs"></i><span class="text-xs font-semibold">LFO Breathing Pads</span></div><p class="text-xs text-slate-500 leading-relaxed">LFO → FLTR CUTOFF, slow triangle, speed 1–4. Filter breathes independently — living pad, zero extra trigs.</p></div>
-                <div class="ccard p-2.5"><div class="flex items-center gap-1.5 mb-1"><i class="fas fa-satellite-dish text-cyan-700 text-xs"></i><span class="text-xs font-semibold">FX Send Automation</span></div><p class="text-xs text-slate-500 leading-relaxed">P-lock SEND: step 1 dry, step 33 drenched. Same hit sounds completely different.</p></div>
-                <div class="ccard p-2.5"><div class="flex items-center gap-1.5 mb-1"><i class="fas fa-music text-cyan-700 text-xs"></i><span class="text-xs font-semibold">Pro 3 Integration</span></div><p class="text-xs text-slate-500 leading-relaxed">Track 16 as MIDI out, ch 1, to gate the Pro 3. Chord mode sends full chords.</p></div>
-                <div class="ccard p-2.5"><div class="flex items-center gap-1.5 mb-1"><i class="fas fa-rotate text-cyan-700 text-xs"></i><span class="text-xs font-semibold">Retrig Rolls</span></div><p class="text-xs text-slate-500 leading-relaxed">Hold a trig, turn the left encoder for retrig count, right encoder for rate. Instant 1/32 hat rolls — no need to fill every step manually.</p></div>
-                <div class="ccard p-2.5"><div class="flex items-center gap-1.5 mb-1"><i class="fas fa-layer-group text-cyan-700 text-xs"></i><span class="text-xs font-semibold">Sample Lock</span></div><p class="text-xs text-slate-500 leading-relaxed">Hold a trig + turn the SRC encoder. Each step can trigger a different sample slot. One track = full drum roll or vocal phrase.</p></div>
-                <div class="ccard p-2.5"><div class="flex items-center gap-1.5 mb-1"><i class="fas fa-link text-cyan-700 text-xs"></i><span class="text-xs font-semibold">Pattern Chain</span></div><p class="text-xs text-slate-500 leading-relaxed">Hold a pattern button and tap another to queue it next. For song-mode-style arrangement without entering Song Mode.</p></div>
-                <div class="ccard p-2.5"><div class="flex items-center gap-1.5 mb-1"><i class="fas fa-sliders text-cyan-700 text-xs"></i><span class="text-xs font-semibold">LFO to External</span></div><p class="text-xs text-slate-500 leading-relaxed">On a MIDI track, set LFO destination to CC and target any Pro 3 parameter. Slow filter sweeps or tremolo — no extra hardware.</p></div>
+              <div class="text-xs font-semibold text-slate-600 mb-2 flex items-center justify-between">
+                <span>Digitakt Tips</span>
+                <span id="tipCtx" class="text-[10px] text-slate-700 italic"></span>
+              </div>
+              <div id="tipCards" class="space-y-2"></div>
+              <div class="flex items-center justify-between mt-2">
+                <span id="tipCounter" class="text-[10px] text-slate-700"></span>
+                <button onclick="nextTips()" class="text-[10px] text-slate-600 hover:text-cyan-500 transition-colors">Next tip →</button>
               </div>
             </div>
           </div>
@@ -1218,6 +1212,7 @@ function loadGenre(genre){
   renderTrackGrid();
   renderCompositionGuide();
   renderHarmonicPanel();
+  renderTips();
   save();
 }
 
@@ -1757,6 +1752,184 @@ function renderCompositionGuide(){
 </div>`;
 }
 
+// ================================================================
+// DIGITAKT TIPS — contextual, shown 2 at a time
+// tags: genre slugs + role slugs + topic slugs (workflow/plock/cond/lfo/retrig/sampling/midi/sound/perf/song/rhythm)
+// ================================================================
+const TIPS=[
+  // P-LOCKS
+  {title:"P-lock Any Param",icon:"fa-lock",tags:["workflow","plock"],text:"Hold any trig + turn any encoder = parameter lock. The trig turns orange. Every parameter on every page can be locked independently per step."},
+  {title:"Batch P-lock",icon:"fa-lock",tags:["workflow","plock"],text:"Hold multiple trigs simultaneously + turn an encoder = same p-lock value on all held steps at once. Fast for setting velocity across a snare roll."},
+  {title:"Remove a P-lock",icon:"fa-lock",tags:["workflow","plock"],text:"Hold the trig, navigate to the locked parameter, press the encoder button to delete just that lock — trig stays intact."},
+  {title:"Ghost Hits",icon:"fa-lock",tags:["plock","snare","drums"],text:"P-lock AMP VOL to 15–25 on 'ghost' trig positions for realistic ghost snare hits without a separate track."},
+  {title:"Reverb Stab",icon:"fa-lock",tags:["plock","sound"],text:"P-lock FX1 SEND to 127 on one isolated hit for a dramatic reverb explosion. Everything else stays dry."},
+  {title:"Delay Tail Into Loop",icon:"fa-lock",tags:["plock","sound","workflow"],text:"P-lock delay feedback (FX2 FDBK) to 80–95 on the last step before the loop point — a runaway echo bleeds into the new bar."},
+  {title:"Sample Scrub",icon:"fa-lock",tags:["plock","sampling","sound"],text:"P-lock SRC STRT per step to play different textural hits from one long sample — no chopping needed."},
+  {title:"Custom Filter Curve",icon:"fa-lock",tags:["plock","sound"],text:"P-lock FLTR FREQ across consecutive steps to draw a custom filter sweep — more precise than the LFO."},
+  {title:"Ping-Pong Pan",icon:"fa-lock",tags:["plock","sound"],text:"P-lock AMP PAN hard-left on one step, hard-right on the next for a bouncing stereo effect."},
+  {title:"Drum Track Melody",icon:"fa-lock",tags:["plock","sampling","bass","melodic"],text:"P-lock SRC TUNE per step to create a pitch sequence on a drum track — instant bass line from one sample."},
+  {title:"Copy P-locks",icon:"fa-lock",tags:["plock","workflow"],text:"Hold source trig + COPY, then hold destination trig + PASTE to clone all p-locks between steps."},
+  {title:"Silent P-lock Trig",icon:"fa-lock",tags:["plock","workflow"],text:"Hold a trig + press YES = orange trig that carries parameter data but makes no sound. Use for mid-step automation without adding hits."},
+  {title:"LFO Speed Per Step",icon:"fa-lock",tags:["plock","lfo","sound"],text:"P-lock LFO SPEED on individual steps to make the LFO suddenly race or crawl at specific moments."},
+  {title:"Silent Steps",icon:"fa-lock",tags:["plock","rhythm","workflow"],text:"P-lock AMP VOL to 0 on specific steps to create rhythmic rests within a dense trig pattern without deleting trigs."},
+  {title:"FX Send Variation",icon:"fa-satellite-dish",tags:["plock","sound","ambient"],text:"P-lock FX SEND differently per step — step 1 fully dry, step 5 fully wet. Same hit, completely different character."},
+  // CONDITIONAL TRIGS
+  {title:"1:2 Variations",icon:"fa-shuffle",tags:["cond","workflow","drums"],text:"1:2 condition fires every other loop. Use for snare variations, hat accents, or melodic phrases that only appear half the time."},
+  {title:"1:4 Rare Events",icon:"fa-shuffle",tags:["cond","workflow"],text:"1:4 fires every fourth loop. Ideal for crash cymbals, transitional fills, or a melody phrase that keeps listeners guessing."},
+  {title:"!1ST — Build In",icon:"fa-shuffle",tags:["cond","workflow"],text:"!1ST fires on every loop except the first. Gradually introduce elements — the pattern starts minimal and fills in from the second pass."},
+  {title:"1ST — Intro Only",icon:"fa-shuffle",tags:["cond","workflow","song"],text:"1ST fires only on the very first loop. Use for intro count-in hits, a one-time riser, or an opening vocal chop."},
+  {title:"NEI Chaining",icon:"fa-shuffle",tags:["cond","workflow"],text:"NEI (neighbor) fires only if the immediately previous trig also fired. Chain trigs for domino-style rhythmic logic."},
+  {title:"!NEI Guaranteed Gaps",icon:"fa-shuffle",tags:["cond","workflow"],text:"!NEI fires only if the previous trig did NOT fire — guarantees alternating or anti-phase patterns between adjacent steps."},
+  {title:"Random 50% Ghost Notes",icon:"fa-shuffle",tags:["cond","workflow","drums"],text:"Random 50%: fires with 50% probability each loop. Perfect for ghost notes, occasional hi-hat splashes, or subtle accent variation."},
+  {title:"Random 25% FX",icon:"fa-shuffle",tags:["cond","workflow","ambient"],text:"Random 25% fires roughly once every 4 loops. Ideal for rare crashes, atmospheric hits, or a melodic phrase that feels spontaneous."},
+  {title:"PRE Condition",icon:"fa-shuffle",tags:["cond","workflow"],text:"PRE fires based on whether the random condition of the preceding trig actually fired that loop — create cascading probability chains."},
+  {title:"Layered Conditions",icon:"fa-shuffle",tags:["cond","workflow"],text:"Put 1:4 on a fill, !1ST on an accent — two conditions interacting on every loop creates a pattern that feels generative."},
+  // LFO
+  {title:"LFO as Envelope",icon:"fa-wave-square",tags:["lfo","sound"],text:"LFO ONE mode plays the waveform once per trig — use it as a custom envelope shape for sample starts, filter, or any parameter."},
+  {title:"Stepped Modulation",icon:"fa-wave-square",tags:["lfo","sound","idm"],text:"LFO HOLD mode: runs continuously but only updates at each new trig — creates stepped, random-like modulation that locks to the rhythm."},
+  {title:"Rhythmic Gating",icon:"fa-wave-square",tags:["lfo","sound","techno","house"],text:"LFO → AMP VOL, square wave, synced to tempo: precise rhythmic gating or tremolo without filling any steps."},
+  {title:"Random Sample Points",icon:"fa-wave-square",tags:["lfo","sampling","sound"],text:"LFO → SRC STRT, random wave, HOLD mode: each trig hits a different point in the sample — built-in natural variation."},
+  {title:"Ultra-slow Sweep",icon:"fa-wave-square",tags:["lfo","ambient","sound"],text:"LFO speed 1–5: sub-tempo modulation for ambient filter drifts that take many bars to complete one cycle."},
+  {title:"LFO to External CC",icon:"fa-wave-square",tags:["lfo","midi"],text:"On a MIDI track, set LFO destination to MIDI CC (e.g. CC74 = filter on many synths) to automate external gear from the Digitakt."},
+  {title:"Partial LFO Depth",icon:"fa-wave-square",tags:["lfo","sound"],text:"LFO depth 20–50 gives subtle, musical modulation. Full depth almost always overshoots the useful range — ease back."},
+  {title:"Resonance Breathing",icon:"fa-wave-square",tags:["lfo","sound","ambient","downtempo"],text:"LFO → FLTR RES, slow sine wave: the resonance breathes independently of the rhythm — adds organic life to any sound."},
+  {title:"Free-running Drift",icon:"fa-wave-square",tags:["lfo","sound","ambient","idm"],text:"Free-running LFO (no trig reset) slowly drifts out of phase with the beat — natural-feeling variation that never quite repeats."},
+  {title:"LFO ENV Mode",icon:"fa-wave-square",tags:["lfo","sound"],text:"LFO ENV mode: amplitude follows the amp envelope timing. Modulation intensity swells and decays with the note — sounds organic."},
+  // TRACK SCALE / POLYRHYTHM
+  {title:"Per-track Step Count",icon:"fa-circle-nodes",tags:["rhythm","workflow"],text:"Hold FUNC + TRACK to access the scale menu — set each track to its own step length for polyrhythm. Kick at 16, hat at 15 = shifting phase."},
+  {title:"Phase Polyrhythm",icon:"fa-circle-nodes",tags:["rhythm","idm","techno"],text:"Kick at 16 steps, hi-hat at 15: they drift apart and realign only every 240 steps — a living, evolving groove from two simple patterns."},
+  {title:"Bass + Lead Drift",icon:"fa-circle-nodes",tags:["rhythm","bass","melodic"],text:"Bass at 12 steps, lead at 7: realign every 84 steps. Complex evolving phrases with zero extra programming."},
+  {title:"Double-time Track",icon:"fa-circle-nodes",tags:["rhythm","hat","drums"],text:"Track multiplier ×2: run the hi-hat at double speed within a normal 16-step pattern — adds energy without changing other tracks."},
+  {title:"Long Phrase Over Short Loop",icon:"fa-circle-nodes",tags:["rhythm","workflow","ambient"],text:"Set one track to 64 steps, all others to 16 — that track plays a slow evolving phrase across four repetitions of the main groove."},
+  // RETRIG
+  {title:"Instant Hat Roll",icon:"fa-rotate",tags:["retrig","hat","drums"],text:"Hold a trig + access TRIG page to enable retrig. Rate 1/32, count 4–8 = instant 32nd-note hat roll from a single trig."},
+  {title:"Crescendo Roll",icon:"fa-rotate",tags:["retrig","snare","drums"],text:"Retrig a snare + p-lock velocity from 30 up to 127: natural crescendo snare roll without filling every step."},
+  {title:"Wub Bass",icon:"fa-rotate",tags:["retrig","bass","sound","dnb","trap"],text:"Retrig on a bass step at 1/16 rate = buzzing stutter sub. Combine with a slow filter sweep p-lock for a wub effect."},
+  {title:"Thickening",icon:"fa-rotate",tags:["retrig","sound"],text:"Very fast retrig on a synth tone creates a flanger-like thickening through rapid micro-timing variation."},
+  // SAMPLING
+  {title:"One Track = Drum Kit",icon:"fa-layer-group",tags:["sampling","workflow","drums"],text:"Sample lock: hold a trig + navigate to a different sample to assign just that step its own sample. One track can play a full drum kit."},
+  {title:"Slice Without Slicing",icon:"fa-layer-group",tags:["sampling","drums","jungle"],text:"Import a drum loop, p-lock SRC STRT to different offsets per step — simulates manual chops without slicing tools."},
+  {title:"Micro-loop Tone",icon:"fa-layer-group",tags:["sampling","sound","ambient"],text:"Set LOOP on, narrow STRT–END to just a few milliseconds: creates a micro-loop that sounds like a wavetable oscillator tone."},
+  {title:"Reverse Pad",icon:"fa-layer-group",tags:["sampling","sound","ambient","dark-ambient"],text:"Set sample STRT higher than END (if supported) for a reversed playback effect — pile reverb on top for an instant drone pad."},
+  {title:"Articulation from One Sample",icon:"fa-layer-group",tags:["sampling","plock","sound"],text:"P-lock SRC STRT and SRC END to isolate different transients within one long sample. Each step gets its own hit character."},
+  // MIDI TRACKS
+  {title:"Chord Per Trig",icon:"fa-music",tags:["midi","harmonic"],text:"MIDI chord mode: hold a note trig + press additional trig keys to add up to 3 more notes. One step = full chord."},
+  {title:"MIDI Arp",icon:"fa-music",tags:["midi","melodic"],text:"Enable the arpeggiator on a MIDI chord trig for instant arpeggiated melodic movement driven by the sequencer."},
+  {title:"Staccato vs Legato",icon:"fa-music",tags:["midi","sound","melodic"],text:"Gate length on MIDI trigs controls note duration. Short = staccato stab. Long gate = sustained, legato phrasing."},
+  {title:"Automate External Filter",icon:"fa-music",tags:["midi","lfo"],text:"MIDI track LFO → CC74 (filter cutoff on most synths) automates filter sweeps on external gear without any extra MIDI setup."},
+  {title:"Preset Change Mid-Pattern",icon:"fa-music",tags:["midi","workflow","song"],text:"P-lock MIDI program change on a specific step to swap synth presets mid-pattern — instant sound variation."},
+  {title:"Layer Audio + MIDI",icon:"fa-music",tags:["midi","workflow"],text:"Align a MIDI track step with an audio track step: Digitakt audio hit + external synth triggered simultaneously for layered tones."},
+  {title:"Chord Inversions",icon:"fa-music",tags:["midi","harmonic"],text:"P-lock MIDI pitch values per step for different chord inversions — same chord notes, different voicing for smooth voice leading."},
+  {title:"Pro 3 Gate",icon:"fa-music",tags:["midi","workflow"],text:"Track 16 as MIDI out ch 1 gates the Pro 3. Chord mode sends full chords. Pro 3's arp generates rapid melodic fills between gates."},
+  // SOUND DESIGN
+  {title:"Self-oscillating Sine",icon:"fa-sliders",tags:["sound","ambient"],text:"FLTR RES at maximum, FLTR FREQ at minimum: filter self-oscillates into a pure sine tone — no sample needed."},
+  {title:"Kick Transient Control",icon:"fa-sliders",tags:["sound","kick"],text:"AMP ATCK up = softer transient, deep sub-kick character. AMP ATCK to zero = punchy, clicky attack."},
+  {title:"Pluck vs Pad",icon:"fa-sliders",tags:["sound","harmonic","melodic"],text:"Short attack + short decay = plucked quality. Long attack + long decay = blooming pad. AMP page shapes everything."},
+  {title:"Overdrive Into Filter",icon:"fa-sliders",tags:["sound","kick","bass","techno"],text:"AMP DIST or overdrive before the filter = warm saturation. Especially effective on kicks and bass for that driven analog feel."},
+  {title:"Reverb as Pad",icon:"fa-sliders",tags:["sound","ambient","dark-ambient"],text:"Long reverb on one sparse hit at slow BPM: the reverb tail fills the silence and functions as a pad layer — zero extra trigs needed."},
+  {title:"Mono Stereo Width",icon:"fa-sliders",tags:["sound","harmonic"],text:"Two tracks: same sample, same step, hard panned L and R, one slightly detuned — instant stereo width from a mono sample."},
+  {title:"Frequency Carving",icon:"fa-sliders",tags:["sound","bass","kick","house","techno"],text:"HP filter sweep on the bass while the kick plays: carve low-end space for the kick transient without reducing bass volume."},
+  {title:"Dub Delay",icon:"fa-sliders",tags:["sound","dub","ambient"],text:"Dotted 8th delay time: echoes land just off the grid, creating the classic dub echo pattern. High feedback, low in the mix."},
+  {title:"Reverb Pre-delay",icon:"fa-sliders",tags:["sound","ambient","downtempo"],text:"High reverb pre-delay: the dry hit fires, then the reverb blooms after a gap. Sounds like the tail of a real room."},
+  {title:"Ping-pong Delay",icon:"fa-sliders",tags:["sound","house","downtempo"],text:"Use two delay sends with opposite pan p-locks on alternating steps — bouncing echo in stereo space."},
+  // PERFORMANCE
+  {title:"Live Mutes",icon:"fa-bolt",tags:["performance","workflow"],text:"Hold FUNC + TRACK button to mute/unmute a track in real time. Chain mutes and unmutes for live drops and builds."},
+  {title:"Queue Next Pattern",icon:"fa-bolt",tags:["performance","workflow","song"],text:"Hold a pattern button + tap a second = queue that pattern to play after the current one finishes, on the next downbeat."},
+  {title:"Live Trig Input",icon:"fa-bolt",tags:["performance","workflow"],text:"Hold REC + tap a trig step during playback = add a live trig to the running pattern. Great for improvised percussion."},
+  {title:"Manual Fill",icon:"fa-bolt",tags:["performance","workflow"],text:"In FILL mode: hold a step key while the pattern plays to temporarily insert that trig for as long as you hold the key."},
+  {title:"Instant Breakdown",icon:"fa-bolt",tags:["performance","song","workflow"],text:"Copy pattern to a new slot, mute all but 1–2 tracks in the copy, then switch between patterns live for a quick breakdown."},
+  {title:"Fine Tuning",icon:"fa-bolt",tags:["performance","workflow"],text:"Hold YES while turning a knob = fine-tune mode (slower resolution per step). Precise dial-ins without over-shooting."},
+  // WORKFLOW / ARRANGEMENT
+  {title:"Copy → Paste → Vary",icon:"fa-copy",tags:["workflow"],text:"FUNC+COPY, navigate to next pattern slot, FUNC+PASTE = instant duplicate. Edit 1–2 trigs in the copy for variation continuity."},
+  {title:"MIDI Master Clock",icon:"fa-gears",tags:["workflow","midi"],text:"Set Digitakt as MIDI master clock, connect MIDI OUT to Ableton or modular — all external gear syncs to the Digitakt tempo."},
+  {title:"Rotate Pattern",icon:"fa-gears",tags:["workflow","rhythm"],text:"FUNC + LEFT/RIGHT ARROW shifts all trigs forward or backward (rotates the pattern). Quickly change the feel without re-programming."},
+  {title:"Song Mode Tempos",icon:"fa-list",tags:["workflow","song"],text:"Set different BPMs per pattern in Song Mode for automated tempo changes mid-set — no hands needed."},
+  {title:"Sound Manager Tags",icon:"fa-gears",tags:["workflow","sampling"],text:"Tag sounds in the Sound Manager by genre and character. Searching by tag during a live set is much faster than browsing folders."},
+  {title:"Stems via Overbridge",icon:"fa-gears",tags:["workflow","song"],text:"Play the pattern in Overbridge mode: DAW records each track as a separate audio stem simultaneously. No mixing down required."},
+  {title:"Save Before Experimenting",icon:"fa-gears",tags:["workflow"],text:"FUNC+SAVE before any destructive edit. Digitakt's undo is limited — a quick save costs two seconds and prevents losing work."},
+  {title:"Solo Build Method",icon:"fa-gears",tags:["workflow","performance"],text:"Start with kick only, gradually unmute tracks one by one while recording. The arrangement writes itself in the performance."},
+  {title:"Euclidean Generator",icon:"fa-circle-nodes",tags:["workflow","rhythm","drums"],text:"E(3,8), E(5,13), E(7,16) distribute pulses maximally evenly. Find the Euclidean generator on the TRIG page for any track."},
+  // GENRE-SPECIFIC
+  {title:"Techno Compression",icon:"fa-sliders",tags:["techno","sound"],text:"Master compressor with high ratio on techno: slight clipping on the master gives that loud, aggressive, crushed character."},
+  {title:"House Kick/Bass Mono Check",icon:"fa-sliders",tags:["house","bass","kick","sound"],text:"Sum kick and bass to mono and listen for phase cancellation. If the bass disappears, tune or offset one of them — frequency fight kills punch."},
+  {title:"DnB Double-time Hat",icon:"fa-circle-nodes",tags:["dnb","hat","rhythm"],text:"Set hi-hat track to ×2 speed multiplier over a 32-step pattern — instant double-time hi-hat energy within the same groove."},
+  {title:"Jungle Chop Simulation",icon:"fa-layer-group",tags:["jungle","sampling","drums"],text:"Import the Amen break or any loop, p-lock SRC STRT to different offsets per step — simulates manual chops without slicing."},
+  {title:"Trap 808 Slide",icon:"fa-sliders",tags:["trap","bass","sound"],text:"808 bass: long sample decay, AMP HOLD at max, long note gate = the sustained sub-bass slide. Keep velocity high for the hit."},
+  {title:"Ambient Reverb as Composition",icon:"fa-water",tags:["ambient","dark-ambient","sound"],text:"Route sparse hits to 90%+ reverb send at very slow BPM. The reverb tail IS the composition — silence between hits is intentional."},
+  {title:"IDM Polyrhythm Stack",icon:"fa-circle-nodes",tags:["idm","rhythm"],text:"Set tracks to conflicting step counts: 7, 11, 13, 9 steps each. The combination is so complex it sounds generative — from simple loops."},
+  {title:"Downtempo Swing",icon:"fa-wave-square",tags:["downtempo","hat","rhythm"],text:"Apply swing to the hi-hat track only (12–15%). Other tracks stay straight. Hat swing pulls the entire groove without touching the kick."},
+  {title:"Dub Feedback Build",icon:"fa-sliders",tags:["dub","ambient","performance"],text:"P-lock delay feedback to 90+ on every 4th beat — feedback builds into a spiral. Pull the level fader live to resolve the tension."},
+  // ADVANCED
+  {title:"Keyboard Mode",icon:"fa-gears",tags:["workflow","melodic","midi"],text:"Hold a TRACK button + press KEYBOARD mode (if available): the 16 trig keys become a chromatic keyboard. Play melodic ideas live on any track."},
+  {title:"Song Mode Automation",icon:"fa-list",tags:["song","workflow"],text:"Song Mode chains patterns in a defined order — build a full live set that plays itself. Each row can loop or advance automatically."},
+  {title:"Pattern Length Mismatch",icon:"fa-circle-nodes",tags:["rhythm","idm","workflow"],text:"Set pattern A to 15 steps, pattern B to 16. Chain them — they drift and realign every 240 steps, creating evolving macro-structure."},
+  {title:"Pre-show Pattern Test",icon:"fa-list",tags:["performance","song","workflow"],text:"Before going live, run through every pattern in Song Mode once — check every transition and mute. Silence on stage is permanent."},
+  {title:"Track Copy",icon:"fa-copy",tags:["workflow"],text:"Hold TRACK + press COPY to copy the entire track (all trigs, p-locks, settings) to another slot. Fast for building variations."},
+];
+
+const _GENRE_TIP_TAGS={
+  "Techno":["techno"],"House":["house"],"DnB":["dnb"],"Jungle / Breakbeat":["jungle"],
+  "IDM / Glitch":["idm"],"Trap":["trap"],"Downtempo":["downtempo"],
+  "Ambient":["ambient"],"Dark Ambient":["ambient","dark-ambient"],"Ambient Dub":["ambient","dub"],
+};
+const _ROLE_TIP_TAGS={
+  kick:["kick","drums"],snare:["snare","drums"],hat:["hat","drums"],shaker:["drums"],
+  bass:["bass"],harmonic:["harmonic"],melody:["melodic"],midi:["midi","melodic"],
+  texture:["ambient"],percussion:["drums"],
+};
+
+let _tipState={pool:[],idx:0,genreKey:null,roleKey:null};
+
+function _buildTipPool(){
+  const genre=S.genre||"";
+  const editTrack=S.editId?(S.trackData[S.genre]||[]).find(t=>t.id===S.editId):null;
+  const role=editTrack?classifyTrack(editTrack.name):null;
+  const ctx=new Set(["workflow",...(_GENRE_TIP_TAGS[genre]||[]),...(_ROLE_TIP_TAGS[role]||[])]);
+  return TIPS
+    .map(t=>({t,s:t.tags.reduce((acc,tag)=>acc+(ctx.has(tag)?1:0),0)}))
+    .filter(({s})=>s>0)
+    .sort((a,b)=>b.s-a.s)
+    .map(({t})=>t);
+}
+
+function renderTips(){
+  const genre=S.genre||"";
+  const editTrack=S.editId?(S.trackData[S.genre]||[]).find(t=>t.id===S.editId):null;
+  const role=editTrack?classifyTrack(editTrack.name):null;
+  if(genre!==_tipState.genreKey||role!==_tipState.roleKey){
+    _tipState.pool=_buildTipPool();
+    _tipState.idx=0;
+    _tipState.genreKey=genre;
+    _tipState.roleKey=role;
+  }
+  _renderTipCards();
+}
+
+function nextTips(){
+  if(!_tipState.pool.length)return;
+  _tipState.idx=(_tipState.idx+2)%_tipState.pool.length;
+  _renderTipCards();
+}
+
+function _renderTipCards(){
+  const container=document.getElementById("tipCards");
+  const counter=document.getElementById("tipCounter");
+  const ctxEl=document.getElementById("tipCtx");
+  if(!container)return;
+  const pool=_tipState.pool;
+  if(!pool.length){container.innerHTML='<p class="text-xs text-slate-700">No tips for current context.</p>';return;}
+  const i=_tipState.idx%pool.length;
+  const pair=[pool[i],pool[(i+1)%pool.length]];
+  container.innerHTML=pair.map(tip=>`<div class="ccard p-2.5"><div class="flex items-center gap-1.5 mb-1"><i class="fas ${escapeHtml(tip.icon)} text-cyan-700 text-xs"></i><span class="text-xs font-semibold">${escapeHtml(tip.title)}</span></div><p class="text-xs text-slate-500 leading-relaxed">${escapeHtml(tip.text)}</p></div>`).join("");
+  if(counter)counter.textContent=`${i+1}–${Math.min(i+2,pool.length)} of ${pool.length}`;
+  if(ctxEl){
+    const parts=[genre];
+    const editTrack=S.editId?(S.trackData[S.genre]||[]).find(t=>t.id===S.editId):null;
+    if(editTrack)parts.push(classifyTrack(editTrack.name).toUpperCase());
+    ctxEl.textContent=parts.filter(Boolean).join(" · ");
+  }
+}
+
 function toggleSect(bodyId,chevId){
   const b=document.getElementById(bodyId),ch=document.getElementById(chevId);
   const btn=b.previousElementSibling;
@@ -1786,7 +1959,7 @@ function openModal(trackId){
   document.getElementById("routeVelocity").value=track.velocity||100;
   document.getElementById("routeNoteName").textContent=midiNoteName(track.note||60);
   document.getElementById("modal").classList.remove("hidden");
-  syncLenBtns();renderStepGrid();
+  syncLenBtns();renderStepGrid();renderTips();
 }
 
 function closeModal(){
