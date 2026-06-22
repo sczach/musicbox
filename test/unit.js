@@ -425,6 +425,79 @@ assert('multi-target tracks each tag events with own target', (() => {
 })());
 
 // ================================================================
+// Arrangement / Aide composition suggestions
+// (logic re-derived from the inline script, as elsewhere in this file)
+// ================================================================
+const ROLE_ENERGY_TIER = { kick:0.12, bass:0.18, snare:0.3, hat:0.32, shaker:0.32, percussion:0.34, harmonic:0.46, melody:0.5, midi:0.5, texture:0.08 };
+function trackEnergyTier(track){ return ROLE_ENERGY_TIER[track.roleType || inferTrackRole(track)] ?? 0.4; }
+
+function analyzeTracks(tracks){
+  const active = (tracks||[]).filter(t => t.steps && t.steps.length);
+  let trig = 0, energySum = 0; const roles = {};
+  active.forEach(t => {
+    const role = t.roleType || inferTrackRole(t);
+    roles[role] = (roles[role]||0) + 1;
+    const len = Math.max(16, Math.ceil(Math.max(...t.steps)/16)*16);
+    trig += t.steps.length;
+    energySum += (t.steps.length/len) * (1 + trackEnergyTier(t));
+  });
+  const total = (tracks||[]).length;
+  const density = active.length / Math.max(1, total);
+  const energy = clamp((energySum/Math.max(1,active.length)) * (0.45 + 0.55*density), 0, 1);
+  return { active: active.length, total, trig, density, energy, roles,
+    hasKick: !!roles.kick, hasBass: !!roles.bass,
+    hasDrums: !!(roles.kick||roles.snare||roles.hat||roles.percussion||roles.shaker),
+    hasMelodic: !!(roles.melody||roles.harmonic||roles.midi),
+    textureHeavy: (roles.texture||0) >= Math.max(1, active.length)*0.5 };
+}
+
+function suggestSectionLabel(tracks){
+  const a = analyzeTracks(tracks);
+  let kind;
+  if (a.active === 0) kind = 'intro';
+  else if (a.textureHeavy && !a.hasDrums) kind = 'intro';
+  else if (!a.hasDrums && a.hasMelodic) kind = 'breakdown';
+  else if (a.energy >= 0.7 && a.hasKick && a.hasBass && a.hasMelodic) kind = 'drop';
+  else if (a.energy >= 0.55 && a.hasKick && a.hasBass) kind = 'chorus';
+  else if (a.hasKick && a.hasBass) kind = 'verse';
+  else if (a.hasDrums) kind = 'build';
+  else kind = 'bridge';
+  return { kind, energy: Math.round(a.energy*100), analysis: a };
+}
+
+console.log('\nAide composition suggestions:');
+assert('empty pattern → intro', suggestSectionLabel([]).kind === 'intro');
+assert('texture-only (no drums) → intro', suggestSectionLabel([
+  normalizeTrack({ id: 8, name: 'Atmosphere', role: 'texture', roleType: 'texture', steps: [1, 9] }),
+]).kind === 'intro');
+assert('melody without drums → breakdown', suggestSectionLabel([
+  normalizeTrack({ id: 15, name: 'Lead Melody', role: 'lead', roleType: 'melody', steps: [1, 5, 9, 13] }),
+  normalizeTrack({ id: 7, name: 'Chord', role: 'harmonic', roleType: 'harmonic', steps: [1, 9] }),
+]).kind === 'breakdown');
+assert('kick+bass moderate → verse/chorus (not drop)', (() => {
+  const k = suggestSectionLabel([
+    normalizeTrack({ id: 1, name: 'Kick', roleType: 'kick', steps: [1, 5, 9, 13] }),
+    normalizeTrack({ id: 6, name: 'Bass', roleType: 'bass', steps: [1, 9] }),
+  ]).kind;
+  return k === 'verse' || k === 'chorus';
+})());
+assert('dense kick+bass+melody → drop', (() => {
+  const full16 = Array.from({ length: 16 }, (_, i) => i + 1);
+  return suggestSectionLabel([
+    normalizeTrack({ id: 1, name: 'Kick', roleType: 'kick', steps: full16 }),
+    normalizeTrack({ id: 6, name: 'Bass', roleType: 'bass', steps: full16 }),
+    normalizeTrack({ id: 3, name: 'Hats', roleType: 'hat', steps: full16 }),
+    normalizeTrack({ id: 15, name: 'Lead', roleType: 'melody', steps: full16 }),
+    normalizeTrack({ id: 7, name: 'Chord', roleType: 'harmonic', steps: full16 }),
+  ]).kind === 'drop';
+})());
+assert('energy is 0..100', (() => {
+  const e = suggestSectionLabel([normalizeTrack({ id: 1, name: 'Kick', roleType: 'kick', steps: [1, 5, 9, 13] })]).energy;
+  return e >= 0 && e <= 100;
+})());
+assert('foundational roles have lower energy tier than melodic', trackEnergyTier({ roleType: 'kick' }) < trackEnergyTier({ roleType: 'melody' }));
+
+// ================================================================
 // Summary
 // ================================================================
 console.log(`\n${pass} passed, ${fail} failed.`);
