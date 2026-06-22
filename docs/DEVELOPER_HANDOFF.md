@@ -136,3 +136,43 @@ After that, implement per-target MIDI output routing for Digitakt USB, Pro 3 USB
 - Digitakt USB audio or an audio interface must be selected as a browser audio input for oscilloscope monitoring.
 - Pro 3 USB is MIDI only, not audio.
 - Browser permissions and secure-context requirements should be diagnosed in the UI rather than hidden in console errors.
+
+## Composition / Song-structure engine
+
+The arrangement layer turns a pattern into a full song by stacking
+highest-order section labels (Intro, Verse, Pre-Chorus, Chorus, Build,
+Drop, Breakdown, Bridge, Reprise, Outro) above the 16-track grid. It lives
+inline in `digitakt-rhythm-aide.html`, sections 3b / 7c / 7d / 7e.
+
+Data model (persisted in `S.arrangement`, saved to localStorage):
+```
+arrangement = {
+  style: <ARRANGEMENT_STYLES key>,
+  activeIdx: <selected section index | -1>,
+  sections: [ { id, kind, label, energy(0-100), repeats, trackIds:[...] }, ... ]
+}
+```
+Each section's `trackIds` is its "pattern set" — the subset of tracks
+active in that section (Digitakt Song-mode-style per-row mutes).
+
+Key pieces:
+- `SECTION_KINDS` / `SECTION_KIND_ORDER` — label vocabulary + energy targets.
+- `ARRANGEMENT_STYLES` — named full-song arc templates (Four Tet, Taylor
+  Swift, Sara Landry, Fred again.., Suduaya/Zero Cult, Ambient) with a
+  reasoning blurb; `ARRANGEMENT_STYLE_ALIASES` migrates older saved keys.
+- `generateArrangement()` / `tracksForEnergy()` — build sections by
+  role-based energy tiering (`ROLE_ENERGY_TIER`).
+- Top section bar: `renderArrangementBar()` (chips with energy colour +
+  live play progress, plus the selected section's editor).
+- Aide suggestions (7d): `analyzeTracks()` → `suggestSectionLabel()`,
+  `openAideModal()`, `suggestForSection()`, `addContrastSection()`.
+- Full-song playback (7e): `playSong()` / `stopSong()` / `slipToSection()`
+  chain sections through the existing Web Audio preview synth; progress and
+  the current section are reflected in the top bar.
+- Undo: `pushArrangementUndo()` / `undoArrangement()` (Ctrl+Z).
+- Keyboard: Space = play/stop song, `[` / `]` = prev/next (slip while
+  playing), `L` = loop. Disabled while typing or with a modal open
+  (`onCompositionKey`).
+
+Song Mode Send (MIDI) and the text export both read the live arrangement
+via `currentSongSteps()`.

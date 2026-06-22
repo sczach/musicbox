@@ -175,6 +175,44 @@ select,input,textarea{box-shadow:none}
         </button>
       </div>
 
+      <!-- Arrangement / Song Structure bar -->
+      <div id="arrangementBar" class="ccard p-2.5 space-y-2">
+        <div class="flex items-center gap-2 flex-wrap">
+          <div class="lbl flex items-center gap-1.5"><i class="fas fa-timeline text-purple-500"></i> Arrangement</div>
+          <button id="songPlayBtn" onclick="toggleSong()" title="Play the full song — chain all sections (Space)"
+            class="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg flex items-center gap-1.5 transition-colors">
+            <i class="fas fa-play text-emerald-400 text-xs"></i> Play Song
+          </button>
+          <button id="songLoopBtn" onclick="toggleSongLoop()" title="Loop the whole song (L)"
+            class="px-2 py-1 text-xs bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg text-slate-500 transition-colors">
+            <i class="fas fa-repeat text-xs"></i>
+          </button>
+          <div class="w-px h-4 bg-slate-800 mx-0.5 flex-shrink-0"></div>
+          <button onclick="openAideModal()" title="Ask the Aide to suggest labels and a full arrangement"
+            class="px-2.5 py-1 text-xs bg-purple-950/40 hover:bg-purple-900/40 border border-purple-800/40 rounded-lg flex items-center gap-1.5 text-purple-200 transition-colors">
+            <i class="fas fa-lightbulb text-purple-400 text-xs"></i> Aide
+          </button>
+          <select id="arrangementStyleSel" onchange="changeArrangementStyle(this.value)" title="Arrangement arc template"
+            class="text-xs bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-slate-300 focus:outline-none focus:border-cyan-600 max-w-[12rem]"></select>
+          <button onclick="regenerateArrangement()" title="Re-suggest a structure from the current tracks"
+            class="px-2 py-1 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg flex items-center gap-1.5 transition-colors">
+            <i class="fas fa-wand-magic-sparkles text-purple-400 text-xs"></i> Suggest
+          </button>
+          <button onclick="addArrangementSection()" title="Insert a section after the selected one"
+            class="px-2 py-1 text-xs bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg text-slate-500 transition-colors">
+            <i class="fas fa-plus text-xs"></i>
+          </button>
+          <button onclick="undoArrangement()" title="Undo arrangement edit (Ctrl+Z)"
+            class="px-2 py-1 text-xs bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg text-slate-500 transition-colors">
+            <i class="fas fa-rotate-left text-xs"></i>
+          </button>
+          <div class="flex-1 min-w-[1rem]"></div>
+          <span class="text-[10px] text-slate-600">Click a section to load its pattern set · while playing, click to slip</span>
+        </div>
+        <div id="arrangementChips" class="flex gap-1.5 flex-wrap"></div>
+        <div id="arrangementPanel" class="hidden"></div>
+      </div>
+
       <div id="trackGrid" class="track-grid grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2"></div>
 
       <!-- Export Panel -->
@@ -384,6 +422,20 @@ select,input,textarea{box-shadow:none}
         <p>It does not generate melody <em>sequences</em> — it generates <em>rhythm patterns</em> for melodic tracks and tells you which pitches to p-lock. You decide the actual note order. The tool gives you the rhythmic skeleton and harmonic palette; you provide the musical intention.</p>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- AIDE COMPOSITION MODAL -->
+<div id="aideModal" class="hidden fixed inset-0 bg-black/85 backdrop-blur-sm flex items-start justify-center z-50 p-4 overflow-y-auto">
+  <div class="modal-inner bg-slate-900 border border-slate-700/70 rounded-2xl w-full max-w-2xl my-4">
+    <div class="flex items-center justify-between px-5 py-4 border-b border-slate-800">
+      <div class="flex items-center gap-2">
+        <i class="fas fa-lightbulb text-purple-400"></i>
+        <h2 class="font-bold text-base">Aide — Composition Suggestions</h2>
+      </div>
+      <button onclick="closeAideModal()" class="text-slate-500 hover:text-white text-2xl leading-none">×</button>
+    </div>
+    <div id="aideBody" class="p-5 space-y-4 text-sm"></div>
   </div>
 </div>
 
@@ -914,6 +966,62 @@ pro3:"Gate Pro 3 on backbeat positions (5, 13, 21, 29) for a lush warm lead. Slo
 }
 };
 // ================================================================
+// SECTION 3b — ARRANGEMENT / SONG STRUCTURE
+// Highest-order labels above the 16-track pattern: each section names
+// a role in the composition (Intro, Build, Drop, Bridge, Outro, ...)
+// and carries the subset of tracks that should be active there.
+// Structural vocabulary draws on two reference traditions:
+//  - Pop songcraft (Taylor Swift et al.): verse tells the story, the
+//    pre-chorus lifts, the chorus is the hook, the bridge is the twist.
+//  - Electronic arc-building (Four Tet, CloZee, Sara Landry, Fred again,
+//    ZHU/"zero cult"-style, of the trees, Subtronics/Suduaya-adjacent
+//    bass acts): intro establishes a loop/found-sound, builds raise
+//    density and filter tension, drops are the peak payoff, breakdowns
+//    strip back to texture/melody before rebuilding.
+// ================================================================
+const SECTION_KINDS={
+  intro:{label:"Intro",energy:0.12,note:"One establishing element only. Cold-open hook fragment (pop) or a single found loop (Four Tet) before anything else enters."},
+  verse:{label:"Verse",energy:0.38,note:"Groove established, room to breathe — carries the story under the hook."},
+  prechorus:{label:"Pre-Chorus",energy:0.55,note:"Lift one notch and signal the turn into the hook."},
+  chorus:{label:"Chorus",energy:0.85,note:"The full hook — most memorable, most danceable point of the song."},
+  build:{label:"Build",energy:0.65,note:"Rising tension into a peak — risers, filtered density, fewer competing elements."},
+  drop:{label:"Drop",energy:1.0,note:"Peak density and weight — the payoff the build promised."},
+  breakdown:{label:"Breakdown",energy:0.28,note:"Strip back, expose texture or melody before rebuilding."},
+  bridge:{label:"Bridge",energy:0.5,note:"Contrast section — a new harmonic or textural idea, the twist before the final hook."},
+  reprise:{label:"Reprise",energy:0.6,note:"Return of an earlier idea, recontextualized rather than repeated."},
+  outro:{label:"Outro",energy:0.1,note:"Recede to one or two elements and fade."}
+};
+const SECTION_KIND_ORDER=["intro","verse","prechorus","chorus","build","drop","breakdown","bridge","reprise","outro"];
+// Named arrangement arcs — each is a curated full-song template the Aide
+// can propose. `arc` is the ordered list of section kinds; `blurb` is the
+// reasoning the Aide surfaces when recommending it.
+const ARRANGEMENT_STYLES={
+  "fourtet":{label:"Four Tet — evolving journey",blurb:"Texture-first world-building. Start from one breathing loop, layer subtly, contrast a bright section against a darker one, never a hard drop.",arc:["intro","verse","build","bridge","drop","breakdown","reprise","outro"]},
+  "swift":{label:"Taylor Swift — narrative payoff",blurb:"Pop storytelling: verse sets the scene, pre-chorus lifts, chorus is the emotional money-hook, the bridge reframes it, then the final chorus pays off heightened.",arc:["intro","verse","prechorus","chorus","verse","prechorus","chorus","bridge","chorus","outro"]},
+  "landry":{label:"Sara Landry — driving techno arc",blurb:"Relentless low-end foundation. Long filtered build, full-weight drop, a breakdown to breathe, then a second harder peak.",arc:["intro","build","drop","breakdown","build","drop","outro"]},
+  "fred":{label:"Fred again.. — emotional release",blurb:"Intimate, sample-driven arc. Tender intro, gathering energy, cathartic drop, a stripped human breakdown, then a bigger release.",arc:["intro","verse","build","drop","breakdown","build","drop","outro"]},
+  "psychill":{label:"Suduaya / Zero Cult — immersive trip",blurb:"Long downtempo journey. Hypnotic groove that evolves gradually through contrast and reprise rather than tension/release spikes.",arc:["intro","verse","bridge","verse","reprise","outro"]},
+  "ambient":{label:"Ambient — slow bloom",blurb:"Minimal additive arc. Drone, gradual entrances, a single textural twist, recede to silence.",arc:["intro","verse","bridge","reprise","outro"]}
+};
+// Legacy keys saved by earlier builds → new style ids.
+const ARRANGEMENT_STYLE_ALIASES={"Electronic Arc":"landry","Pop Verse/Chorus":"swift","Ambient Arc":"ambient"};
+function resolveArrangementStyle(key){
+  if(ARRANGEMENT_STYLES[key])return key;
+  if(ARRANGEMENT_STYLE_ALIASES[key])return ARRANGEMENT_STYLE_ALIASES[key];
+  return null;
+}
+function arrangementStyleForGenre(genre){
+  if(["Ambient","Dark Ambient"].includes(genre))return"ambient";
+  if(["Ambient Dub","Downtempo"].includes(genre))return"psychill";
+  if(["House","Techno"].includes(genre))return"landry";
+  if(["DnB","Jungle / Breakbeat","Trap","IDM / Glitch"].includes(genre))return"fred";
+  return"fourtet";
+}
+// Lower tier = present even at low energy (foundational); higher tier = needs more energy to earn a slot.
+const ROLE_ENERGY_TIER={kick:0.12,bass:0.18,snare:0.3,hat:0.32,shaker:0.32,percussion:0.34,harmonic:0.46,melody:0.5,midi:0.5,texture:0.08};
+function trackEnergyTier(track){return ROLE_ENERGY_TIER[track.roleType||inferTrackRole(track)]??0.4;}
+
+// ================================================================
 // SECTION 4 — HARMONIC / KEY DATA
 // Modes: root semitone offsets from root, chord progressions, mood
 // ================================================================
@@ -1023,7 +1131,7 @@ const LEGACY_STORAGE_KEY="dt2aide_v4";
 const TARGET_LABELS={"digitakt-audio":"DT Audio","digitakt-midi":"DT MIDI","pro3-usb":"Pro 3","external-midi":"MIDI"};
 const ROLE_SHORT={kick:'KICK',snare:'SNARE',hat:'HAT',shaker:'SHAKER',bass:'BASS',harmonic:'CHORD',melody:'LEAD',texture:'TEXTURE',midi:'MIDI',percussion:'PERC'};
 const ROUTE_SHORT={'digitakt-audio':'DT','digitakt-midi':'DT MIDI','pro3-usb':'PRO 3','external-midi':'EXT'};
-let S={genre:"Ambient",subgenre:null,trackData:{},editId:null,patLen:64,keyIdx:0,previewMuted:{},seed:0,lockedTracks:{}};
+let S={genre:"Ambient",subgenre:null,trackData:{},editId:null,patLen:64,keyIdx:0,previewMuted:{},seed:0,lockedTracks:{},arrangement:null,arrangementSeed:0};
 
 function clamp(n,min,max){return Math.max(min,Math.min(max,n));}
 function escapeHtml(value){return String(value??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch]));}
@@ -1104,6 +1212,23 @@ function getRecommended(genre,subId){
   }));
 }
 
+// Composition keyboard shortcuts. Ignored while typing in a field or when a
+// modal is open, so they never fight normal editing.
+function onCompositionKey(e){
+  const tag=(e.target&&e.target.tagName||"").toLowerCase();
+  if(tag==="input"||tag==="textarea"||tag==="select"||e.target?.isContentEditable)return;
+  const modalOpen=["modal","aideModal","songModal","rulesModal"].some(id=>{const m=document.getElementById(id);return m&&!m.classList.contains("hidden");});
+  if(modalOpen)return;
+  if((e.ctrlKey||e.metaKey)&&(e.key==="z"||e.key==="Z")){e.preventDefault();undoArrangement();return;}
+  if(e.ctrlKey||e.metaKey||e.altKey)return;
+  switch(e.key){
+    case " ":e.preventDefault();toggleSong();break;
+    case "[":e.preventDefault();songNav(-1);break;
+    case "]":e.preventDefault();songNav(1);break;
+    case "l":case "L":e.preventDefault();toggleSongLoop();break;
+  }
+}
+
 function currentTracks(){return S.trackData[S.genre]||[];}
 
 function getTrack(id){return currentTracks().find(t=>t.id===id);}
@@ -1128,14 +1253,17 @@ function init(){
       S.trackData=migrateTrackData(raw);
       if(parsed.seed!==undefined)S.seed=parsed.seed;
       if(parsed.lockedTracks&&typeof parsed.lockedTracks==="object")S.lockedTracks=parsed.lockedTracks;
+      if(parsed.arrangement&&Array.isArray(parsed.arrangement.sections))S.arrangement=parsed.arrangement;
+      if(parsed.arrangementSeed!==undefined)S.arrangementSeed=parsed.arrangementSeed;
     }
   }catch(e){S.trackData=migrateTrackData({});}
-  loadGenre("Ambient");
+  loadGenre("Ambient",!!S.arrangement);
   updateSeedDisplay();
   initMidi();
   populateAudioOutputs();
   if(navigator.mediaDevices)navigator.mediaDevices.addEventListener('devicechange',onDeviceChange);
   document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!document.getElementById("modal").classList.contains("hidden"))closeModal();});
+  document.addEventListener("keydown",onCompositionKey);
   // Load Three.js from CDN; fall back to canvas 2D if unavailable
   const tjs=document.createElement('script');
   tjs.src='https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.min.js';
@@ -1150,7 +1278,7 @@ function init(){
 // ================================================================
 // SECTION 7 — GENRE / SUBGENRE LOADING
 // ================================================================
-function loadGenre(genre){
+function loadGenre(genre,keepArrangement){
   S.genre=genre;S.subgenre=null;S.keyIdx=0;
   const gd=GENRES[genre];
   document.getElementById("bpmDisplay").textContent=gd.bpm;
@@ -1161,7 +1289,9 @@ function loadGenre(genre){
   const bpmEl=document.getElementById("midiBpm");
   if(bpmEl){const m=gd.bpm.match(/\d+/);if(m)bpmEl.value=m[0];}
   renderSubgenreBar();
+  if(!keepArrangement){S.arrangementSeed=mkSeed();S.arrangement=null;}
   renderTrackGrid();
+  renderArrangementBar();
   renderCompositionGuide();
   renderHarmonicPanel();
   save();
@@ -1171,7 +1301,9 @@ function selectSubgenre(id){
   S.subgenre=(S.subgenre===id)?null:id;
   S.trackData[S.genre]=getRecommended(S.genre,S.subgenre);
   renderSubgenreBar();
+  S.arrangementSeed=mkSeed();S.arrangement=null;
   renderTrackGrid();
+  renderArrangementBar();
   const sg=currentSG();
   document.getElementById("subgenreNote").textContent=sg?sg.note:"";
   if(sg&&sg.bpm)document.getElementById("bpmDisplay").textContent=sg.bpm;
@@ -1346,6 +1478,7 @@ async function togglePreview(){
     if(audioCtx){audioCtx.close();audioCtx=null;}
     setPreviewBtn(false);
   } else {
+    if(songPlaying)stopSong();
     previewPlaying=true;
     const ctx=getACtx();
     // Always apply sinkId when supported — even '' forces Chrome to re-latch
@@ -1627,8 +1760,10 @@ function renderTrackGrid(){
     viz+='</div>';
     const isMuted=S.previewMuted&&S.previewMuted[track.id];
     const isLocked=S.lockedTracks&&S.lockedTracks[track.id];
+    const activeSec=activeArrangementSection();
+    const inSection=!activeSec||activeSec.trackIds.includes(track.id);
     const card=document.createElement("div");
-    card.className=`track-card tc-${role} border p-2.5 select-none cursor-pointer${isLocked?' border-amber-700/40':' border-slate-800/80'}${isMuted?' pv-muted':''}`;
+    card.className=`track-card tc-${role} border p-2.5 select-none cursor-pointer${isLocked?' border-amber-700/40':' border-slate-800/80'}${isMuted?' pv-muted':''}${activeSec&&!inSection?' pv-muted':''}`;
     card.innerHTML=`<div class="flex items-center justify-between mb-1.5"><span class="mono text-[10px] text-slate-700 leading-none">${String(track.id).padStart(2,'0')}</span><div class="flex items-center gap-1"><button class="pvtog" onclick="toggleTrackLock(${track.id},event)" title="${isLocked?'Locked — regenerate skips this track':'Click to lock'}"><i class="fas fa-${isLocked?'lock text-amber-400':'lock-open text-slate-700'} text-[10px]"></i></button><button class="pvtog" onclick="event.stopPropagation();togglePreviewMute(${track.id})" title="${isMuted?'Excluded from preview':'In preview — click to mute'}"><i class="fas fa-${isMuted?'volume-xmark text-slate-700':'volume-low text-slate-600'} text-[10px]"></i></button></div></div><div class="font-semibold text-[11px] text-slate-100 leading-tight truncate mb-0.5">${escapeHtml(track.name)}</div><div class="text-[9px] tracking-widest font-bold text-slate-700 uppercase mb-1.5">${ROLE_SHORT[role]||role}</div>${viz}<div class="mt-1.5 rounded-full overflow-hidden" style="height:2px;background:rgba(148,163,184,.07)"><div style="width:${density}%;height:100%;background:var(--tc-rc,#475569);opacity:.55;border-radius:9999px"></div></div><div class="flex items-center justify-between mt-1.5"><span class="text-[9px] font-bold tracking-wide uppercase" style="color:var(--tc-rc,#475569);opacity:.55">${ROUTE_SHORT[track.target]||'MIDI'}</span><span class="text-[9px] mono text-slate-700">ch${track.midiChannel}</span></div>`;
     card.onclick=()=>openModal(track.id);
     grid.appendChild(card);
@@ -1647,6 +1782,532 @@ function toggleTrackLock(id,evt){
   S.lockedTracks[id]=!S.lockedTracks[id];
   renderTrackGrid();
   save();
+}
+
+// ================================================================
+// SECTION 7c — ARRANGEMENT / SONG STRUCTURE
+// Generates and edits the highest-order section labels (Intro, Build,
+// Drop, Bridge, Outro, ...) above the 16-track pattern, each carrying
+// its own subset of active tracks ("the pattern set" for that section).
+// ================================================================
+let arrangementUndo=[];
+function pushArrangementUndo(){
+  try{arrangementUndo.push(JSON.stringify(S.arrangement));}catch(e){}
+  if(arrangementUndo.length>40)arrangementUndo.shift();
+}
+function undoArrangement(){
+  if(!arrangementUndo.length)return;
+  try{S.arrangement=JSON.parse(arrangementUndo.pop());}catch(e){return;}
+  renderArrangementBar();renderTrackGrid();save();
+}
+// Map a 0–100 energy value to a cool→warm accent colour for the section chips.
+function energyColor(energy){
+  const e=clamp(energy/100,0,1);
+  const hue=Math.round(200-(200-8)*e); // 200 (cool cyan/blue) → 8 (warm red/orange)
+  return`hsl(${hue},70%,55%)`;
+}
+
+// Pick the active track-set for a section at a given energy level. Foundational
+// roles (kick/bass) survive low energy; melodic/harmonic roles need more energy
+// to earn a slot; texture mostly lives in the quiet sections.
+function tracksForEnergy(tracks,energy,rng){
+  const ids=tracks.filter(t=>{
+    const role=t.roleType||inferTrackRole(t);
+    if(role==="texture")return energy<0.55||(rng?rng():Math.random())<0.3;
+    return trackEnergyTier(t)<=energy+0.05;
+  }).map(t=>t.id);
+  if(!ids.length&&tracks.length)ids.push(tracks[0].id);
+  return ids;
+}
+
+function generateArrangement(styleKey){
+  styleKey=resolveArrangementStyle(styleKey)||resolveArrangementStyle(S.arrangement?.style)||arrangementStyleForGenre(S.genre);
+  const styleDef=ARRANGEMENT_STYLES[styleKey]||ARRANGEMENT_STYLES.fourtet;
+  const kinds=styleDef.arc;
+  const tracks=currentTracks();
+  const rng=mulberry32((S.arrangementSeed^0x9E3779B9)>>>0);
+  const seen={};
+  const sections=kinds.map((kind,i)=>{
+    const def=SECTION_KINDS[kind];
+    const energy=clamp(def.energy+(rng()-0.5)*0.12,0.05,1);
+    const trackIds=tracksForEnergy(tracks,energy,rng);
+    seen[kind]=(seen[kind]||0)+1;
+    const label=seen[kind]>1?`${def.label} ${seen[kind]}`:def.label;
+    const repeats=kind==="intro"||kind==="outro"?4:(kind==="drop"||kind==="chorus")?6:4;
+    return{id:`${kind}-${i}-${Math.floor(rng()*1e6)}`,kind,label,energy:Math.round(energy*100),repeats,trackIds};
+  });
+  return{style:styleKey,sections,activeIdx:0};
+}
+
+function ensureArrangement(force){
+  if(force||!S.arrangement||!S.arrangement.sections||!S.arrangement.sections.length){
+    if(!S.arrangementSeed)S.arrangementSeed=mkSeed();
+    S.arrangement=generateArrangement(S.arrangement?.style);
+  }
+}
+
+function regenerateArrangementForNewTracks(){
+  S.arrangementSeed=mkSeed();
+  S.arrangement=generateArrangement(S.arrangement?.style);
+  renderArrangementBar();
+  renderTrackGrid();
+  save();
+}
+
+function regenerateArrangement(){
+  pushArrangementUndo();
+  S.arrangementSeed=mkSeed();
+  S.arrangement=generateArrangement(S.arrangement?.style);
+  renderArrangementBar();
+  renderTrackGrid();
+  save();
+}
+
+function changeArrangementStyle(styleKey){
+  pushArrangementUndo();
+  S.arrangementSeed=mkSeed();
+  S.arrangement=generateArrangement(styleKey);
+  renderArrangementBar();
+  renderTrackGrid();
+  save();
+}
+
+function selectArrangementSection(idx){
+  ensureArrangement();
+  // While the song is playing, clicking a section "slips" playback to it.
+  if(songPlaying){slipToSection(idx);return;}
+  S.arrangement.activeIdx=(S.arrangement.activeIdx===idx)?-1:idx;
+  renderArrangementBar();
+  renderTrackGrid();
+}
+
+function moveArrangementSection(idx,dir){
+  ensureArrangement();
+  const j=idx+dir;
+  const secs=S.arrangement.sections;
+  if(j<0||j>=secs.length)return;
+  pushArrangementUndo();
+  [secs[idx],secs[j]]=[secs[j],secs[idx]];
+  if(S.arrangement.activeIdx===idx)S.arrangement.activeIdx=j;
+  else if(S.arrangement.activeIdx===j)S.arrangement.activeIdx=idx;
+  renderArrangementBar();
+  save();
+}
+
+function duplicateArrangementSection(idx,evt){
+  if(evt)evt.stopPropagation();
+  ensureArrangement();
+  const src=S.arrangement.sections[idx];
+  if(!src)return;
+  pushArrangementUndo();
+  const copy=JSON.parse(JSON.stringify(src));
+  copy.id=`${src.kind}-${Date.now()}`;
+  S.arrangement.sections.splice(idx+1,0,copy);
+  S.arrangement.activeIdx=idx+1;
+  renderArrangementBar();renderTrackGrid();save();
+}
+
+function activeArrangementSection(){
+  ensureArrangement();
+  const idx=S.arrangement.activeIdx;
+  return(idx>=0&&idx<S.arrangement.sections.length)?S.arrangement.sections[idx]:null;
+}
+
+function toggleArrangementTrack(trackId){
+  const sec=activeArrangementSection();
+  if(!sec)return;
+  pushArrangementUndo();
+  const i=sec.trackIds.indexOf(trackId);
+  if(i>=0)sec.trackIds.splice(i,1);
+  else sec.trackIds.push(trackId);
+  renderArrangementBar();
+  renderTrackGrid();
+  save();
+}
+
+function renameArrangementSection(kind){
+  const sec=activeArrangementSection();
+  if(!sec)return;
+  pushArrangementUndo();
+  sec.kind=kind;
+  sec.label=SECTION_KINDS[kind]?.label||kind;
+  sec.energy=Math.round((SECTION_KINDS[kind]?.energy??0.5)*100);
+  renderArrangementBar();
+  save();
+}
+
+function setArrangementRepeats(val){
+  const sec=activeArrangementSection();
+  if(!sec)return;
+  pushArrangementUndo();
+  sec.repeats=clamp(parseInt(val)||1,1,16);
+  save();
+}
+
+function addArrangementSection(){
+  ensureArrangement();
+  pushArrangementUndo();
+  const insertAt=S.arrangement.activeIdx>=0?S.arrangement.activeIdx+1:S.arrangement.sections.length;
+  const kind="verse";
+  const def=SECTION_KINDS[kind];
+  S.arrangement.sections.splice(insertAt,0,{id:`${kind}-${Date.now()}`,kind,label:def.label,energy:Math.round(def.energy*100),repeats:4,trackIds:currentTracks().map(t=>t.id)});
+  S.arrangement.activeIdx=insertAt;
+  renderArrangementBar();
+  renderTrackGrid();
+  save();
+}
+
+function removeArrangementSection(idx,evt){
+  if(evt)evt.stopPropagation();
+  if(!S.arrangement||S.arrangement.sections.length<=1)return;
+  pushArrangementUndo();
+  S.arrangement.sections.splice(idx,1);
+  if(S.arrangement.activeIdx>=S.arrangement.sections.length)S.arrangement.activeIdx=S.arrangement.sections.length-1;
+  renderArrangementBar();
+  renderTrackGrid();
+  save();
+}
+
+function renderArrangementBar(){
+  ensureArrangement();
+  const styleSel=document.getElementById("arrangementStyleSel");
+  if(styleSel&&!styleSel.options.length){
+    Object.keys(ARRANGEMENT_STYLES).forEach(k=>{const o=document.createElement("option");o.value=k;o.textContent=ARRANGEMENT_STYLES[k].label;styleSel.appendChild(o);});
+  }
+  if(styleSel)styleSel.value=resolveArrangementStyle(S.arrangement.style)||"fourtet";
+  const chips=document.getElementById("arrangementChips");
+  if(!chips)return;
+  const total=S.arrangement.sections.length;
+  chips.innerHTML=S.arrangement.sections.map((sec,i)=>{
+    const on=S.arrangement.activeIdx===i;
+    const nowPlaying=songPlaying&&songPlayIdx===i;
+    const col=energyColor(sec.energy);
+    const prog=nowPlaying?`<span style="position:absolute;left:0;bottom:0;height:2px;width:${Math.round(songSectionProgress*100)}%;background:${col};border-radius:2px;transition:width .1s linear"></span>`:"";
+    return`<button onclick="selectArrangementSection(${i})" class="sg-pill${on?' sg-on':''}" style="position:relative;padding-left:.95rem;padding-right:1.4rem;overflow:hidden;${nowPlaying?`box-shadow:0 0 0 1px ${col},0 0 10px ${col}66;`:''}" title="${escapeHtml(sec.label)} · ${sec.energy}% energy · ${sec.trackIds.length} tracks · ${sec.repeats}×">
+      <span style="position:absolute;left:.35rem;top:50%;transform:translateY(-50%);width:6px;height:6px;border-radius:50%;background:${col}"></span>
+      ${nowPlaying?'<i class="fas fa-play" style="font-size:.5rem;margin-right:.25rem;color:'+col+'"></i>':''}${escapeHtml(sec.label)}
+      ${total>1?`<span onclick="removeArrangementSection(${i},event)" style="position:absolute;right:.3rem;top:50%;transform:translateY(-50%);opacity:.5;font-weight:700" title="Remove section">×</span>`:""}
+      ${prog}
+    </button>`;
+  }).join("");
+  const panel=document.getElementById("arrangementPanel");
+  const sec=activeArrangementSection();
+  if(!sec){panel.classList.add("hidden");panel.innerHTML="";return;}
+  const idx=S.arrangement.activeIdx;
+  panel.classList.remove("hidden");
+  const kindOptions=SECTION_KIND_ORDER.map(k=>`<option value="${k}" ${sec.kind===k?"selected":""}>${SECTION_KINDS[k].label}</option>`).join("");
+  panel.className="ccard p-3 space-y-2.5";
+  panel.innerHTML=`
+    <div class="flex items-center gap-2 flex-wrap">
+      <select onchange="renameArrangementSection(this.value)" class="text-xs bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-slate-300 focus:outline-none focus:border-cyan-600">${kindOptions}</select>
+      <span class="text-[10px] text-slate-600 flex-1 min-w-[8rem]">${escapeHtml(SECTION_KINDS[sec.kind]?.note||"")}</span>
+      <button onclick="moveArrangementSection(${idx},-1)" class="px-1.5 py-1 text-xs bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg text-slate-500" title="Move left">←</button>
+      <button onclick="moveArrangementSection(${idx},1)" class="px-1.5 py-1 text-xs bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg text-slate-500" title="Move right">→</button>
+      <button onclick="duplicateArrangementSection(${idx},event)" class="px-1.5 py-1 text-xs bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg text-slate-500" title="Duplicate section"><i class="fas fa-clone"></i></button>
+      <div class="flex items-center gap-1.5">
+        <span class="lbl">Repeats</span>
+        <input type="number" min="1" max="16" value="${sec.repeats}" onchange="setArrangementRepeats(this.value)" class="w-12 bg-slate-800 border border-slate-700 rounded-lg px-1.5 py-1 text-xs text-center text-white mono focus:outline-none focus:border-cyan-600">
+      </div>
+      <span class="text-[10px] mono" style="color:${energyColor(sec.energy)}">${sec.energy}% energy</span>
+      <button onclick="suggestForSection(${idx})" class="px-2 py-1 text-xs bg-purple-950/40 hover:bg-purple-900/40 border border-purple-800/40 rounded-lg text-purple-300 flex items-center gap-1" title="Ask the Aide about this section"><i class="fas fa-lightbulb text-[10px]"></i> Aide</button>
+    </div>
+    <div class="lbl">Pattern set — click a track to include/exclude it from "${escapeHtml(sec.label)}"</div>
+    <div class="flex gap-1.5 flex-wrap">${currentTracks().map(t=>{
+      const on=sec.trackIds.includes(t.id);
+      return`<button onclick="toggleArrangementTrack(${t.id})" class="px-2 py-1 rounded text-xs mono font-semibold border transition-colors ${on?"bg-cyan-900/50 border-cyan-700/50 text-cyan-300":"bg-slate-900 border-slate-800 text-slate-600"}">${t.icon} ${String(t.id).padStart(2,"0")}</button>`;
+    }).join("")}</div>
+    <div id="sectionSuggestion" class="hidden text-xs text-purple-300/90 bg-purple-950/20 border border-purple-900/40 rounded-lg p-2.5 leading-relaxed"></div>`;
+}
+
+function currentSongSteps(){
+  ensureArrangement();
+  return S.arrangement.sections.map((sec,i)=>({
+    l:`A${String(i+1).padStart(2,"0")}`,
+    a:`${sec.label} — ${sec.trackIds.length} tracks active, ${sec.energy}% energy. ${sec.repeats} repeats.`,
+    trks:sec.trackIds
+  }));
+}
+
+// ================================================================
+// SECTION 7d — AIDE COMPOSITION SUGGESTIONS
+// Heuristic "collaborator" that reads the energy/role profile of a
+// pattern (or a section's track subset) and recommends a structural
+// label with reasoning, plus full-song arc templates.
+// ================================================================
+function analyzeTracks(tracks){
+  const active=(tracks||[]).filter(t=>t.steps&&t.steps.length);
+  let trig=0,energySum=0;const roles={};
+  active.forEach(t=>{
+    const role=t.roleType||inferTrackRole(t);
+    roles[role]=(roles[role]||0)+1;
+    const len=Math.max(16,Math.ceil(Math.max(...t.steps)/16)*16);
+    trig+=t.steps.length;
+    energySum+=(t.steps.length/len)*(1+trackEnergyTier(t));
+  });
+  const total=(tracks||[]).length;
+  const density=active.length/Math.max(1,total);
+  const energy=clamp((energySum/Math.max(1,active.length))*(0.45+0.55*density),0,1);
+  return{active:active.length,total,trig,density,energy,roles,
+    hasKick:!!roles.kick,hasBass:!!roles.bass,
+    hasDrums:!!(roles.kick||roles.snare||roles.hat||roles.percussion||roles.shaker),
+    hasMelodic:!!(roles.melody||roles.harmonic||roles.midi),
+    textureHeavy:(roles.texture||0)>=Math.max(1,active.length)*0.5};
+}
+
+function suggestSectionLabel(tracks){
+  const a=analyzeTracks(tracks);
+  let kind,reason;
+  if(a.active===0){kind="intro";reason="No active trigs yet — start as an empty intro and bring in one element at a time.";}
+  else if(a.textureHeavy&&!a.hasDrums){kind="intro";reason=`Texture-led with no drums (${a.active} tracks) — reads as an atmospheric intro or outro, à la Four Tet world-building.`;}
+  else if(!a.hasDrums&&a.hasMelodic){kind="breakdown";reason="Melody/harmony with no drum foundation — a natural breakdown or bridge that exposes the melodic content.";}
+  else if(a.energy>=0.7&&a.hasKick&&a.hasBass&&a.hasMelodic){kind="drop";reason=`High density (${Math.round(a.energy*100)}% energy) with kick, bass and melodic layers all firing — this is your peak/drop or biggest chorus.`;}
+  else if(a.energy>=0.55&&a.hasKick&&a.hasBass){kind="chorus";reason=`Full low-end foundation at ${Math.round(a.energy*100)}% energy — strong enough to carry a chorus or main groove.`;}
+  else if(a.hasKick&&a.hasBass){kind="verse";reason="Kick + bass groove at moderate density — a verse / main-groove that leaves room to build.";}
+  else if(a.hasDrums){kind="build";reason="Rhythmic but missing full low-end or melody — works as a build toward a fuller section.";}
+  else{kind="bridge";reason="Sparse, contrasting material — use it as a bridge for contrast before the next hook.";}
+  const def=SECTION_KINDS[kind];
+  const alternates=SECTION_KIND_ORDER.filter(k=>k!==kind)
+    .sort((x,y)=>Math.abs(SECTION_KINDS[x].energy-a.energy)-Math.abs(SECTION_KINDS[y].energy-a.energy)).slice(0,3);
+  return{kind,label:def.label,reason,energy:Math.round(a.energy*100),analysis:a,alternates};
+}
+
+function applyRecommendedLabel(){
+  const s=suggestSectionLabel(currentTracks());
+  pushArrangementUndo();
+  const activeIds=currentTracks().filter(t=>t.steps&&t.steps.length).map(t=>t.id);
+  const def=SECTION_KINDS[s.kind];
+  S.arrangement.sections.push({id:`${s.kind}-${Date.now()}`,kind:s.kind,label:def.label,energy:s.energy,repeats:s.kind==="drop"||s.kind==="chorus"?6:4,trackIds:activeIds.length?activeIds:currentTracks().map(t=>t.id)});
+  S.arrangement.activeIdx=S.arrangement.sections.length-1;
+  renderArrangementBar();renderTrackGrid();save();
+  closeAideModal();
+}
+
+function applyCompositionStyle(key){
+  changeArrangementStyle(key);
+  closeAideModal();
+}
+
+// Per-section coaching shown inline under the section editor.
+function suggestForSection(idx){
+  const sec=S.arrangement.sections[idx];
+  const el=document.getElementById("sectionSuggestion");
+  if(!sec||!el)return;
+  const subset=currentTracks().filter(t=>sec.trackIds.includes(t.id));
+  const s=suggestSectionLabel(subset);
+  const btnCls="ml-1 px-2 py-0.5 text-[11px] bg-purple-900/50 hover:bg-purple-800/60 border border-purple-700/50 rounded text-purple-100";
+  let tip;
+  if(s.kind!==sec.kind){
+    tip=`This section is labelled <b>${escapeHtml(sec.label)}</b>, but its content reads more like a <b>${escapeHtml(s.label)}</b> — ${escapeHtml(s.reason)} <button onclick="renameArrangementSection('${s.kind}')" class="${btnCls}">Relabel ${escapeHtml(s.label)}</button>`;
+  }else if(sec.energy>=65){
+    tip=`Dense ${escapeHtml(sec.label)} (${sec.energy}% energy). For tension/release, follow it with a contrasting breakdown — fewer tracks, melody exposed. <button onclick="addContrastSection(${idx})" class="${btnCls}">Add breakdown after</button>`;
+  }else{
+    tip=`${escapeHtml(sec.label)} sits at ${sec.energy}% energy and matches its content. Consider a louder payoff section after it for contrast. <button onclick="addContrastSection(${idx})" class="${btnCls}">Add payoff after</button>`;
+  }
+  el.innerHTML=tip;el.classList.remove("hidden");
+}
+
+function addContrastSection(idx){
+  const sec=S.arrangement.sections[idx];
+  if(!sec)return;
+  pushArrangementUndo();
+  const high=sec.energy>=60;
+  const kind=high?"breakdown":"drop";
+  const def=SECTION_KINDS[kind];
+  const trackIds=tracksForEnergy(currentTracks(),def.energy);
+  S.arrangement.sections.splice(idx+1,0,{id:`${kind}-${Date.now()}`,kind,label:def.label,energy:Math.round(def.energy*100),repeats:high?4:6,trackIds});
+  S.arrangement.activeIdx=idx+1;
+  renderArrangementBar();renderTrackGrid();save();
+}
+
+function openAideModal(){
+  ensureArrangement();
+  const s=suggestSectionLabel(currentTracks());
+  const a=s.analysis;
+  const roleStr=Object.keys(a.roles).map(r=>`${ROLE_SHORT[r]||r}×${a.roles[r]}`).join("  ")||"none";
+  const recKey=resolveArrangementStyle(S.arrangement.style);
+  const genreRec=arrangementStyleForGenre(S.genre);
+  const styleCards=Object.keys(ARRANGEMENT_STYLES).map(k=>{
+    const st=ARRANGEMENT_STYLES[k];
+    const arcPreview=st.arc.map(kn=>SECTION_KINDS[kn].label).join(" → ");
+    const isCur=recKey===k;
+    return`<div class="ccard p-3 ${isCur?'border-purple-700/50':''}">
+      <div class="flex items-center justify-between gap-2 mb-1">
+        <div class="font-semibold text-slate-100 text-sm">${escapeHtml(st.label)} ${k===genreRec?'<span class="text-[10px] text-emerald-400 font-normal">· fits this genre</span>':''}</div>
+        <button onclick="applyCompositionStyle('${k}')" class="px-2.5 py-1 text-xs ${isCur?'bg-slate-800 text-slate-400 border-slate-700':'bg-purple-800/60 hover:bg-purple-700/70 text-purple-100 border-purple-700/50'} border rounded-lg">${isCur?'Current':'Apply'}</button>
+      </div>
+      <p class="text-xs text-slate-400 leading-relaxed mb-1.5">${escapeHtml(st.blurb)}</p>
+      <div class="text-[10px] mono text-slate-600">${escapeHtml(arcPreview)}</div>
+    </div>`;
+  }).join("");
+  document.getElementById("aideBody").innerHTML=`
+    <div class="ccard p-3">
+      <div class="lbl mb-2">Current pattern — Aide read</div>
+      <div class="flex items-center gap-3 mb-2 flex-wrap">
+        <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full" style="background:${energyColor(s.energy)}"></span><span class="mono text-sm" style="color:${energyColor(s.energy)}">${s.energy}% energy</span></div>
+        <span class="text-xs text-slate-500">${a.active}/${a.total} tracks active · ${a.trig} trigs</span>
+      </div>
+      <div class="text-[11px] mono text-slate-500 mb-3">${escapeHtml(roleStr)}</div>
+      <div class="bg-purple-950/20 border border-purple-900/40 rounded-lg p-3">
+        <div class="text-sm text-slate-200 mb-1">Suggested label: <b class="text-purple-300">${escapeHtml(s.label)}</b></div>
+        <p class="text-xs text-purple-200/80 leading-relaxed mb-2">${escapeHtml(s.reason)}</p>
+        <div class="text-[10px] text-slate-500 mb-2">Alternatives: ${s.alternates.map(k=>escapeHtml(SECTION_KINDS[k].label)).join(", ")}</div>
+        <button onclick="applyRecommendedLabel()" class="px-3 py-1.5 text-xs bg-purple-800/60 hover:bg-purple-700/70 border border-purple-700/50 text-purple-100 rounded-lg"><i class="fas fa-plus mr-1"></i>Add "${escapeHtml(s.label)}" as a section</button>
+      </div>
+    </div>
+    <div>
+      <div class="lbl mb-2">Auto-arrange — suggest a full composition</div>
+      <div class="space-y-2">${styleCards}</div>
+    </div>`;
+  document.getElementById("aideModal").classList.remove("hidden");
+}
+function closeAideModal(){document.getElementById("aideModal").classList.add("hidden");}
+
+// ================================================================
+// SECTION 7e — FULL-SONG PLAYBACK (chained sections)
+// Plays each section's pattern set for its repeat count, in order,
+// through the existing Web Audio preview synth. Reflects the current
+// section + progress in the top bar, supports loop and "slip" jumps.
+// ================================================================
+let songPlaying=false,songPlayIdx=-1,songSectionProgress=0,songLoop=false;
+let songRaf=null,songEndsAt=0,songSectionTimes=[];
+
+function songActiveTracksFor(sec){
+  const ids=sec.trackIds||[];
+  return currentTracks().filter(t=>ids.includes(t.id)&&t.steps&&t.steps.length&&!(S.previewMuted&&S.previewMuted[t.id]));
+}
+
+function scheduleSongPlayback(startIdx){
+  const ctx=getACtx();
+  if(ctx.state==="suspended")ctx.resume();
+  const bpm=parseFloat(document.getElementById("midiBpm").value)||120;
+  const sps=(60/bpm)/4;
+  const secs=S.arrangement.sections;
+  let cursor=ctx.currentTime+0.08;
+  songSectionTimes=[];
+  for(let si=startIdx;si<secs.length;si++){
+    const sec=secs[si];
+    const tracks=songActiveTracksFor(sec);
+    const trackLens=tracks.map(t=>Math.max(16,Math.ceil(Math.max(...t.steps)/16)*16));
+    let cycleLen=trackLens.length?trackLens.reduce((a,b)=>plcm(a,b),16):16;
+    if(cycleLen>256)cycleLen=128;
+    const reps=clamp(sec.repeats||1,1,16);
+    const secDur=cycleLen*sps*reps;
+    songSectionTimes.push({idx:si,start:cursor,end:cursor+secDur});
+    for(let r=0;r<reps;r++){
+      const rt=cursor+r*cycleLen*sps;
+      tracks.forEach((t,i)=>{
+        const tLen=trackLens[i];
+        const type=classifyTrack(t);
+        if(type==="texture")return;
+        const tLoops=cycleLen/tLen;
+        for(let tl=0;tl<tLoops;tl++){
+          const lt=tl*tLen*sps;
+          t.steps.forEach(step=>{
+            if(step<1||step>tLen)return;
+            const prob=t.lanes&&t.lanes.probability&&t.lanes.probability[step]!=null?t.lanes.probability[step]:100;
+            if(Math.random()*100>=prob)return;
+            const cond=t.lanes&&t.lanes.condition&&t.lanes.condition[step];
+            if(cond&&!evalCondition(cond,r))return;
+            synthHit(ctx,type,rt+lt+(step-1)*sps);
+          });
+        }
+      });
+    }
+    cursor+=secDur;
+  }
+  songEndsAt=cursor;
+  return cursor;
+}
+
+function songProgressFrame(){
+  if(!songPlaying){songRaf=null;return;}
+  const ctx=audioCtx;
+  if(!ctx){songRaf=null;return;}
+  const now=ctx.currentTime;
+  const cur=songSectionTimes.find(s=>now>=s.start&&now<s.end);
+  if(cur){
+    if(songPlayIdx!==cur.idx){songPlayIdx=cur.idx;renderArrangementBar();}
+    songSectionProgress=(now-cur.start)/Math.max(0.001,cur.end-cur.start);
+    const f=document.getElementById("songProgFill");
+    if(f)f.style.width=Math.round(songSectionProgress*100)+"%";
+  }
+  if(now>=songEndsAt-0.02){
+    if(songLoop){slipToSection(0);return;}
+    stopSong();return;
+  }
+  songRaf=requestAnimationFrame(songProgressFrame);
+}
+
+function _resetAudioForSong(){
+  if(previewPlaying){previewPlaying=false;clearTimeout(previewSched);previewSched=null;setPreviewBtn(false);}
+  if(audioCtx){try{audioCtx.close();}catch(e){}audioCtx=null;}
+  _prevAnalyser=null;
+}
+
+function playSong(fromIdx){
+  ensureArrangement();
+  if(!S.arrangement.sections.length)return;
+  _resetAudioForSong();
+  songPlaying=true;songPlayIdx=fromIdx||0;songSectionProgress=0;
+  setSongBtn(true);
+  const ctx=getACtx();
+  if(typeof ctx.setSinkId==="function")ctx.setSinkId(previewSinkId).catch(()=>{});
+  scheduleSongPlayback(songPlayIdx);
+  if(vizSrc==="preview"&&_prevAnalyser)vizStart();
+  songRaf=requestAnimationFrame(songProgressFrame);
+  renderArrangementBar();
+}
+
+function stopSong(){
+  songPlaying=false;songPlayIdx=-1;songSectionProgress=0;
+  if(songRaf){cancelAnimationFrame(songRaf);songRaf=null;}
+  if(vizSrc==="preview")vizStop();
+  if(audioCtx){try{audioCtx.close();}catch(e){}audioCtx=null;}
+  _prevAnalyser=null;
+  setSongBtn(false);
+  renderArrangementBar();
+}
+
+function toggleSong(){if(songPlaying)stopSong();else playSong(0);}
+
+// "Slip" — jump live playback to a section (restart the schedule from there).
+function slipToSection(idx){
+  if(audioCtx){try{audioCtx.close();}catch(e){}audioCtx=null;}
+  _prevAnalyser=null;
+  if(songRaf){cancelAnimationFrame(songRaf);songRaf=null;}
+  songPlaying=true;songPlayIdx=idx;songSectionProgress=0;
+  const ctx=getACtx();
+  if(typeof ctx.setSinkId==="function")ctx.setSinkId(previewSinkId).catch(()=>{});
+  scheduleSongPlayback(idx);
+  if(vizSrc==="preview"&&_prevAnalyser)vizStart();
+  songRaf=requestAnimationFrame(songProgressFrame);
+  renderArrangementBar();
+}
+
+function songNav(dir){
+  ensureArrangement();
+  const n=S.arrangement.sections.length;if(!n)return;
+  if(songPlaying){
+    slipToSection(clamp((songPlayIdx<0?0:songPlayIdx)+dir,0,n-1));
+  }else{
+    const cur=S.arrangement.activeIdx<0?(dir>0?-1:0):S.arrangement.activeIdx;
+    S.arrangement.activeIdx=clamp(cur+dir,0,n-1);
+    renderArrangementBar();renderTrackGrid();
+  }
+}
+
+function toggleSongLoop(){songLoop=!songLoop;updateSongLoopBtn();}
+function updateSongLoopBtn(){
+  const b=document.getElementById("songLoopBtn");if(!b)return;
+  b.classList.toggle("text-cyan-300",songLoop);
+  b.classList.toggle("border-cyan-700",songLoop);
+  b.classList.toggle("bg-cyan-950/40",songLoop);
+}
+function setSongBtn(playing){
+  const b=document.getElementById("songPlayBtn");if(!b)return;
+  b.innerHTML=playing?'<i class="fas fa-stop text-red-400 text-xs"></i> Stop Song':'<i class="fas fa-play text-emerald-400 text-xs"></i> Play Song';
+  b.classList.toggle("bg-red-950/60",playing);
+  b.classList.toggle("border-red-800/50",playing);
 }
 
 function renderCompositionGuide(){
@@ -1862,7 +2523,8 @@ function clearPattern(){const t=getTrack(S.editId);if(t){t.steps=[];if(t.lanes){
 function loadRecommendedDefaults(){
   if(!confirm(`Reset all ${S.genre}${S.subgenre?` (${currentSG().name})`:"" } tracks to recommended patterns?`))return;
   S.trackData[S.genre]=getRecommended(S.genre,S.subgenre);
-  renderTrackGrid();save();
+  S.arrangementSeed=mkSeed();S.arrangement=null;
+  renderTrackGrid();renderArrangementBar();save();
 }
 
 // ================================================================
@@ -1885,7 +2547,9 @@ function exportAllPatterns(){
     }
     out+=`${thin}\n\n`;
   });
-  out+=`${bar}\n Digitakt II Notes\n${bar}\n • FUNC+COPY / FUNC+PASTE to duplicate patterns\n • Hold TRIG to add parameter locks per step\n • Hold TRIG + right arrow for conditional trigs\n • Song Mode: chain patterns for long-form composition\n • Track 16 as MIDI: gate the Sequential Pro 3\n${bar}\n`;
+  out+=`${bar}\n Arrangement — ${S.arrangement?S.arrangement.style:""}\n${bar}\n`;
+  currentSongSteps().forEach(s=>{out+=` ${s.l}  ${s.a}\n   Tracks: ${s.trks.length?s.trks.join(", "):"none"}\n`;});
+  out+=`\n${bar}\n Digitakt II Notes\n${bar}\n • FUNC+COPY / FUNC+PASTE to duplicate patterns\n • Hold TRIG to add parameter locks per step\n • Hold TRIG + right arrow for conditional trigs\n • Song Mode: chain patterns for long-form composition\n • Track 16 as MIDI: gate the Sequential Pro 3\n${bar}\n`;
   document.getElementById("exportOut").value=out;
   document.getElementById("exportGenreLabel").textContent=S.genre+(S.subgenre&&currentSG()?` › ${currentSG().name}`:"");
   document.getElementById("exportPanel").classList.remove("hidden");
@@ -1951,7 +2615,9 @@ function regenerateComposition(newSeed){
     let next=rng()<0.5||keys.length<2?S.keyIdx:Math.floor(rng()*keys.length);
     S.keyIdx=next;
   }
+  S.arrangementSeed=mkSeed();S.arrangement=null;
   renderTrackGrid();
+  renderArrangementBar();
   renderHarmonicPanel();
   save();
 }
@@ -2152,8 +2818,7 @@ function sendToDigitakt(){
 let songStepIdx=0;
 
 function openSongSend(){
-  const comp=COMPOSITION[S.genre];
-  if(!comp||!comp.song){alert("No song guide for this genre yet.");return;}
+  if(!currentTracks().length){alert("No tracks to arrange yet.");return;}
   songStepIdx=0;
   document.getElementById("songModalGenre").textContent=S.genre;
   document.getElementById("songBpm").value=document.getElementById("midiBpm").value||120;
@@ -2166,7 +2831,7 @@ function openSongSend(){
 function closeSongModal(){document.getElementById("songModal").classList.add("hidden");}
 
 function renderSongStep(){
-  const steps=COMPOSITION[S.genre].song;
+  const steps=currentSongSteps();
   const step=steps[songStepIdx];
   document.getElementById("songProgress").innerHTML=steps.map((_,i)=>
     `<div class="flex-1 h-1.5 rounded-full ${i<songStepIdx?"bg-cyan-700":i===songStepIdx?"bg-cyan-400":"bg-slate-700"}"></div>`
@@ -2187,7 +2852,7 @@ function renderSongStep(){
 }
 
 function moveSongStep(dir){
-  const steps=COMPOSITION[S.genre].song;
+  const steps=currentSongSteps();
   const next=songStepIdx+dir;
   if(next>=steps.length){showSongSummary();return;}
   if(next<0)return;
@@ -2198,7 +2863,7 @@ function moveSongStep(dir){
 function showSongSummary(){
   document.getElementById("songStepView").classList.add("hidden");
   document.getElementById("songSummaryView").classList.remove("hidden");
-  document.getElementById("songChainDisplay").innerHTML=COMPOSITION[S.genre].song.map(s=>{
+  document.getElementById("songChainDisplay").innerHTML=currentSongSteps().map(s=>{
     const rm=s.a.match(/(\d+)\s*repeat/);
     const rep=rm?rm[1]:"?";
     return`<div class="flex items-baseline gap-2 border-b border-slate-800/50 py-1.5 last:border-0">
@@ -2216,7 +2881,7 @@ function sendCurrentSongStep(){
   const outputMap=getMidiOutputMap();
   const anyConnected=Object.values(outputMap).some(Boolean);
   if(!anyConnected){statusEl.textContent="Select MIDI output in main panel first";return;}
-  const step=COMPOSITION[S.genre].song[songStepIdx];
+  const step=currentSongSteps()[songStepIdx];
   const activeTrkIds=step.trks||[];
   const filteredTracks=currentTracks().map(t=>({
     ...t,steps:activeTrkIds.includes(t.id)?(t.steps||[]):[]
@@ -2237,7 +2902,7 @@ function sendCurrentSongStep(){
 // ================================================================
 // SECTION 15 — PERSISTENCE
 // ================================================================
-function save(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify({trackData:S.trackData,seed:S.seed,lockedTracks:S.lockedTracks}));}catch(e){}}
+function save(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify({trackData:S.trackData,seed:S.seed,lockedTracks:S.lockedTracks,arrangement:S.arrangement,arrangementSeed:S.arrangementSeed}));}catch(e){}}
 
 window.onload=init;
 </script>
