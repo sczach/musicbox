@@ -9,11 +9,11 @@
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 *,*::before,*::after{box-sizing:border-box}
-body{font-family:'Space Grotesk',system-ui,sans-serif;background:#09111f;color:#e2e8f0;min-height:100vh}
+body{font-family:'Space Grotesk',system-ui,sans-serif;background:#0a0f1a;color:#e2e8f0;min-height:100vh}
 .mono{font-family:'JetBrains Mono',monospace}
-.track-card{transition:border-color .1s,box-shadow .1s,transform .1s;cursor:pointer}
-.track-card:hover{border-color:#22d3ee!important;box-shadow:0 0 16px rgba(34,211,238,.13);transform:translateY(-1px)}
-.track-card:active{transform:translateY(0)}
+.track-card{transition:border-color .12s,background .12s;cursor:pointer}
+.track-card:hover{border-color:rgba(34,211,238,.35)!important;background:#0e1726!important}
+.track-card:active{background:#0c1422!important}
 .step-btn{aspect-ratio:1;display:flex;flex-direction:column;gap:0;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:.58rem;font-weight:500;border-radius:4px;border:1px solid #1a2540;background:#0e1828;color:#2a3d58;cursor:pointer;user-select:none;transition:all .06s}
 .step-btn:hover:not(.active){background:#182234;color:#4a6080;border-color:#253550}
 .step-btn.active{background:#22d3ee;color:#030d18;font-weight:700;border-color:#0891b2;box-shadow:0 0 6px rgba(34,211,238,.4)}
@@ -71,20 +71,60 @@ body{font-family:'Space Grotesk',system-ui,sans-serif;background:#09111f;color:#
 .viz-src-btn:hover:not(.viz-src-on){background:#182234;color:#608ab0}
 .viz-src-btn.viz-src-on{background:#0a3a58;border-color:#0891b2;color:#22d3ee}
 
-/* Palette */
-:root{--mb-panel:rgba(10,17,31,.88);--mb-border:rgba(148,163,184,.1)}
+/* ============================================================
+   DESIGN SYSTEM — calm, flat surfaces; one accent; hairline rules
+   Tokens: bg #0a0f1a · surface #0d1420 · hairline rgba(148,163,184,.08)
+   accent cyan #22d3ee · text e2e8f0/94a3b8/64748b/475569
+   ============================================================ */
+:root{
+  --mb-bg:#0a0f1a;--mb-panel:#0d1420;--mb-panel-2:#0f1727;
+  --mb-border:rgba(148,163,184,.08);--mb-border-strong:rgba(148,163,184,.16);
+  --mb-accent:#22d3ee;--mb-radius:12px;
+  --mb-t1:#e2e8f0;--mb-t2:#94a3b8;--mb-t3:#64748b;--mb-t4:#475569;
+}
 .app-shell{position:relative;z-index:1}
-.hero{background:rgba(11,18,33,.75);border:1px solid var(--mb-border);border-radius:14px;padding:.85rem 1.1rem}
-.status-chip{display:inline-flex;align-items:center;gap:.4rem;border:1px solid var(--mb-border);background:rgba(15,23,42,.55);border-radius:999px;padding:.3rem .6rem;font-size:.7rem;color:#64748b;white-space:nowrap}
-.status-chip strong{color:#cbd5e1;font-weight:600}
-.control-panel,.cockpit-card,.hardware-card{background:var(--mb-panel);border:1px solid var(--mb-border);border-radius:20px;box-shadow:0 6px 24px rgba(0,0,0,.2)}
-.control-panel{padding:.9rem}.cockpit-card{padding:1rem}.hardware-card{padding:.85rem}
-.metric-card{background:rgba(12,20,36,.7);border:1px solid var(--mb-border);border-radius:12px}
-.btn-primary{background:linear-gradient(135deg,#0e7490,#6d28d9)!important;border-color:rgba(6,182,212,.25)!important;color:white!important}
-/* Track card: clean + role-colour accent strip */
-.track-card{background:#0b1422!important;border-color:rgba(148,163,184,.09)!important;border-radius:14px!important;box-shadow:0 3px 12px rgba(0,0,0,.18);position:relative;overflow:hidden}
-.track-card::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:var(--tc-rc,rgba(148,163,184,.14))}
-.track-card:hover{border-color:rgba(148,163,184,.2)!important;box-shadow:0 6px 20px rgba(0,0,0,.26)}
+/* One unified surface treatment — no drop shadows, hairline borders */
+.hero,.control-panel,.cockpit-card,.hardware-card,.ccard,.metric-card{
+  background:var(--mb-panel);border:1px solid var(--mb-border);border-radius:var(--mb-radius);box-shadow:none}
+.hero{padding:.9rem 1.15rem}
+.control-panel{padding:1.1rem}.cockpit-card{padding:1.15rem}.hardware-card{padding:1rem}
+.ccard{padding:.85rem 1rem;border-radius:10px}
+.metric-card{background:var(--mb-panel-2);border-radius:10px}
+.status-chip{display:inline-flex;align-items:center;gap:.4rem;border:1px solid var(--mb-border);background:transparent;border-radius:999px;padding:.28rem .6rem;font-size:.7rem;color:var(--mb-t3);white-space:nowrap}
+.status-chip strong{color:var(--mb-t2);font-weight:600}
+/* Buttons — one ghost style, scoped so existing Tailwind utilities are tamed.
+   No !important: a descendant selector (0,1,1) already beats Tailwind's
+   single-class utilities (0,1,0). Special components (chips, icon-toggles,
+   segmented length control, mode buttons) are excluded so they keep their
+   own look and active-states. */
+.cockpit-card button:not(.sg-pill):not(.pvtog),
+.hardware-card button:not(.viz-src-btn),
+.control-panel button:not(.sg-pill),
+.side-rail button:not(.sg-pill),
+.modal-inner button:not(.len-btn):not(.cond-mode-btn):not(.note-mode-btn){
+  background:transparent;border:1px solid var(--mb-border);color:var(--mb-t2);
+  border-radius:8px;font-weight:500;transition:background .12s,border-color .12s,color .12s}
+.cockpit-card button:not(.sg-pill):not(.pvtog):hover,
+.hardware-card button:not(.viz-src-btn):hover,
+.control-panel button:not(.sg-pill):hover,
+.side-rail button:not(.sg-pill):hover,
+.modal-inner button:not(.len-btn):not(.cond-mode-btn):not(.note-mode-btn):hover{
+  background:var(--mb-panel-2);border-color:var(--mb-border-strong);color:var(--mb-t1)}
+/* De-greeble: icons inside ghost buttons go monochrome (state colour re-added selectively) */
+.cockpit-card button:not(.sg-pill):not(.pvtog) i,.hardware-card button:not(.viz-src-btn) i,
+.control-panel button i,.side-rail button:not(.sg-pill) i{color:inherit;opacity:.85}
+/* Primary action — the one saturated control (needs !important to beat the ghost rule) */
+.btn-primary,.btn-primary:hover{background:var(--mb-accent)!important;border-color:var(--mb-accent)!important;color:#04141a!important;font-weight:700}
+.btn-primary:hover{filter:brightness(1.08)}
+.btn-primary i{color:#04141a!important;opacity:1}
+/* Transport / play accent kept (functional state colour) */
+.cockpit-card button:not(.sg-pill):not(.pvtog) i.text-emerald-400{color:#34d399;opacity:1}
+/* Track card: flat, role-colour accent strip on the left edge */
+.track-card{background:var(--mb-panel)!important;border-color:var(--mb-border)!important;border-radius:11px!important;position:relative;overflow:hidden}
+.track-card::before{content:"";position:absolute;top:0;bottom:0;left:0;width:3px;background:var(--tc-rc,rgba(148,163,184,.18))}
+/* hover-reveal controls so the resting card is quiet */
+.track-card .tc-ctl{opacity:0;transition:opacity .12s}
+.track-card:hover .tc-ctl,.track-card .tc-ctl.tc-active{opacity:1}
 /* Role colours */
 .tc-kick{--tc-rc:#f43f5e}.tc-snare{--tc-rc:#fb923c}.tc-hat,.tc-shaker{--tc-rc:#94a3b8}
 .tc-bass{--tc-rc:#60a5fa}.tc-harmonic{--tc-rc:#22d3ee}.tc-melody{--tc-rc:#34d399}
@@ -92,9 +132,18 @@ body{font-family:'Space Grotesk',system-ui,sans-serif;background:#09111f;color:#
 /* Mini step dots inherit role colour */
 .mini-step{width:5px;height:9px;background:#111d2e;border-radius:1px}
 .mini-step.on{background:var(--tc-rc,#22d3ee)!important;box-shadow:none}
-.route-pill{display:inline-flex;align-items:center;gap:.25rem;padding:.15rem .4rem;border-radius:999px;border:1px solid rgba(148,163,184,.1);background:rgba(148,163,184,.05);color:#94a3b8;font-size:.58rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
-.device-kv{display:flex;align-items:center;justify-content:space-between;gap:.75rem;font-size:.68rem;color:#64748b;border-top:1px solid rgba(148,163,184,.07);padding-top:.4rem;margin-top:.4rem}.device-kv span:last-child{color:#cbd5e1;font-family:'JetBrains Mono',monospace}
+.device-kv{display:flex;align-items:center;justify-content:space-between;gap:.75rem;font-size:.68rem;color:var(--mb-t3)}
+.device-kv span:last-child{color:var(--mb-t2);font-family:'JetBrains Mono',monospace}
 select,input,textarea{box-shadow:none}
+/* Inputs/selects unified (no !important so #genreSelect keeps its own tone) */
+.cockpit-card select,.hardware-card select,.side-rail select,.modal-inner select,#arrangementBar select,
+.cockpit-card input,.hardware-card input,.side-rail input,.modal-inner input{
+  background:var(--mb-panel-2);border-color:var(--mb-border)}
+/* Secondary panels can be folded away to cut competing surfaces */
+.rail-fold>summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between}
+.rail-fold>summary::-webkit-details-marker{display:none}
+.rail-fold>summary .chevron{transition:transform .2s}
+.rail-fold[open]>summary .chevron{transform:rotate(180deg)}
 @media(max-width:1180px){.app-layout{flex-direction:column}.side-rail,.send-rail{position:static!important;width:100%!important;max-height:none!important}.guide-grid{grid-template-columns:1fr!important}}
 @media(max-width:760px){.track-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}.app-shell{padding-left:.75rem!important;padding-right:.75rem!important}}
 </style>
@@ -116,8 +165,7 @@ select,input,textarea{box-shadow:none}
         </div>
       </div>
       <div class="flex items-center gap-2">
-        <span class="status-chip"><i class="fas fa-circle-nodes text-slate-600 text-xs"></i> Euclidean</span>
-        <span class="status-chip"><i class="fas fa-usb text-slate-600 text-xs"></i> Web MIDI</span>
+        <span id="headerMidiChip" class="status-chip"><i class="fas fa-circle text-slate-700 text-[8px]"></i> <span class="hidden sm:inline">MIDI</span> <strong id="headerMidiState">checking</strong></span>
       </div>
     </div>
   </header>
@@ -345,36 +393,45 @@ select,input,textarea{box-shadow:none}
             <i class="fas fa-list-ol text-purple-400 text-xs"></i> Song Mode
           </button>
         </div>
-        <div class="space-y-1.5" aria-label="MIDI diagnostics">
-          <div class="device-kv"><span>Web MIDI</span><span id="diagWebMidi">checking</span></div>
-          <div class="device-kv"><span>Secure context</span><span id="diagSecure">checking</span></div>
-          <div class="device-kv"><span>SysEx</span><span id="diagSysex">off</span></div>
-          <div class="device-kv"><span>Outputs</span><span id="diagOutputs">0</span></div>
-        </div>
-        <p class="text-xs text-slate-600 leading-relaxed">Digitakt: <span class="text-slate-400">MIDI → Recv Clock + Transport ON</span> · hold <span class="text-slate-300">REC</span> · Send. Chrome/Edge.</p>
+        <details class="rail-fold" aria-label="MIDI diagnostics">
+          <summary class="text-[11px] text-slate-500 py-0.5">
+            <span>Connection details</span>
+            <i class="fas fa-chevron-down chevron text-slate-700 text-[10px]"></i>
+          </summary>
+          <div class="space-y-1.5 pt-2 mt-1 border-t border-slate-800/60">
+            <div class="device-kv"><span>Web MIDI</span><span id="diagWebMidi">checking</span></div>
+            <div class="device-kv"><span>Secure context</span><span id="diagSecure">checking</span></div>
+            <div class="device-kv"><span>SysEx</span><span id="diagSysex">off</span></div>
+            <div class="device-kv"><span>Outputs</span><span id="diagOutputs">0</span></div>
+            <p class="text-xs text-slate-600 leading-relaxed pt-1">Digitakt: <span class="text-slate-400">MIDI → Recv Clock + Transport ON</span> · hold <span class="text-slate-300">REC</span> · Send. Chrome/Edge.</p>
+          </div>
+        </details>
       </div>
 
-      <!-- Visualizer Panel -->
-      <div class="hardware-card space-y-2">
-        <div class="flex items-center justify-between">
-          <div class="lbl">Scope</div>
-          <div class="flex gap-1">
+      <!-- Visualizer Panel — secondary, collapsible -->
+      <details class="hardware-card rail-fold space-y-2" id="scopePanel">
+        <summary class="lbl py-0.5">
+          <span>Scope</span>
+          <i class="fas fa-chevron-down chevron text-slate-700 text-[10px]"></i>
+        </summary>
+        <div class="pt-2 space-y-2">
+          <div class="flex items-center justify-end gap-1">
             <button id="vizBtnPreview" class="viz-src-btn viz-src-on" onclick="setVizSource('preview')">Preview</button>
             <button id="vizBtnInput" class="viz-src-btn" onclick="setVizSource('input')">Input</button>
           </div>
+          <canvas id="vizCanvas" width="560" height="200" style="display:block;width:100%;height:100px;background:#030609;border-radius:6px;border:1px solid #1a2540"></canvas>
+          <div id="vizInputRow" class="hidden space-y-1.5">
+            <select id="vizInputSel" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-cyan-600">
+              <option value="">— select audio input —</option>
+            </select>
+            <button onclick="connectVizInput()" class="w-full py-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-slate-300 transition-colors flex items-center justify-center gap-1.5">
+              <i class="fas fa-microphone text-cyan-500 text-xs"></i> Connect Input
+            </button>
+          </div>
+          <div id="vizStatus" class="mono text-[10px] text-slate-600 leading-tight min-h-[1em]"></div>
+          <p class="text-xs text-slate-700 leading-relaxed">USB audio or interface required for Digitakt monitoring. Pro 3 USB is MIDI only.</p>
         </div>
-        <canvas id="vizCanvas" width="560" height="200" style="display:block;width:100%;height:100px;background:#030609;border-radius:6px;border:1px solid #1a2540"></canvas>
-        <div id="vizInputRow" class="hidden space-y-1.5">
-          <select id="vizInputSel" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-cyan-600">
-            <option value="">— select audio input —</option>
-          </select>
-          <button onclick="connectVizInput()" class="w-full py-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-slate-300 transition-colors flex items-center justify-center gap-1.5">
-            <i class="fas fa-microphone text-cyan-500 text-xs"></i> Connect Input
-          </button>
-        </div>
-        <div id="vizStatus" class="mono text-[10px] text-slate-600 leading-tight min-h-[1em]"></div>
-        <p class="text-xs text-slate-700 leading-relaxed">USB audio or interface required for Digitakt monitoring. Pro 3 USB is MIDI only.</p>
-      </div>
+      </details>
 
     </div>
 
@@ -486,7 +543,7 @@ select,input,textarea{box-shadow:none}
           <span class="lbl">Loops</span>
           <input id="songLoops" type="number" value="2" min="1" max="8" class="w-12 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-center mono text-white focus:outline-none focus:border-cyan-600">
         </div>
-        <button id="songSendBtn" onclick="sendCurrentSongStep()" class="px-4 py-1.5 text-xs bg-cyan-700 hover:bg-cyan-600 text-white font-bold rounded-lg flex items-center gap-1.5 transition-colors flex-shrink-0">
+        <button id="songSendBtn" onclick="sendCurrentSongStep()" class="btn-primary px-4 py-1.5 text-xs bg-cyan-700 hover:bg-cyan-600 text-white font-bold rounded-lg flex items-center gap-1.5 transition-colors flex-shrink-0">
           <i class="fas fa-paper-plane"></i> Send <span id="songSendLabel"></span>
         </button>
         <span id="songSendStatus" class="text-xs mono text-slate-600"></span>
@@ -510,7 +567,7 @@ select,input,textarea{box-shadow:none}
         <div id="songChainDisplay" class="space-y-1.5 text-xs"></div>
       </div>
       <div class="text-xs text-slate-600 mb-4">In Digitakt Song Mode: hold a row button to add a pattern slot, set repeat count, chain rows A01→A02→…</div>
-      <button onclick="closeSongModal()" class="w-full py-2 text-sm bg-cyan-700 hover:bg-cyan-600 text-white font-bold rounded-lg transition-colors">Done</button>
+      <button onclick="closeSongModal()" class="btn-primary w-full py-2 text-sm bg-cyan-700 hover:bg-cyan-600 text-white font-bold rounded-lg transition-colors">Done</button>
     </div>
   </div>
 </div>
@@ -1780,8 +1837,24 @@ function renderTrackGrid(){
     const activeSec=activeArrangementSection();
     const inSection=!activeSec||activeSec.trackIds.includes(track.id);
     const card=document.createElement("div");
-    card.className=`track-card tc-${role} border p-2.5 select-none cursor-pointer${isLocked?' border-amber-700/40':' border-slate-800/80'}${isMuted?' pv-muted':''}${activeSec&&!inSection?' pv-muted':''}`;
-    card.innerHTML=`<div class="flex items-center justify-between mb-1.5"><span class="mono text-[10px] text-slate-700 leading-none">${String(track.id).padStart(2,'0')}</span><div class="flex items-center gap-1"><button class="pvtog" onclick="toggleTrackLock(${track.id},event)" title="${isLocked?'Locked — regenerate skips this track':'Click to lock'}"><i class="fas fa-${isLocked?'lock text-amber-400':'lock-open text-slate-700'} text-[10px]"></i></button><button class="pvtog" onclick="event.stopPropagation();togglePreviewMute(${track.id})" title="${isMuted?'Excluded from preview':'In preview — click to mute'}"><i class="fas fa-${isMuted?'volume-xmark text-slate-700':'volume-low text-slate-600'} text-[10px]"></i></button></div></div><div class="font-semibold text-[11px] text-slate-100 leading-tight truncate mb-0.5">${escapeHtml(track.name)}</div><div class="text-[9px] tracking-widest font-bold text-slate-700 uppercase mb-1.5">${ROLE_SHORT[role]||role}</div>${viz}<div class="mt-1.5 rounded-full overflow-hidden" style="height:2px;background:rgba(148,163,184,.07)"><div style="width:${density}%;height:100%;background:var(--tc-rc,#475569);opacity:.55;border-radius:9999px"></div></div><div class="flex items-center justify-between mt-1.5"><span class="text-[9px] font-bold tracking-wide uppercase" style="color:var(--tc-rc,#475569);opacity:.55">${ROUTE_SHORT[track.target]||'MIDI'}</span><span class="text-[9px] mono text-slate-700">ch${track.midiChannel}</span></div>`;
+    card.className=`track-card tc-${role} border p-2.5 pl-3 select-none cursor-pointer border-slate-800/80${isMuted?' pv-muted':''}${activeSec&&!inSection?' pv-muted':''}`;
+    // controls stay visible only when they carry state (locked / muted); otherwise reveal on hover
+    const ctlActive=(isLocked||isMuted)?' tc-active':'';
+    card.innerHTML=`
+      <div class="flex items-start justify-between gap-1 mb-1">
+        <div class="min-w-0">
+          <span class="mono text-[10px] text-slate-600 leading-none">${String(track.id).padStart(2,'0')}</span>
+          <div class="font-semibold text-[11px] text-slate-100 leading-tight truncate">${escapeHtml(track.name)}</div>
+        </div>
+        <div class="tc-ctl${ctlActive} flex items-center gap-1 flex-shrink-0">
+          <button class="pvtog" onclick="toggleTrackLock(${track.id},event)" title="${isLocked?'Locked — regenerate skips this track':'Click to lock'}"><i class="fas fa-${isLocked?'lock text-amber-400':'lock-open text-slate-600'} text-[10px]"></i></button>
+          <button class="pvtog" onclick="event.stopPropagation();togglePreviewMute(${track.id})" title="${isMuted?'Excluded from preview':'In preview — click to mute'}"><i class="fas fa-${isMuted?'volume-xmark text-slate-500':'volume-low text-slate-600'} text-[10px]"></i></button>
+        </div>
+      </div>
+      <div class="text-[9px] tracking-widest font-bold uppercase mb-1.5" style="color:var(--tc-rc,#475569);opacity:.7">${ROLE_SHORT[role]||role}</div>
+      ${viz}
+      <div class="mt-2 rounded-full overflow-hidden" style="height:2px;background:rgba(148,163,184,.07)"><div style="width:${density}%;height:100%;background:var(--tc-rc,#475569);opacity:.5;border-radius:9999px"></div></div>
+      <div class="text-[9px] mono text-slate-700 mt-1.5">${ROUTE_SHORT[track.target]||'MIDI'} · ch${track.midiChannel}</div>`;
     card.onclick=()=>openModal(track.id);
     grid.appendChild(card);
   });
@@ -2818,10 +2891,17 @@ let midiAccess = null;
 function setText(id,value){const el=document.getElementById(id);if(el)el.textContent=value;}
 
 function updateMidiDiagnostics(outputCount){
-  setText("diagWebMidi",navigator.requestMIDIAccess?"ready":"unsupported");
+  const supported=!!navigator.requestMIDIAccess;
+  setText("diagWebMidi",supported?"ready":"unsupported");
   setText("diagSecure",window.isSecureContext||location.hostname==="localhost"?"ok":"required");
   setText("diagSysex","disabled");
   if(outputCount!==undefined)setText("diagOutputs",String(outputCount));
+  // Mirror a one-line live status into the header chip.
+  const chip=document.getElementById("headerMidiChip");
+  const dot=chip&&chip.querySelector("i");
+  const state=document.getElementById("headerMidiState");
+  if(state)state.textContent=!supported?"unsupported":(outputCount>0?`${outputCount} out`:"no devices");
+  if(dot)dot.style.color=!supported?"#f43f5e":(outputCount>0?"#34d399":"#64748b");
 }
 
 async function initMidi(){
