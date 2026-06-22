@@ -268,6 +268,7 @@ select,input,textarea{box-shadow:none}
         </div>
         <div id="arrangementChips" class="flex gap-1.5 flex-wrap"></div>
         <div id="arrangementPanel" class="hidden"></div>
+        <div id="aideNudge" class="hidden text-xs text-purple-300/90 bg-purple-950/20 border border-purple-900/40 rounded-lg p-2.5 leading-relaxed mt-2"></div>
       </div>
 
       <div id="trackGrid" class="track-grid grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2"></div>
@@ -674,7 +675,10 @@ select,input,textarea{box-shadow:none}
               <button id="condModeBtn" class="cond-mode-btn" onclick="toggleCondMode()" title="Enable condition mode: click steps to cycle trig conditions (1:2, 1:4, etc.)">Cond</button>
               <button id="noteModeBtn" class="note-mode-btn hidden" onclick="toggleNoteMode()" title="Enable note mode: click steps to cycle the pitch for that trig">Note</button>
             </div>
-            <div class="flex gap-3">
+            <div class="flex items-center gap-3">
+              <div id="sectionVariationWrap" class="hidden">
+                <button id="sectionVariationBtn" class="note-mode-btn" onclick="toggleSectionVariation()" title="Give the active arrangement section its own pattern variation for this track, independent of the base pattern"></button>
+              </div>
               <span id="stepCountDisplay" class="text-xs text-slate-500 mono"></span>
               <span id="densityDisplay" class="text-xs text-slate-700 mono"></span>
             </div>
@@ -1501,14 +1505,17 @@ function schedulePreview(){
   const bpm=parseFloat(document.getElementById("midiBpm").value)||120;
   const sps=(60/bpm)/4; // seconds per 16th-note step
 
-  // only tracks that have steps and aren't muted for preview
+  // only tracks that have steps and aren't muted for preview — if an
+  // arrangement section is selected, scope to its tracks and pattern variations
+  const sec=activeArrangementSection();
   const tracks=currentTracks().filter(t=>
-    t.steps&&t.steps.length&&!(S.previewMuted&&S.previewMuted[t.id])
+    t.steps&&t.steps.length&&!(S.previewMuted&&S.previewMuted[t.id])&&(!sec||sec.trackIds.includes(t.id))
   );
   if(!tracks.length){previewPlaying=false;setPreviewBtn(false);return 0;}
+  const patterns=tracks.map(t=>sectionPattern(t,sec));
 
   // per-track natural pattern length
-  const trackLens=tracks.map(t=>Math.max(16,Math.ceil(Math.max(...t.steps)/16)*16));
+  const trackLens=patterns.map(p=>Math.max(16,Math.ceil(Math.max(...p.steps)/16)*16));
 
   // LCM of all lengths = one complete cycle where every track returns to bar 1
   let cycleLen=trackLens.reduce((a,b)=>plcm(a,b),16);
@@ -1520,17 +1527,18 @@ function schedulePreview(){
   for(let outer=0;outer<outerLoops;outer++){
     const ot=outer*cycleLen*sps;
     tracks.forEach((t,i)=>{
+      const patt=patterns[i];
       const tLen=trackLens[i];
       const type=classifyTrack(t);
       if(type==="texture")return;
       const tLoops=cycleLen/tLen;
       for(let tl=0;tl<tLoops;tl++){
         const lt=tl*tLen*sps;
-        t.steps.forEach(step=>{
+        patt.steps.forEach(step=>{
           if(step<1||step>tLen)return;
-          const prob=t.lanes&&t.lanes.probability&&t.lanes.probability[step]!=null?t.lanes.probability[step]:100;
+          const prob=patt.lanes&&patt.lanes.probability&&patt.lanes.probability[step]!=null?patt.lanes.probability[step]:100;
           if(Math.random()*100>=prob)return;
-          const cond2=t.lanes&&t.lanes.condition&&t.lanes.condition[step];
+          const cond2=patt.lanes&&patt.lanes.condition&&patt.lanes.condition[step];
           if(cond2&&!evalCondition(cond2,outer))return;
           synthHit(ctx,type,t0+ot+lt+(step-1)*sps);
         });
@@ -1813,10 +1821,12 @@ function renderSubgenreBar(){
 function renderTrackGrid(){
   const grid=document.getElementById("trackGrid");grid.innerHTML="";
   const tracks=currentTracks();
+  const activeSecForViz=activeArrangementSection();
   tracks.forEach(track=>{
-    const sc=track.steps?track.steps.length:0;
+    const data=sectionPattern(track,activeSecForViz);
+    const sc=data.steps?data.steps.length:0;
     const role=track.roleType||inferTrackRole(track);
-    const maxSt=track.steps&&track.steps.length?Math.max(...track.steps):0;
+    const maxSt=data.steps&&data.steps.length?Math.max(...data.steps):0;
     const tPatLen=Math.max(16,Math.ceil(maxSt/16)*16);
     const density=tPatLen>0?Math.round((sc/tPatLen)*100):0;
     const rows=Math.min(tPatLen/16,4);
@@ -1825,8 +1835,8 @@ function renderTrackGrid(){
       viz+='<div class="flex gap-px">';
       for(let i=1;i<=16;i++){
         const step=r*16+i;
-        const on=track.steps&&track.steps.includes(step);
-        const hasProb=on&&track.lanes&&track.lanes.probability&&track.lanes.probability[step]!=null&&track.lanes.probability[step]<100;
+        const on=data.steps&&data.steps.includes(step);
+        const hasProb=on&&data.lanes&&data.lanes.probability&&data.lanes.probability[step]!=null&&data.lanes.probability[step]<100;
         viz+=`<div class="mini-step${on?' on':''}${hasProb?' opacity-50':''}"></div>`;
       }
       viz+='</div>';
@@ -1834,8 +1844,9 @@ function renderTrackGrid(){
     viz+='</div>';
     const isMuted=S.previewMuted&&S.previewMuted[track.id];
     const isLocked=S.lockedTracks&&S.lockedTracks[track.id];
-    const activeSec=activeArrangementSection();
+    const activeSec=activeSecForViz;
     const inSection=!activeSec||activeSec.trackIds.includes(track.id);
+    const hasVariation=hasSectionVariation(track,activeSec);
     const card=document.createElement("div");
     card.className=`track-card tc-${role} border p-2.5 pl-3 select-none cursor-pointer border-slate-800/80${isMuted?' pv-muted':''}${activeSec&&!inSection?' pv-muted':''}`;
     // controls stay visible only when they carry state (locked / muted); otherwise reveal on hover
@@ -1854,7 +1865,7 @@ function renderTrackGrid(){
       <div class="text-[9px] tracking-widest font-bold uppercase mb-1.5" style="color:var(--tc-rc,#475569);opacity:.7">${ROLE_SHORT[role]||role}</div>
       ${viz}
       <div class="mt-2 rounded-full overflow-hidden" style="height:2px;background:rgba(148,163,184,.07)"><div style="width:${density}%;height:100%;background:var(--tc-rc,#475569);opacity:.5;border-radius:9999px"></div></div>
-      <div class="text-[9px] mono text-slate-700 mt-1.5">${ROUTE_SHORT[track.target]||'MIDI'} · ch${track.midiChannel}</div>`;
+      <div class="text-[9px] mono text-slate-700 mt-1.5">${ROUTE_SHORT[track.target]||'MIDI'} · ch${track.midiChannel}${hasVariation?' <span class="text-cyan-500">· variation</span>':''}</div>`;
     card.onclick=()=>openModal(track.id);
     grid.appendChild(card);
   });
@@ -1984,6 +1995,40 @@ function moveArrangementSection(idx,dir){
   save();
 }
 
+// Generalized reorder (vs. moveArrangementSection's single-step swap) — used by drag-to-reorder.
+function moveSectionToIndex(from,to){
+  const secs=S.arrangement.sections;
+  if(from<0||from>=secs.length)return;
+  to=clamp(to,0,secs.length-1);
+  if(from===to)return;
+  const[item]=secs.splice(from,1);
+  secs.splice(to,0,item);
+  const a=S.arrangement.activeIdx;
+  if(a===from)S.arrangement.activeIdx=to;
+  else if(from<a&&to>=a)S.arrangement.activeIdx--;
+  else if(from>a&&to<=a)S.arrangement.activeIdx++;
+}
+
+let dragSectionIdx=null;
+function sectionDragStart(e,idx){
+  dragSectionIdx=idx;
+  e.dataTransfer.effectAllowed="move";
+  try{e.dataTransfer.setData("text/plain",String(idx));}catch(err){}
+  e.currentTarget.style.opacity=".4";
+}
+function sectionDragEnd(e){
+  e.currentTarget.style.opacity="";
+  dragSectionIdx=null;
+}
+function sectionDrop(e,dropIdx){
+  e.preventDefault();
+  const from=dragSectionIdx;
+  if(from==null||from===dropIdx)return;
+  pushArrangementUndo();
+  moveSectionToIndex(from,dropIdx);
+  renderArrangementBar();renderTrackGrid();save();
+}
+
 function duplicateArrangementSection(idx,evt){
   if(evt)evt.stopPropagation();
   ensureArrangement();
@@ -2001,6 +2046,52 @@ function activeArrangementSection(){
   ensureArrangement();
   const idx=S.arrangement.activeIdx;
   return(idx>=0&&idx<S.arrangement.sections.length)?S.arrangement.sections[idx]:null;
+}
+
+// A section can hold its own {steps,lanes} variation per track, independent of
+// the track's base pattern. Falls back to the base track wherever no variation exists.
+function sectionPattern(track,sec){
+  if(sec&&sec.overrides&&sec.overrides[track.id])return sec.overrides[track.id];
+  return track;
+}
+
+// What the step editor should read/write: the active section's variation for
+// this track if one exists, otherwise the track's base pattern.
+function editTarget(track){
+  return sectionPattern(track,activeArrangementSection());
+}
+
+function hasSectionVariation(track,sec){
+  return !!(sec&&sec.overrides&&sec.overrides[track.id]);
+}
+
+function toggleSectionVariation(){
+  const sec=activeArrangementSection();const track=getTrack(S.editId);
+  if(!sec||!track)return;
+  if(!sec.overrides)sec.overrides={};
+  if(sec.overrides[track.id]){
+    delete sec.overrides[track.id];
+  } else {
+    const l=track.lanes||{};
+    sec.overrides[track.id]={
+      steps:[...(track.steps||[])],
+      lanes:{probability:{...(l.probability||{})},condition:{...(l.condition||{})},note:{...(l.note||{})}}
+    };
+  }
+  renderStepGrid();updateSectionVariationBtn();renderArrangementBar();renderTrackGrid();save();
+}
+
+function updateSectionVariationBtn(){
+  const wrap=document.getElementById("sectionVariationWrap");if(!wrap)return;
+  const sec=activeArrangementSection();const track=getTrack(S.editId);
+  if(!sec||!track){wrap.classList.add("hidden");return;}
+  wrap.classList.remove("hidden");
+  const has=hasSectionVariation(track,sec);
+  const btn=document.getElementById("sectionVariationBtn");
+  btn.innerHTML=has
+    ?`<i class="fas fa-xmark"></i> Remove ${escapeHtml(sec.label)} variation`
+    :`<i class="fas fa-code-branch"></i> Vary for ${escapeHtml(sec.label)}`;
+  btn.classList.toggle("note-on",has);
 }
 
 function toggleArrangementTrack(trackId){
@@ -2073,7 +2164,7 @@ function renderArrangementBar(){
     const nowPlaying=songPlaying&&songPlayIdx===i;
     const col=energyColor(sec.energy);
     const prog=nowPlaying?`<span style="position:absolute;left:0;bottom:0;height:2px;width:${Math.round(songSectionProgress*100)}%;background:${col};border-radius:2px;transition:width .1s linear"></span>`:"";
-    return`<button onclick="selectArrangementSection(${i})" class="sg-pill${on?' sg-on':''}" style="position:relative;padding-left:.95rem;padding-right:1.4rem;overflow:hidden;${nowPlaying?`box-shadow:0 0 0 1px ${col},0 0 10px ${col}66;`:''}" title="${escapeHtml(sec.label)} · ${sec.energy}% energy · ${sec.trackIds.length} tracks · ${sec.repeats}×">
+    return`<button onclick="selectArrangementSection(${i})" draggable="true" ondragstart="sectionDragStart(event,${i})" ondragend="sectionDragEnd(event)" ondragover="event.preventDefault()" ondrop="sectionDrop(event,${i})" class="sg-pill${on?' sg-on':''}" style="position:relative;padding-left:.95rem;padding-right:1.4rem;overflow:hidden;cursor:grab;${nowPlaying?`box-shadow:0 0 0 1px ${col},0 0 10px ${col}66;`:''}" title="${escapeHtml(sec.label)} · ${sec.energy}% energy · ${sec.trackIds.length} tracks · ${sec.repeats}× — drag to reorder">
       <span style="position:absolute;left:.35rem;top:50%;transform:translateY(-50%);width:6px;height:6px;border-radius:50%;background:${col}"></span>
       ${nowPlaying?'<i class="fas fa-play" style="font-size:.5rem;margin-right:.25rem;color:'+col+'"></i>':''}${escapeHtml(sec.label)}
       ${total>1?`<span onclick="removeArrangementSection(${i},event)" style="position:absolute;right:.3rem;top:50%;transform:translateY(-50%);opacity:.5;font-weight:700" title="Remove section">×</span>`:""}
@@ -2166,8 +2257,9 @@ function applyRecommendedLabel(){
   pushArrangementUndo();
   const activeIds=currentTracks().filter(t=>t.steps&&t.steps.length).map(t=>t.id);
   const def=SECTION_KINDS[s.kind];
-  S.arrangement.sections.push({id:`${s.kind}-${Date.now()}`,kind:s.kind,label:def.label,energy:s.energy,repeats:s.kind==="drop"||s.kind==="chorus"?6:4,trackIds:activeIds.length?activeIds:currentTracks().map(t=>t.id)});
-  S.arrangement.activeIdx=S.arrangement.sections.length-1;
+  const at=suggestPlacementIndex(s.energy);
+  S.arrangement.sections.splice(at,0,{id:`${s.kind}-${Date.now()}`,kind:s.kind,label:def.label,energy:s.energy,repeats:s.kind==="drop"||s.kind==="chorus"?6:4,trackIds:activeIds.length?activeIds:currentTracks().map(t=>t.id)});
+  S.arrangement.activeIdx=at;
   renderArrangementBar();renderTrackGrid();save();
   closeAideModal();
 }
@@ -2277,7 +2369,8 @@ function scheduleSongPlayback(startIdx){
   for(let si=startIdx;si<secs.length;si++){
     const sec=secs[si];
     const tracks=songActiveTracksFor(sec);
-    const trackLens=tracks.map(t=>Math.max(16,Math.ceil(Math.max(...t.steps)/16)*16));
+    const patterns=tracks.map(t=>sectionPattern(t,sec));
+    const trackLens=patterns.map(p=>Math.max(16,Math.ceil(Math.max(...p.steps)/16)*16));
     let cycleLen=trackLens.length?trackLens.reduce((a,b)=>plcm(a,b),16):16;
     if(cycleLen>256)cycleLen=128;
     const reps=clamp(sec.repeats||1,1,16);
@@ -2286,17 +2379,18 @@ function scheduleSongPlayback(startIdx){
     for(let r=0;r<reps;r++){
       const rt=cursor+r*cycleLen*sps;
       tracks.forEach((t,i)=>{
+        const patt=patterns[i];
         const tLen=trackLens[i];
         const type=classifyTrack(t);
         if(type==="texture")return;
         const tLoops=cycleLen/tLen;
         for(let tl=0;tl<tLoops;tl++){
           const lt=tl*tLen*sps;
-          t.steps.forEach(step=>{
+          patt.steps.forEach(step=>{
             if(step<1||step>tLen)return;
-            const prob=t.lanes&&t.lanes.probability&&t.lanes.probability[step]!=null?t.lanes.probability[step]:100;
+            const prob=patt.lanes&&patt.lanes.probability&&patt.lanes.probability[step]!=null?patt.lanes.probability[step]:100;
             if(Math.random()*100>=prob)return;
-            const cond=t.lanes&&t.lanes.condition&&t.lanes.condition[step];
+            const cond=patt.lanes&&patt.lanes.condition&&patt.lanes.condition[step];
             if(cond&&!evalCondition(cond,r))return;
             synthHit(ctx,type,rt+lt+(step-1)*sps);
           });
@@ -2438,7 +2532,8 @@ function openModal(trackId){
   const track=getTrack(trackId);if(!track)return;
   S.editId=trackId;
   const gDef=GENRES[S.genre].defaultLen;
-  const maxS=track.steps&&track.steps.length?Math.max(...track.steps):0;
+  const data=editTarget(track);
+  const maxS=data.steps&&data.steps.length?Math.max(...data.steps):0;
   if(maxS>64)S.patLen=128;else if(maxS>32)S.patLen=64;else if(maxS>16)S.patLen=32;else S.patLen=gDef;
   document.getElementById("mTrackNum").textContent=`TRACK ${String(trackId).padStart(2,"0")} — ${S.genre.toUpperCase()}`;
   document.getElementById("mTrackName").value=track.name;
@@ -2457,7 +2552,7 @@ function openModal(trackId){
   const wantOpen=(track.target||"digitakt-audio")!=="digitakt-audio";
   rBody.classList.toggle("open",wantOpen);rChev.classList.toggle("open",wantOpen);
   document.getElementById("modal").classList.remove("hidden");
-  syncLenBtns();updateNoteModeBtn();renderStepGrid();
+  syncLenBtns();updateNoteModeBtn();updateSectionVariationBtn();renderStepGrid();
 }
 
 function syncRoutingSummary(target){
@@ -2466,8 +2561,56 @@ function syncRoutingSummary(target){
 }
 
 function closeModal(){
+  const trackId=S.editId;
   document.getElementById("modal").classList.add("hidden");
-  renderTrackGrid();save();
+  renderTrackGrid();
+  aideNudgeAfterEdit(trackId);
+  save();
+}
+
+// Fires the Aide's label/placement read on whatever track was just edited:
+// refresh the active section's coaching if one's selected, otherwise offer
+// to start a new section around this track's content.
+function aideNudgeAfterEdit(trackId){
+  ensureArrangement();
+  const nudge=document.getElementById("aideNudge");
+  const idx=S.arrangement.activeIdx;
+  if(idx>=0&&idx<S.arrangement.sections.length){
+    if(nudge)nudge.classList.add("hidden");
+    suggestForSection(idx);
+    return;
+  }
+  if(!nudge)return;
+  const track=getTrack(trackId);
+  if(!track||!track.steps||!track.steps.length){nudge.classList.add("hidden");return;}
+  const s=suggestSectionLabel([track]);
+  const secs=S.arrangement.sections;
+  const at=suggestPlacementIndex(s.energy);
+  const placeNote=secs.length?(at>=secs.length?` after ${escapeHtml(secs[secs.length-1].label)}`:` before ${escapeHtml(secs[at].label)}`):"";
+  nudge.innerHTML=`<i class="fas fa-lightbulb text-purple-400 mr-1"></i> <b>${escapeHtml(track.name)}</b> reads like a <b>${escapeHtml(s.label)}</b> element — ${escapeHtml(s.reason)} <button onclick="addTrackAsNewSection(${track.id})" class="ml-1 px-2 py-0.5 text-[11px] bg-purple-900/50 hover:bg-purple-800/60 border border-purple-700/50 rounded text-purple-100">Start a ${escapeHtml(s.label)} section${placeNote}</button>`;
+  nudge.classList.remove("hidden");
+}
+
+// Where, not just what: slot the new section in next to the existing
+// section whose energy it's closest to, on the side that keeps the arc smooth.
+function suggestPlacementIndex(energyPct){
+  const secs=S.arrangement.sections;
+  if(!secs.length)return 0;
+  let bestI=0,bestDiff=Infinity;
+  secs.forEach((sec,i)=>{const diff=Math.abs(sec.energy-energyPct);if(diff<bestDiff){bestDiff=diff;bestI=i;}});
+  return energyPct>=secs[bestI].energy?bestI+1:bestI;
+}
+
+function addTrackAsNewSection(trackId){
+  const track=getTrack(trackId);if(!track)return;
+  const s=suggestSectionLabel([track]);
+  pushArrangementUndo();
+  const def=SECTION_KINDS[s.kind];
+  const at=suggestPlacementIndex(s.energy);
+  S.arrangement.sections.splice(at,0,{id:`${s.kind}-${Date.now()}`,kind:s.kind,label:def.label,energy:s.energy,repeats:(s.kind==="drop"||s.kind==="chorus")?6:4,trackIds:[trackId]});
+  S.arrangement.activeIdx=at;
+  document.getElementById("aideNudge").classList.add("hidden");
+  renderArrangementBar();renderTrackGrid();save();
 }
 
 function updateTrackName(v){
@@ -2504,8 +2647,8 @@ function isPitchedTrack(track){
   return PITCHED_ROLES.includes(role);
 }
 
-function stepBadgeHtml(track,step,cond){
-  const noteOff=track.lanes&&track.lanes.note?track.lanes.note[step]:null;
+function stepBadgeHtml(track,data,step,cond){
+  const noteOff=data.lanes&&data.lanes.note?data.lanes.note[step]:null;
   const noteHtml=noteOff?`<span class="step-note">${midiNoteName(clamp((track.note||60)+noteOff,0,127))}</span>`:'';
   const condHtml=cond?`<span class="step-cond">${cond}</span>`:'';
   return noteHtml+condHtml;
@@ -2524,9 +2667,10 @@ function updateNoteModeBtn(){
 function renderStepGrid(){
   const g=document.getElementById("stepGrid");g.innerHTML="";
   const track=getTrack(S.editId);if(!track)return;
-  const active=track.steps||[];
-  const prob=track.lanes&&track.lanes.probability?track.lanes.probability:{};
-  const conds=track.lanes&&track.lanes.condition?track.lanes.condition:{};
+  const data=editTarget(track);
+  const active=data.steps||[];
+  const prob=data.lanes&&data.lanes.probability?data.lanes.probability:{};
+  const conds=data.lanes&&data.lanes.condition?data.lanes.condition:{};
   const pitched=isPitchedTrack(track);
   for(let i=1;i<=S.patLen;i++){
     if((i-1)%16===0){
@@ -2542,7 +2686,7 @@ function renderStepGrid(){
     const btn=document.createElement("div");
     btn.className="step-btn"+(isOn?" active"+probClass(p):"")+((local-1)%4===0?" bar-s":"");
     const mainLabel=(isOn&&p<100)?String(p):String(local);
-    btn.innerHTML=mainLabel+(isOn?stepBadgeHtml(track,i,cond):'');
+    btn.innerHTML=mainLabel+(isOn?stepBadgeHtml(track,data,i,cond):'');
     btn.dataset.step=String(i);
     if(noteMode&&pitched){
       btn.onclick=()=>{if(isOn)cycleStepNote(i,btn);};
@@ -2562,55 +2706,58 @@ function renderStepGrid(){
 
 function toggleStep(step,btn){
   const track=getTrack(S.editId);if(!track)return;
-  if(!track.steps)track.steps=[];
-  const idx=track.steps.indexOf(step);
+  const data=editTarget(track);
+  if(!data.steps)data.steps=[];
+  const idx=data.steps.indexOf(step);
   const local=localStepNum(step);
   if(idx>-1){
-    track.steps.splice(idx,1);
-    if(track.lanes&&track.lanes.probability)delete track.lanes.probability[step];
-    if(track.lanes&&track.lanes.condition)delete track.lanes.condition[step];
-    if(track.lanes&&track.lanes.note)delete track.lanes.note[step];
+    data.steps.splice(idx,1);
+    if(data.lanes&&data.lanes.probability)delete data.lanes.probability[step];
+    if(data.lanes&&data.lanes.condition)delete data.lanes.condition[step];
+    if(data.lanes&&data.lanes.note)delete data.lanes.note[step];
     btn.className=btn.className.replace(/\s*(active|p75|p50|p25)/g,"");
     btn.innerHTML=String(local);
   } else {
-    track.steps.push(step);track.steps.sort((a,b)=>a-b);
+    data.steps.push(step);data.steps.sort((a,b)=>a-b);
     btn.classList.add("active");
     btn.innerHTML=String(local);
   }
-  updateStepInfo(track.steps);
+  updateStepInfo(data.steps);
 }
 
 function cycleStepProb(step,btn){
   const track=getTrack(S.editId);if(!track)return;
-  if(!track.lanes)track.lanes={probability:{}};
-  if(!track.lanes.probability)track.lanes.probability={};
-  const cur=track.lanes.probability[step]??100;
+  const data=editTarget(track);
+  if(!data.lanes)data.lanes={probability:{}};
+  if(!data.lanes.probability)data.lanes.probability={};
+  const cur=data.lanes.probability[step]??100;
   const next=cur>=100?75:cur>=75?50:cur>=50?25:100;
-  if(next>=100)delete track.lanes.probability[step];else track.lanes.probability[step]=next;
+  if(next>=100)delete data.lanes.probability[step];else data.lanes.probability[step]=next;
   const local=localStepNum(step);
   const barS=(local-1)%4===0?' bar-s':'';
   btn.className=`step-btn active${probClass(next)}${barS}`;
-  const cond=track.lanes&&track.lanes.condition&&track.lanes.condition[step];
+  const cond=data.lanes&&data.lanes.condition&&data.lanes.condition[step];
   const mainLabel=next<100?String(next):String(local);
-  btn.innerHTML=mainLabel+stepBadgeHtml(track,step,cond);
+  btn.innerHTML=mainLabel+stepBadgeHtml(track,data,step,cond);
   btn.title=next<100?`Step ${step} (key ${local}) · ${next}% probability — right-click to cycle`:`Step ${step} (key ${local}) · right-click to set probability`;
 }
 
 function cycleStepCond(step,btn){
   const track=getTrack(S.editId);if(!track)return;
-  if(!track.lanes)track.lanes={probability:{},condition:{}};
-  if(!track.lanes.condition)track.lanes.condition={};
-  const cur=track.lanes.condition[step]??null;
+  const data=editTarget(track);
+  if(!data.lanes)data.lanes={probability:{},condition:{}};
+  if(!data.lanes.condition)data.lanes.condition={};
+  const cur=data.lanes.condition[step]??null;
   const idx=COND_CYCLE.indexOf(cur);
   const next=COND_CYCLE[(idx+1)%COND_CYCLE.length];
-  if(next==null)delete track.lanes.condition[step];else track.lanes.condition[step]=next;
+  if(next==null)delete data.lanes.condition[step];else data.lanes.condition[step]=next;
   // Rebuild button content
-  const prob=track.lanes.probability&&track.lanes.probability[step]!=null?track.lanes.probability[step]:100;
+  const prob=data.lanes.probability&&data.lanes.probability[step]!=null?data.lanes.probability[step]:100;
   const local=localStepNum(step);
   const mainLabel=prob<100?String(prob):String(local);
   const barS=(local-1)%4===0?' bar-s':'';
   btn.className=`step-btn active${probClass(prob)}${barS}`;
-  btn.innerHTML=mainLabel+stepBadgeHtml(track,step,next);
+  btn.innerHTML=mainLabel+stepBadgeHtml(track,data,step,next);
   btn.title=next?`Step ${step} (key ${local})${prob<100?' · '+prob+'%':''} · ${next} — click to cycle condition`:`Step ${step} (key ${local}) — click to add condition`;
 }
 
@@ -2626,32 +2773,35 @@ function toggleNoteMode(){
 const NOTE_OFFSET_CYCLE=[0,1,2,3,4,5,6,-6,-5,-4,-3,-2,-1];
 function cycleStepNote(step,btn){
   const track=getTrack(S.editId);if(!track)return;
-  if(!track.lanes)track.lanes={probability:{},condition:{},note:{}};
-  if(!track.lanes.note)track.lanes.note={};
-  const cur=track.lanes.note[step]??0;
+  const data=editTarget(track);
+  if(!data.lanes)data.lanes={probability:{},condition:{},note:{}};
+  if(!data.lanes.note)data.lanes.note={};
+  const cur=data.lanes.note[step]??0;
   const idx=NOTE_OFFSET_CYCLE.indexOf(cur);
   const next=NOTE_OFFSET_CYCLE[(idx+1)%NOTE_OFFSET_CYCLE.length];
-  if(next===0)delete track.lanes.note[step];else track.lanes.note[step]=next;
-  const prob=track.lanes.probability&&track.lanes.probability[step]!=null?track.lanes.probability[step]:100;
-  const cond=track.lanes.condition&&track.lanes.condition[step];
+  if(next===0)delete data.lanes.note[step];else data.lanes.note[step]=next;
+  const prob=data.lanes.probability&&data.lanes.probability[step]!=null?data.lanes.probability[step]:100;
+  const cond=data.lanes.condition&&data.lanes.condition[step];
   const local=localStepNum(step);
   const mainLabel=prob<100?String(prob):String(local);
   const barS=(local-1)%4===0?' bar-s':'';
   btn.className=`step-btn active${probClass(prob)}${barS}`;
-  btn.innerHTML=mainLabel+stepBadgeHtml(track,step,cond);
+  btn.innerHTML=mainLabel+stepBadgeHtml(track,data,step,cond);
   const noteName=next?midiNoteName(clamp((track.note||60)+next,0,127)):'root';
   btn.title=`Step ${step} (key ${local}) · pitch ${noteName} — click to cycle`;
 }
 
 function resetStepProb(){
   const t=getTrack(S.editId);if(!t)return;
-  if(t.lanes)t.lanes.probability={};
+  const data=editTarget(t);
+  if(data.lanes)data.lanes.probability={};
   renderStepGrid();
 }
 
 function resetAllLanes(){
   const t=getTrack(S.editId);if(!t)return;
-  if(t.lanes){t.lanes.probability={};t.lanes.condition={};t.lanes.note={};}
+  const data=editTarget(t);
+  if(data.lanes){data.lanes.probability={};data.lanes.condition={};data.lanes.note={};}
   renderStepGrid();
 }
 
@@ -2664,8 +2814,9 @@ function updateStepInfo(steps){
 
 function setPatLen(len){
   const track=getTrack(S.editId);
+  const data=track?editTarget(track):null;
   const old=S.patLen;
-  if(track&&len!==old)rescalePatternLength(track,old,len);
+  if(data&&len!==old)rescalePatternLength(data,old,len);
   S.patLen=len;syncLenBtns();renderStepGrid();
 }
 
@@ -2711,22 +2862,29 @@ function applyEuclidean(){
   const p=parseInt(document.getElementById("euclidP").value)||4;
   const o=parseInt(document.getElementById("euclidO").value)||0;
   const track=getTrack(S.editId);if(!track)return;
-  track.steps=euclidean(p,S.patLen,o);renderStepGrid();
+  const data=editTarget(track);
+  data.steps=euclidean(p,S.patLen,o);renderStepGrid();
 }
 
 function resetToRecommended(){
   const rec=getRecommended(S.genre,S.subgenre).find(t=>t.id===S.editId);
   const curr=getTrack(S.editId);if(!rec||!curr)return;
-  curr.steps=[...rec.steps];curr.name=rec.name;curr.desc=rec.desc;
-  if(curr.lanes){curr.lanes.probability={};curr.lanes.condition={};curr.lanes.note={};}else curr.lanes={probability:{},condition:{},note:{}};
+  const data=editTarget(curr);
+  data.steps=[...rec.steps];curr.name=rec.name;curr.desc=rec.desc;
+  if(data.lanes){data.lanes.probability={};data.lanes.condition={};data.lanes.note={};}else data.lanes={probability:{},condition:{},note:{}};
   document.getElementById("mTrackName").value=curr.name;
   document.getElementById("mDesc").textContent=curr.desc;
-  const maxS=curr.steps.length?Math.max(...curr.steps):0;
+  const maxS=data.steps.length?Math.max(...data.steps):0;
   if(maxS>64)S.patLen=128;else if(maxS>32)S.patLen=64;else if(maxS>16)S.patLen=32;else S.patLen=GENRES[S.genre].defaultLen;
   syncLenBtns();renderStepGrid();
 }
 
-function clearPattern(){const t=getTrack(S.editId);if(t){t.steps=[];if(t.lanes){t.lanes.probability={};t.lanes.condition={};t.lanes.note={};}renderStepGrid();}}
+function clearPattern(){
+  const t=getTrack(S.editId);if(!t)return;
+  const data=editTarget(t);
+  data.steps=[];if(data.lanes){data.lanes.probability={};data.lanes.condition={};data.lanes.note={};}
+  renderStepGrid();
+}
 
 function loadRecommendedDefaults(){
   if(!confirm(`Reset all ${S.genre}${S.subgenre?` (${currentSG().name})`:"" } tracks to recommended patterns?`))return;
