@@ -9,11 +9,11 @@
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 *,*::before,*::after{box-sizing:border-box}
-body{font-family:'Space Grotesk',system-ui,sans-serif;background:#09111f;color:#e2e8f0;min-height:100vh}
+body{font-family:'Space Grotesk',system-ui,sans-serif;background:#0a0f1a;color:#e2e8f0;min-height:100vh}
 .mono{font-family:'JetBrains Mono',monospace}
-.track-card{transition:border-color .1s,box-shadow .1s,transform .1s;cursor:pointer}
-.track-card:hover{border-color:#22d3ee!important;box-shadow:0 0 16px rgba(34,211,238,.13);transform:translateY(-1px)}
-.track-card:active{transform:translateY(0)}
+.track-card{transition:border-color .12s,background .12s;cursor:pointer}
+.track-card:hover{border-color:rgba(34,211,238,.35)!important;background:#0e1726!important}
+.track-card:active{background:#0c1422!important}
 .step-btn{aspect-ratio:1;display:flex;flex-direction:column;gap:0;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:.58rem;font-weight:500;border-radius:4px;border:1px solid #1a2540;background:#0e1828;color:#2a3d58;cursor:pointer;user-select:none;transition:all .06s}
 .step-btn:hover:not(.active){background:#182234;color:#4a6080;border-color:#253550}
 .step-btn.active{background:#22d3ee;color:#030d18;font-weight:700;border-color:#0891b2;box-shadow:0 0 6px rgba(34,211,238,.4)}
@@ -25,9 +25,18 @@ body{font-family:'Space Grotesk',system-ui,sans-serif;background:#09111f;color:#
 .step-btn.active.p75 .step-cond{color:#fcd34d}
 .step-btn.active.p50 .step-cond{color:#fb923c}
 .step-btn.active.p25 .step-cond{color:#f87171}
+.step-note{font-size:.38rem;font-weight:700;color:#34d399;line-height:1;display:block;letter-spacing:0}
+.step-btn.active.p75 .step-note{color:#fde68a}
+.step-btn.active.p50 .step-note{color:#fdba74}
+.step-btn.active.p25 .step-note{color:#fca5a5}
+.step-page{grid-column:1/-1;font-size:.62rem;font-weight:700;letter-spacing:.08em;color:#3a5070;text-transform:uppercase;padding:.3rem .1rem .15rem;margin-top:.2rem;border-top:1px solid #1a2540}
+.step-page:first-child{margin-top:0;border-top:none;padding-top:0}
 .cond-mode-btn{padding:.2rem .6rem;font-size:.68rem;font-weight:600;border-radius:4px;border:1px solid #1a2540;background:#0e1828;color:#3a5070;cursor:pointer;transition:all .1s;font-family:'JetBrains Mono',monospace}
 .cond-mode-btn:hover:not(.cond-on){background:#182234;color:#a78bfa}
 .cond-mode-btn.cond-on{background:#1e0a4a;border-color:#7c3aed;color:#a78bfa}
+.note-mode-btn{padding:.2rem .6rem;font-size:.68rem;font-weight:600;border-radius:4px;border:1px solid #1a2540;background:#0e1828;color:#3a5070;cursor:pointer;transition:all .1s;font-family:'JetBrains Mono',monospace}
+.note-mode-btn:hover:not(.note-on){background:#182234;color:#34d399}
+.note-mode-btn.note-on{background:#062e22;border-color:#059669;color:#34d399}
 .mini-step{flex-shrink:0;width:5px;height:10px;border-radius:2px;background:#111e30}
 .mini-step.on{background:#22d3ee}
 @keyframes mIn{from{opacity:0;transform:scale(.97) translateY(8px)}to{opacity:1;transform:scale(1) translateY(0)}}
@@ -62,20 +71,60 @@ body{font-family:'Space Grotesk',system-ui,sans-serif;background:#09111f;color:#
 .viz-src-btn:hover:not(.viz-src-on){background:#182234;color:#608ab0}
 .viz-src-btn.viz-src-on{background:#0a3a58;border-color:#0891b2;color:#22d3ee}
 
-/* Palette */
-:root{--mb-panel:rgba(10,17,31,.88);--mb-border:rgba(148,163,184,.1)}
+/* ============================================================
+   DESIGN SYSTEM — calm, flat surfaces; one accent; hairline rules
+   Tokens: bg #0a0f1a · surface #0d1420 · hairline rgba(148,163,184,.08)
+   accent cyan #22d3ee · text e2e8f0/94a3b8/64748b/475569
+   ============================================================ */
+:root{
+  --mb-bg:#0a0f1a;--mb-panel:#0d1420;--mb-panel-2:#0f1727;
+  --mb-border:rgba(148,163,184,.08);--mb-border-strong:rgba(148,163,184,.16);
+  --mb-accent:#22d3ee;--mb-radius:12px;
+  --mb-t1:#e2e8f0;--mb-t2:#94a3b8;--mb-t3:#64748b;--mb-t4:#475569;
+}
 .app-shell{position:relative;z-index:1}
-.hero{background:rgba(11,18,33,.75);border:1px solid var(--mb-border);border-radius:14px;padding:.85rem 1.1rem}
-.status-chip{display:inline-flex;align-items:center;gap:.4rem;border:1px solid var(--mb-border);background:rgba(15,23,42,.55);border-radius:999px;padding:.3rem .6rem;font-size:.7rem;color:#64748b;white-space:nowrap}
-.status-chip strong{color:#cbd5e1;font-weight:600}
-.control-panel,.cockpit-card,.hardware-card{background:var(--mb-panel);border:1px solid var(--mb-border);border-radius:20px;box-shadow:0 6px 24px rgba(0,0,0,.2)}
-.control-panel{padding:.9rem}.cockpit-card{padding:1rem}.hardware-card{padding:.85rem}
-.metric-card{background:rgba(12,20,36,.7);border:1px solid var(--mb-border);border-radius:12px}
-.btn-primary{background:linear-gradient(135deg,#0e7490,#6d28d9)!important;border-color:rgba(6,182,212,.25)!important;color:white!important}
-/* Track card: clean + role-colour accent strip */
-.track-card{background:#0b1422!important;border-color:rgba(148,163,184,.09)!important;border-radius:14px!important;box-shadow:0 3px 12px rgba(0,0,0,.18);position:relative;overflow:hidden}
-.track-card::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:var(--tc-rc,rgba(148,163,184,.14))}
-.track-card:hover{border-color:rgba(148,163,184,.2)!important;box-shadow:0 6px 20px rgba(0,0,0,.26)}
+/* One unified surface treatment — no drop shadows, hairline borders */
+.hero,.control-panel,.cockpit-card,.hardware-card,.ccard,.metric-card{
+  background:var(--mb-panel);border:1px solid var(--mb-border);border-radius:var(--mb-radius);box-shadow:none}
+.hero{padding:.9rem 1.15rem}
+.control-panel{padding:1.1rem}.cockpit-card{padding:1.15rem}.hardware-card{padding:1rem}
+.ccard{padding:.85rem 1rem;border-radius:10px}
+.metric-card{background:var(--mb-panel-2);border-radius:10px}
+.status-chip{display:inline-flex;align-items:center;gap:.4rem;border:1px solid var(--mb-border);background:transparent;border-radius:999px;padding:.28rem .6rem;font-size:.7rem;color:var(--mb-t3);white-space:nowrap}
+.status-chip strong{color:var(--mb-t2);font-weight:600}
+/* Buttons — one ghost style, scoped so existing Tailwind utilities are tamed.
+   No !important: a descendant selector (0,1,1) already beats Tailwind's
+   single-class utilities (0,1,0). Special components (chips, icon-toggles,
+   segmented length control, mode buttons) are excluded so they keep their
+   own look and active-states. */
+.cockpit-card button:not(.sg-pill):not(.pvtog),
+.hardware-card button:not(.viz-src-btn),
+.control-panel button:not(.sg-pill),
+.side-rail button:not(.sg-pill),
+.modal-inner button:not(.len-btn):not(.cond-mode-btn):not(.note-mode-btn){
+  background:transparent;border:1px solid var(--mb-border);color:var(--mb-t2);
+  border-radius:8px;font-weight:500;transition:background .12s,border-color .12s,color .12s}
+.cockpit-card button:not(.sg-pill):not(.pvtog):hover,
+.hardware-card button:not(.viz-src-btn):hover,
+.control-panel button:not(.sg-pill):hover,
+.side-rail button:not(.sg-pill):hover,
+.modal-inner button:not(.len-btn):not(.cond-mode-btn):not(.note-mode-btn):hover{
+  background:var(--mb-panel-2);border-color:var(--mb-border-strong);color:var(--mb-t1)}
+/* De-greeble: icons inside ghost buttons go monochrome (state colour re-added selectively) */
+.cockpit-card button:not(.sg-pill):not(.pvtog) i,.hardware-card button:not(.viz-src-btn) i,
+.control-panel button i,.side-rail button:not(.sg-pill) i{color:inherit;opacity:.85}
+/* Primary action — the one saturated control (needs !important to beat the ghost rule) */
+.btn-primary,.btn-primary:hover{background:var(--mb-accent)!important;border-color:var(--mb-accent)!important;color:#04141a!important;font-weight:700}
+.btn-primary:hover{filter:brightness(1.08)}
+.btn-primary i{color:#04141a!important;opacity:1}
+/* Transport / play accent kept (functional state colour) */
+.cockpit-card button:not(.sg-pill):not(.pvtog) i.text-emerald-400{color:#34d399;opacity:1}
+/* Track card: flat, role-colour accent strip on the left edge */
+.track-card{background:var(--mb-panel)!important;border-color:var(--mb-border)!important;border-radius:11px!important;position:relative;overflow:hidden}
+.track-card::before{content:"";position:absolute;top:0;bottom:0;left:0;width:3px;background:var(--tc-rc,rgba(148,163,184,.18))}
+/* hover-reveal controls so the resting card is quiet */
+.track-card .tc-ctl{opacity:0;transition:opacity .12s}
+.track-card:hover .tc-ctl,.track-card .tc-ctl.tc-active{opacity:1}
 /* Role colours */
 .tc-kick{--tc-rc:#f43f5e}.tc-snare{--tc-rc:#fb923c}.tc-hat,.tc-shaker{--tc-rc:#94a3b8}
 .tc-bass{--tc-rc:#60a5fa}.tc-harmonic{--tc-rc:#22d3ee}.tc-melody{--tc-rc:#34d399}
@@ -83,9 +132,18 @@ body{font-family:'Space Grotesk',system-ui,sans-serif;background:#09111f;color:#
 /* Mini step dots inherit role colour */
 .mini-step{width:5px;height:9px;background:#111d2e;border-radius:1px}
 .mini-step.on{background:var(--tc-rc,#22d3ee)!important;box-shadow:none}
-.route-pill{display:inline-flex;align-items:center;gap:.25rem;padding:.15rem .4rem;border-radius:999px;border:1px solid rgba(148,163,184,.1);background:rgba(148,163,184,.05);color:#94a3b8;font-size:.58rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
-.device-kv{display:flex;align-items:center;justify-content:space-between;gap:.75rem;font-size:.68rem;color:#64748b;border-top:1px solid rgba(148,163,184,.07);padding-top:.4rem;margin-top:.4rem}.device-kv span:last-child{color:#cbd5e1;font-family:'JetBrains Mono',monospace}
+.device-kv{display:flex;align-items:center;justify-content:space-between;gap:.75rem;font-size:.68rem;color:var(--mb-t3)}
+.device-kv span:last-child{color:var(--mb-t2);font-family:'JetBrains Mono',monospace}
 select,input,textarea{box-shadow:none}
+/* Inputs/selects unified (no !important so #genreSelect keeps its own tone) */
+.cockpit-card select,.hardware-card select,.side-rail select,.modal-inner select,#arrangementBar select,
+.cockpit-card input,.hardware-card input,.side-rail input,.modal-inner input{
+  background:var(--mb-panel-2);border-color:var(--mb-border)}
+/* Secondary panels can be folded away to cut competing surfaces */
+.rail-fold>summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between}
+.rail-fold>summary::-webkit-details-marker{display:none}
+.rail-fold>summary .chevron{transition:transform .2s}
+.rail-fold[open]>summary .chevron{transform:rotate(180deg)}
 @media(max-width:1180px){.app-layout{flex-direction:column}.side-rail,.send-rail{position:static!important;width:100%!important;max-height:none!important}.guide-grid{grid-template-columns:1fr!important}}
 @media(max-width:760px){.track-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}.app-shell{padding-left:.75rem!important;padding-right:.75rem!important}}
 </style>
@@ -107,8 +165,7 @@ select,input,textarea{box-shadow:none}
         </div>
       </div>
       <div class="flex items-center gap-2">
-        <span class="status-chip"><i class="fas fa-circle-nodes text-slate-600 text-xs"></i> Euclidean</span>
-        <span class="status-chip"><i class="fas fa-usb text-slate-600 text-xs"></i> Web MIDI</span>
+        <span id="headerMidiChip" class="status-chip"><i class="fas fa-circle text-slate-700 text-[8px]"></i> <span class="hidden sm:inline">MIDI</span> <strong id="headerMidiState">checking</strong></span>
       </div>
     </div>
   </header>
@@ -336,36 +393,45 @@ select,input,textarea{box-shadow:none}
             <i class="fas fa-list-ol text-purple-400 text-xs"></i> Song Mode
           </button>
         </div>
-        <div class="space-y-1.5" aria-label="MIDI diagnostics">
-          <div class="device-kv"><span>Web MIDI</span><span id="diagWebMidi">checking</span></div>
-          <div class="device-kv"><span>Secure context</span><span id="diagSecure">checking</span></div>
-          <div class="device-kv"><span>SysEx</span><span id="diagSysex">off</span></div>
-          <div class="device-kv"><span>Outputs</span><span id="diagOutputs">0</span></div>
-        </div>
-        <p class="text-xs text-slate-600 leading-relaxed">Digitakt: <span class="text-slate-400">MIDI → Recv Clock + Transport ON</span> · hold <span class="text-slate-300">REC</span> · Send. Chrome/Edge.</p>
+        <details class="rail-fold" aria-label="MIDI diagnostics">
+          <summary class="text-[11px] text-slate-500 py-0.5">
+            <span>Connection details</span>
+            <i class="fas fa-chevron-down chevron text-slate-700 text-[10px]"></i>
+          </summary>
+          <div class="space-y-1.5 pt-2 mt-1 border-t border-slate-800/60">
+            <div class="device-kv"><span>Web MIDI</span><span id="diagWebMidi">checking</span></div>
+            <div class="device-kv"><span>Secure context</span><span id="diagSecure">checking</span></div>
+            <div class="device-kv"><span>SysEx</span><span id="diagSysex">off</span></div>
+            <div class="device-kv"><span>Outputs</span><span id="diagOutputs">0</span></div>
+            <p class="text-xs text-slate-600 leading-relaxed pt-1">Digitakt: <span class="text-slate-400">MIDI → Recv Clock + Transport ON</span> · hold <span class="text-slate-300">REC</span> · Send. Chrome/Edge.</p>
+          </div>
+        </details>
       </div>
 
-      <!-- Visualizer Panel -->
-      <div class="hardware-card space-y-2">
-        <div class="flex items-center justify-between">
-          <div class="lbl">Scope</div>
-          <div class="flex gap-1">
+      <!-- Visualizer Panel — secondary, collapsible -->
+      <details class="hardware-card rail-fold space-y-2" id="scopePanel">
+        <summary class="lbl py-0.5">
+          <span>Scope</span>
+          <i class="fas fa-chevron-down chevron text-slate-700 text-[10px]"></i>
+        </summary>
+        <div class="pt-2 space-y-2">
+          <div class="flex items-center justify-end gap-1">
             <button id="vizBtnPreview" class="viz-src-btn viz-src-on" onclick="setVizSource('preview')">Preview</button>
             <button id="vizBtnInput" class="viz-src-btn" onclick="setVizSource('input')">Input</button>
           </div>
+          <canvas id="vizCanvas" width="560" height="200" style="display:block;width:100%;height:100px;background:#030609;border-radius:6px;border:1px solid #1a2540"></canvas>
+          <div id="vizInputRow" class="hidden space-y-1.5">
+            <select id="vizInputSel" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-cyan-600">
+              <option value="">— select audio input —</option>
+            </select>
+            <button onclick="connectVizInput()" class="w-full py-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-slate-300 transition-colors flex items-center justify-center gap-1.5">
+              <i class="fas fa-microphone text-cyan-500 text-xs"></i> Connect Input
+            </button>
+          </div>
+          <div id="vizStatus" class="mono text-[10px] text-slate-600 leading-tight min-h-[1em]"></div>
+          <p class="text-xs text-slate-700 leading-relaxed">USB audio or interface required for Digitakt monitoring. Pro 3 USB is MIDI only.</p>
         </div>
-        <canvas id="vizCanvas" width="560" height="200" style="display:block;width:100%;height:100px;background:#030609;border-radius:6px;border:1px solid #1a2540"></canvas>
-        <div id="vizInputRow" class="hidden space-y-1.5">
-          <select id="vizInputSel" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-cyan-600">
-            <option value="">— select audio input —</option>
-          </select>
-          <button onclick="connectVizInput()" class="w-full py-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-slate-300 transition-colors flex items-center justify-center gap-1.5">
-            <i class="fas fa-microphone text-cyan-500 text-xs"></i> Connect Input
-          </button>
-        </div>
-        <div id="vizStatus" class="mono text-[10px] text-slate-600 leading-tight min-h-[1em]"></div>
-        <p class="text-xs text-slate-700 leading-relaxed">USB audio or interface required for Digitakt monitoring. Pro 3 USB is MIDI only.</p>
-      </div>
+      </details>
 
     </div>
 
@@ -477,7 +543,7 @@ select,input,textarea{box-shadow:none}
           <span class="lbl">Loops</span>
           <input id="songLoops" type="number" value="2" min="1" max="8" class="w-12 bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-center mono text-white focus:outline-none focus:border-cyan-600">
         </div>
-        <button id="songSendBtn" onclick="sendCurrentSongStep()" class="px-4 py-1.5 text-xs bg-cyan-700 hover:bg-cyan-600 text-white font-bold rounded-lg flex items-center gap-1.5 transition-colors flex-shrink-0">
+        <button id="songSendBtn" onclick="sendCurrentSongStep()" class="btn-primary px-4 py-1.5 text-xs bg-cyan-700 hover:bg-cyan-600 text-white font-bold rounded-lg flex items-center gap-1.5 transition-colors flex-shrink-0">
           <i class="fas fa-paper-plane"></i> Send <span id="songSendLabel"></span>
         </button>
         <span id="songSendStatus" class="text-xs mono text-slate-600"></span>
@@ -501,7 +567,7 @@ select,input,textarea{box-shadow:none}
         <div id="songChainDisplay" class="space-y-1.5 text-xs"></div>
       </div>
       <div class="text-xs text-slate-600 mb-4">In Digitakt Song Mode: hold a row button to add a pattern slot, set repeat count, chain rows A01→A02→…</div>
-      <button onclick="closeSongModal()" class="w-full py-2 text-sm bg-cyan-700 hover:bg-cyan-600 text-white font-bold rounded-lg transition-colors">Done</button>
+      <button onclick="closeSongModal()" class="btn-primary w-full py-2 text-sm bg-cyan-700 hover:bg-cyan-600 text-white font-bold rounded-lg transition-colors">Done</button>
     </div>
   </div>
 </div>
@@ -530,34 +596,40 @@ select,input,textarea{box-shadow:none}
         <div id="mDesc" class="text-xs text-slate-400 leading-relaxed mb-4"></div>
         <div id="mSubNote" class="hidden text-xs text-cyan-700 bg-cyan-950/30 border border-cyan-900/40 rounded-lg p-2.5 leading-relaxed mb-4"></div>
 
-        <!-- Routing inspector -->
+        <!-- Routing inspector — collapsed by default; only matters once you route off the default DT audio output -->
         <div class="border-t border-slate-800 pt-4">
-          <div class="lbl mb-2.5">Routing</div>
-          <div class="space-y-2.5">
-            <div>
-              <div class="lbl mb-1 text-slate-600">Target</div>
-              <select id="routeTarget" onchange="updateRouting()" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-cyan-600">
-                <option value="digitakt-audio">DT Audio (tracks 1–16)</option>
-                <option value="digitakt-midi">DT MIDI track</option>
-                <option value="pro3-usb">Pro 3 USB</option>
-                <option value="external-midi">External MIDI</option>
-              </select>
+          <button onclick="toggleSect('routingBody','routingChev')" class="sect-trigger text-left w-full flex items-center justify-between" style="border-radius:8px;background:transparent;border:none;padding:0">
+            <span id="routingSummary" class="lbl">Routing · DT Audio</span>
+            <i id="routingChev" class="fas fa-chevron-down chevron text-slate-700 text-xs"></i>
+          </button>
+          <div id="routingBody" class="collapse-body mt-2.5">
+            <div class="space-y-2.5">
+              <div>
+                <div class="lbl mb-1 text-slate-600">Target</div>
+                <select id="routeTarget" onchange="updateRouting()" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-cyan-600">
+                  <option value="digitakt-audio">DT Audio (tracks 1–16)</option>
+                  <option value="digitakt-midi">DT MIDI track</option>
+                  <option value="pro3-usb">Pro 3 USB</option>
+                  <option value="external-midi">External MIDI</option>
+                </select>
+              </div>
+              <div class="grid grid-cols-3 gap-2">
+                <div>
+                  <div class="lbl mb-1 text-slate-600">CH</div>
+                  <input id="routeChannel" type="number" min="1" max="16" onchange="updateRouting()" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-center text-white focus:outline-none focus:border-cyan-600 mono">
+                </div>
+                <div>
+                  <div class="lbl mb-1 text-slate-600">Note</div>
+                  <input id="routeNote" type="number" min="0" max="127" onchange="updateRouting()" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-center text-white focus:outline-none focus:border-cyan-600 mono">
+                </div>
+                <div>
+                  <div class="lbl mb-1 text-slate-600">Vel</div>
+                  <input id="routeVelocity" type="number" min="1" max="127" onchange="updateRouting()" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-center text-white focus:outline-none focus:border-cyan-600 mono">
+                </div>
+              </div>
+              <div id="routeNoteName" class="mono text-cyan-400 text-xs text-center"></div>
+              <p class="text-[10px] text-slate-700 leading-relaxed">Only needed if this track plays through a MIDI target (DT MIDI track, Pro 3, or external gear). DT audio tracks can ignore this.</p>
             </div>
-            <div class="grid grid-cols-3 gap-2">
-              <div>
-                <div class="lbl mb-1 text-slate-600">CH</div>
-                <input id="routeChannel" type="number" min="1" max="16" onchange="updateRouting()" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-center text-white focus:outline-none focus:border-cyan-600 mono">
-              </div>
-              <div>
-                <div class="lbl mb-1 text-slate-600">Note</div>
-                <input id="routeNote" type="number" min="0" max="127" onchange="updateRouting()" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-center text-white focus:outline-none focus:border-cyan-600 mono">
-              </div>
-              <div>
-                <div class="lbl mb-1 text-slate-600">Vel</div>
-                <input id="routeVelocity" type="number" min="1" max="127" onchange="updateRouting()" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-center text-white focus:outline-none focus:border-cyan-600 mono">
-              </div>
-            </div>
-            <div id="routeNoteName" class="mono text-cyan-400 text-xs text-center"></div>
           </div>
         </div>
       </div>
@@ -600,6 +672,7 @@ select,input,textarea{box-shadow:none}
             <div class="flex items-center gap-2">
               <div class="lbl">Steps</div>
               <button id="condModeBtn" class="cond-mode-btn" onclick="toggleCondMode()" title="Enable condition mode: click steps to cycle trig conditions (1:2, 1:4, etc.)">Cond</button>
+              <button id="noteModeBtn" class="note-mode-btn hidden" onclick="toggleNoteMode()" title="Enable note mode: click steps to cycle the pitch for that trig">Note</button>
             </div>
             <div class="flex gap-3">
               <span id="stepCountDisplay" class="text-xs text-slate-500 mono"></span>
@@ -1183,6 +1256,7 @@ function normalizeTrack(track){
   const lanes={
     probability:{...((track.lanes&&track.lanes.probability)||{})},
     condition:{...((track.lanes&&track.lanes.condition)||{})},
+    note:{...((track.lanes&&track.lanes.note)||{})},
   };
   return {...track,roleType:role,target,midiChannel,note,velocity,lanes};
 }
@@ -1763,8 +1837,24 @@ function renderTrackGrid(){
     const activeSec=activeArrangementSection();
     const inSection=!activeSec||activeSec.trackIds.includes(track.id);
     const card=document.createElement("div");
-    card.className=`track-card tc-${role} border p-2.5 select-none cursor-pointer${isLocked?' border-amber-700/40':' border-slate-800/80'}${isMuted?' pv-muted':''}${activeSec&&!inSection?' pv-muted':''}`;
-    card.innerHTML=`<div class="flex items-center justify-between mb-1.5"><span class="mono text-[10px] text-slate-700 leading-none">${String(track.id).padStart(2,'0')}</span><div class="flex items-center gap-1"><button class="pvtog" onclick="toggleTrackLock(${track.id},event)" title="${isLocked?'Locked — regenerate skips this track':'Click to lock'}"><i class="fas fa-${isLocked?'lock text-amber-400':'lock-open text-slate-700'} text-[10px]"></i></button><button class="pvtog" onclick="event.stopPropagation();togglePreviewMute(${track.id})" title="${isMuted?'Excluded from preview':'In preview — click to mute'}"><i class="fas fa-${isMuted?'volume-xmark text-slate-700':'volume-low text-slate-600'} text-[10px]"></i></button></div></div><div class="font-semibold text-[11px] text-slate-100 leading-tight truncate mb-0.5">${escapeHtml(track.name)}</div><div class="text-[9px] tracking-widest font-bold text-slate-700 uppercase mb-1.5">${ROLE_SHORT[role]||role}</div>${viz}<div class="mt-1.5 rounded-full overflow-hidden" style="height:2px;background:rgba(148,163,184,.07)"><div style="width:${density}%;height:100%;background:var(--tc-rc,#475569);opacity:.55;border-radius:9999px"></div></div><div class="flex items-center justify-between mt-1.5"><span class="text-[9px] font-bold tracking-wide uppercase" style="color:var(--tc-rc,#475569);opacity:.55">${ROUTE_SHORT[track.target]||'MIDI'}</span><span class="text-[9px] mono text-slate-700">ch${track.midiChannel}</span></div>`;
+    card.className=`track-card tc-${role} border p-2.5 pl-3 select-none cursor-pointer border-slate-800/80${isMuted?' pv-muted':''}${activeSec&&!inSection?' pv-muted':''}`;
+    // controls stay visible only when they carry state (locked / muted); otherwise reveal on hover
+    const ctlActive=(isLocked||isMuted)?' tc-active':'';
+    card.innerHTML=`
+      <div class="flex items-start justify-between gap-1 mb-1">
+        <div class="min-w-0">
+          <span class="mono text-[10px] text-slate-600 leading-none">${String(track.id).padStart(2,'0')}</span>
+          <div class="font-semibold text-[11px] text-slate-100 leading-tight truncate">${escapeHtml(track.name)}</div>
+        </div>
+        <div class="tc-ctl${ctlActive} flex items-center gap-1 flex-shrink-0">
+          <button class="pvtog" onclick="toggleTrackLock(${track.id},event)" title="${isLocked?'Locked — regenerate skips this track':'Click to lock'}"><i class="fas fa-${isLocked?'lock text-amber-400':'lock-open text-slate-600'} text-[10px]"></i></button>
+          <button class="pvtog" onclick="event.stopPropagation();togglePreviewMute(${track.id})" title="${isMuted?'Excluded from preview':'In preview — click to mute'}"><i class="fas fa-${isMuted?'volume-xmark text-slate-500':'volume-low text-slate-600'} text-[10px]"></i></button>
+        </div>
+      </div>
+      <div class="text-[9px] tracking-widest font-bold uppercase mb-1.5" style="color:var(--tc-rc,#475569);opacity:.7">${ROLE_SHORT[role]||role}</div>
+      ${viz}
+      <div class="mt-2 rounded-full overflow-hidden" style="height:2px;background:rgba(148,163,184,.07)"><div style="width:${density}%;height:100%;background:var(--tc-rc,#475569);opacity:.5;border-radius:9999px"></div></div>
+      <div class="text-[9px] mono text-slate-700 mt-1.5">${ROUTE_SHORT[track.target]||'MIDI'} · ch${track.midiChannel}</div>`;
     card.onclick=()=>openModal(track.id);
     grid.appendChild(card);
   });
@@ -2362,8 +2452,17 @@ function openModal(trackId){
   document.getElementById("routeNote").value=track.note||60;
   document.getElementById("routeVelocity").value=track.velocity||100;
   document.getElementById("routeNoteName").textContent=midiNoteName(track.note||60);
+  syncRoutingSummary(track.target||"digitakt-audio");
+  const rBody=document.getElementById("routingBody"),rChev=document.getElementById("routingChev");
+  const wantOpen=(track.target||"digitakt-audio")!=="digitakt-audio";
+  rBody.classList.toggle("open",wantOpen);rChev.classList.toggle("open",wantOpen);
   document.getElementById("modal").classList.remove("hidden");
-  syncLenBtns();renderStepGrid();
+  syncLenBtns();updateNoteModeBtn();renderStepGrid();
+}
+
+function syncRoutingSummary(target){
+  const labels={"digitakt-audio":"DT Audio","digitakt-midi":"DT MIDI","pro3-usb":"Pro 3 USB","external-midi":"External MIDI"};
+  document.getElementById("routingSummary").textContent=`Routing · ${labels[target]||target}`;
 }
 
 function closeModal(){
@@ -2385,6 +2484,7 @@ function updateRouting(){
   document.getElementById("routeNote").value=t.note;
   document.getElementById("routeVelocity").value=t.velocity;
   document.getElementById("routeNoteName").textContent=midiNoteName(t.note);
+  syncRoutingSummary(t.target);
   save();
 }
 
@@ -2393,27 +2493,66 @@ function updateRouting(){
 // ================================================================
 function probClass(p){return p>=100?'':(p>=75?' p75':p>=50?' p50':' p25');}
 
+// Digitakt hardware shows 16 physical step keys per page — mirror that instead
+// of counting steps continuously across the whole pattern.
+function localStepNum(step){return ((step-1)%16)+1;}
+function pageOfStep(step){return Math.floor((step-1)/16)+1;}
+
+const PITCHED_ROLES=['melody','harmonic','bass','midi'];
+function isPitchedTrack(track){
+  const role=track.roleType||inferTrackRole(track);
+  return PITCHED_ROLES.includes(role);
+}
+
+function stepBadgeHtml(track,step,cond){
+  const noteOff=track.lanes&&track.lanes.note?track.lanes.note[step]:null;
+  const noteHtml=noteOff?`<span class="step-note">${midiNoteName(clamp((track.note||60)+noteOff,0,127))}</span>`:'';
+  const condHtml=cond?`<span class="step-cond">${cond}</span>`:'';
+  return noteHtml+condHtml;
+}
+
+function updateNoteModeBtn(){
+  const track=getTrack(S.editId);
+  const btn=document.getElementById("noteModeBtn");
+  if(!btn)return;
+  const pitched=track&&isPitchedTrack(track);
+  btn.classList.toggle("hidden",!pitched);
+  if(!pitched&&noteMode){noteMode=false;}
+  btn.classList.toggle("note-on",noteMode);
+}
+
 function renderStepGrid(){
   const g=document.getElementById("stepGrid");g.innerHTML="";
   const track=getTrack(S.editId);if(!track)return;
   const active=track.steps||[];
   const prob=track.lanes&&track.lanes.probability?track.lanes.probability:{};
   const conds=track.lanes&&track.lanes.condition?track.lanes.condition:{};
+  const pitched=isPitchedTrack(track);
   for(let i=1;i<=S.patLen;i++){
+    if((i-1)%16===0){
+      const page=document.createElement("div");
+      page.className="step-page";
+      page.textContent=`Page ${pageOfStep(i)} · steps 1–16`;
+      g.appendChild(page);
+    }
+    const local=localStepNum(i);
     const isOn=active.includes(i);
     const p=isOn?(prob[i]??100):100;
     const cond=isOn?conds[i]:null;
     const btn=document.createElement("div");
-    btn.className="step-btn"+(isOn?" active"+probClass(p):"")+((i-1)%4===0?" bar-s":"");
-    const mainLabel=(isOn&&p<100)?String(p):String(i);
-    btn.innerHTML=mainLabel+(cond?`<span class="step-cond">${cond}</span>`:'');
+    btn.className="step-btn"+(isOn?" active"+probClass(p):"")+((local-1)%4===0?" bar-s":"");
+    const mainLabel=(isOn&&p<100)?String(p):String(local);
+    btn.innerHTML=mainLabel+(isOn?stepBadgeHtml(track,i,cond):'');
     btn.dataset.step=String(i);
-    if(condMode){
+    if(noteMode&&pitched){
+      btn.onclick=()=>{if(isOn)cycleStepNote(i,btn);};
+      btn.title=isOn?`Step ${i} (page ${pageOfStep(i)}, key ${local}) — click to cycle pitch`:`Step ${i} (inactive)`;
+    } else if(condMode){
       btn.onclick=()=>{if(isOn)cycleStepCond(i,btn);};
       btn.title=isOn?(cond?`Step ${i} · ${cond} — click to cycle condition`:`Step ${i} — click to add condition`):`Step ${i} (inactive)`;
     } else {
       btn.onclick=()=>toggleStep(i,btn);
-      btn.title=isOn?(cond?`Step ${i}${p<100?' · '+p+'%':''} · ${cond} (condition)`:(p<100?`Step ${i} · ${p}% probability — right-click to cycle`:`Step ${i} — right-click: probability | enable Cond mode for conditions`)):`Step ${i}`;
+      btn.title=isOn?(cond?`Step ${i} (page ${pageOfStep(i)}, key ${local})${p<100?' · '+p+'%':''} · ${cond} (condition)`:(p<100?`Step ${i} (page ${pageOfStep(i)}, key ${local}) · ${p}% probability — right-click to cycle`:`Step ${i} (page ${pageOfStep(i)}, key ${local}) — right-click: probability | enable Cond/Note mode for more`)):`Step ${i} (page ${pageOfStep(i)}, key ${local})`;
     }
     btn.oncontextmenu=(e)=>{e.preventDefault();if(isOn)cycleStepProb(i,btn);};
     g.appendChild(btn);
@@ -2425,16 +2564,18 @@ function toggleStep(step,btn){
   const track=getTrack(S.editId);if(!track)return;
   if(!track.steps)track.steps=[];
   const idx=track.steps.indexOf(step);
+  const local=localStepNum(step);
   if(idx>-1){
     track.steps.splice(idx,1);
     if(track.lanes&&track.lanes.probability)delete track.lanes.probability[step];
     if(track.lanes&&track.lanes.condition)delete track.lanes.condition[step];
+    if(track.lanes&&track.lanes.note)delete track.lanes.note[step];
     btn.className=btn.className.replace(/\s*(active|p75|p50|p25)/g,"");
-    btn.innerHTML=String(step);
+    btn.innerHTML=String(local);
   } else {
     track.steps.push(step);track.steps.sort((a,b)=>a-b);
     btn.classList.add("active");
-    btn.innerHTML=String(step);
+    btn.innerHTML=String(local);
   }
   updateStepInfo(track.steps);
 }
@@ -2446,12 +2587,13 @@ function cycleStepProb(step,btn){
   const cur=track.lanes.probability[step]??100;
   const next=cur>=100?75:cur>=75?50:cur>=50?25:100;
   if(next>=100)delete track.lanes.probability[step];else track.lanes.probability[step]=next;
-  const barS=(step-1)%4===0?' bar-s':'';
+  const local=localStepNum(step);
+  const barS=(local-1)%4===0?' bar-s':'';
   btn.className=`step-btn active${probClass(next)}${barS}`;
   const cond=track.lanes&&track.lanes.condition&&track.lanes.condition[step];
-  const mainLabel=next<100?String(next):String(step);
-  btn.innerHTML=mainLabel+(cond?`<span class="step-cond">${cond}</span>`:'');
-  btn.title=next<100?`Step ${step} · ${next}% probability — right-click to cycle`:`Step ${step} · right-click to set probability`;
+  const mainLabel=next<100?String(next):String(local);
+  btn.innerHTML=mainLabel+stepBadgeHtml(track,step,cond);
+  btn.title=next<100?`Step ${step} (key ${local}) · ${next}% probability — right-click to cycle`:`Step ${step} (key ${local}) · right-click to set probability`;
 }
 
 function cycleStepCond(step,btn){
@@ -2464,11 +2606,41 @@ function cycleStepCond(step,btn){
   if(next==null)delete track.lanes.condition[step];else track.lanes.condition[step]=next;
   // Rebuild button content
   const prob=track.lanes.probability&&track.lanes.probability[step]!=null?track.lanes.probability[step]:100;
-  const mainLabel=prob<100?String(prob):String(step);
-  const barS=(step-1)%4===0?' bar-s':'';
+  const local=localStepNum(step);
+  const mainLabel=prob<100?String(prob):String(local);
+  const barS=(local-1)%4===0?' bar-s':'';
   btn.className=`step-btn active${probClass(prob)}${barS}`;
-  btn.innerHTML=mainLabel+(next?`<span class="step-cond">${next}</span>`:'');
-  btn.title=next?`Step ${step}${prob<100?' · '+prob+'%':''} · ${next} — click to cycle condition`:`Step ${step} — click to add condition`;
+  btn.innerHTML=mainLabel+stepBadgeHtml(track,step,next);
+  btn.title=next?`Step ${step} (key ${local})${prob<100?' · '+prob+'%':''} · ${next} — click to cycle condition`:`Step ${step} (key ${local}) — click to add condition`;
+}
+
+let noteMode=false;
+function toggleNoteMode(){
+  noteMode=!noteMode;
+  if(noteMode&&condMode){condMode=false;const cb=document.getElementById('condModeBtn');if(cb)cb.classList.remove('cond-on');}
+  const btn=document.getElementById('noteModeBtn');
+  if(btn)btn.classList.toggle('note-on',noteMode);
+  renderStepGrid();
+}
+
+const NOTE_OFFSET_CYCLE=[0,1,2,3,4,5,6,-6,-5,-4,-3,-2,-1];
+function cycleStepNote(step,btn){
+  const track=getTrack(S.editId);if(!track)return;
+  if(!track.lanes)track.lanes={probability:{},condition:{},note:{}};
+  if(!track.lanes.note)track.lanes.note={};
+  const cur=track.lanes.note[step]??0;
+  const idx=NOTE_OFFSET_CYCLE.indexOf(cur);
+  const next=NOTE_OFFSET_CYCLE[(idx+1)%NOTE_OFFSET_CYCLE.length];
+  if(next===0)delete track.lanes.note[step];else track.lanes.note[step]=next;
+  const prob=track.lanes.probability&&track.lanes.probability[step]!=null?track.lanes.probability[step]:100;
+  const cond=track.lanes.condition&&track.lanes.condition[step];
+  const local=localStepNum(step);
+  const mainLabel=prob<100?String(prob):String(local);
+  const barS=(local-1)%4===0?' bar-s':'';
+  btn.className=`step-btn active${probClass(prob)}${barS}`;
+  btn.innerHTML=mainLabel+stepBadgeHtml(track,step,cond);
+  const noteName=next?midiNoteName(clamp((track.note||60)+next,0,127)):'root';
+  btn.title=`Step ${step} (key ${local}) · pitch ${noteName} — click to cycle`;
 }
 
 function resetStepProb(){
@@ -2479,7 +2651,7 @@ function resetStepProb(){
 
 function resetAllLanes(){
   const t=getTrack(S.editId);if(!t)return;
-  if(t.lanes){t.lanes.probability={};t.lanes.condition={};}
+  if(t.lanes){t.lanes.probability={};t.lanes.condition={};t.lanes.note={};}
   renderStepGrid();
 }
 
@@ -2490,7 +2662,43 @@ function updateStepInfo(steps){
   document.getElementById("activeSteps").textContent=steps.length?steps.join(", "):"None";
 }
 
-function setPatLen(len){S.patLen=len;syncLenBtns();renderStepGrid();}
+function setPatLen(len){
+  const track=getTrack(S.editId);
+  const old=S.patLen;
+  if(track&&len!==old)rescalePatternLength(track,old,len);
+  S.patLen=len;syncLenBtns();renderStepGrid();
+}
+
+// Changing pattern length should change the sequence, not just the visible step
+// count: growing repeats the existing groove into the new pages, shrinking
+// truncates whatever falls outside the new length.
+function rescalePatternLength(track,oldLen,newLen){
+  if(!track.steps)track.steps=[];
+  if(!track.lanes)track.lanes={probability:{},condition:{},note:{}};
+  const lanes=track.lanes;
+  if(newLen<oldLen){
+    track.steps=track.steps.filter(s=>s<=newLen);
+    ['probability','condition','note'].forEach(k=>{
+      if(!lanes[k])return;
+      Object.keys(lanes[k]).forEach(s=>{if(Number(s)>newLen)delete lanes[k][s];});
+    });
+    return;
+  }
+  if(!oldLen||oldLen<=0)return;
+  const baseSteps=track.steps.filter(s=>s<=oldLen);
+  if(!baseSteps.length)return;
+  for(let offset=oldLen;offset<newLen;offset+=oldLen){
+    baseSteps.forEach(s=>{
+      const ns=s+offset;
+      if(ns>newLen)return;
+      if(!track.steps.includes(ns))track.steps.push(ns);
+      ['probability','condition','note'].forEach(k=>{
+        if(lanes[k]&&lanes[k][s]!=null)lanes[k][ns]=lanes[k][s];
+      });
+    });
+  }
+  track.steps.sort((a,b)=>a-b);
+}
 
 function syncLenBtns(){
   document.querySelectorAll(".len-btn").forEach(b=>b.classList.toggle("lon",parseInt(b.dataset.len)===S.patLen));
@@ -2510,7 +2718,7 @@ function resetToRecommended(){
   const rec=getRecommended(S.genre,S.subgenre).find(t=>t.id===S.editId);
   const curr=getTrack(S.editId);if(!rec||!curr)return;
   curr.steps=[...rec.steps];curr.name=rec.name;curr.desc=rec.desc;
-  if(curr.lanes){curr.lanes.probability={};curr.lanes.condition={};}else curr.lanes={probability:{},condition:{}};
+  if(curr.lanes){curr.lanes.probability={};curr.lanes.condition={};curr.lanes.note={};}else curr.lanes={probability:{},condition:{},note:{}};
   document.getElementById("mTrackName").value=curr.name;
   document.getElementById("mDesc").textContent=curr.desc;
   const maxS=curr.steps.length?Math.max(...curr.steps):0;
@@ -2518,7 +2726,7 @@ function resetToRecommended(){
   syncLenBtns();renderStepGrid();
 }
 
-function clearPattern(){const t=getTrack(S.editId);if(t){t.steps=[];if(t.lanes){t.lanes.probability={};t.lanes.condition={};}renderStepGrid();}}
+function clearPattern(){const t=getTrack(S.editId);if(t){t.steps=[];if(t.lanes){t.lanes.probability={};t.lanes.condition={};t.lanes.note={};}renderStepGrid();}}
 
 function loadRecommendedDefaults(){
   if(!confirm(`Reset all ${S.genre}${S.subgenre?` (${currentSG().name})`:"" } tracks to recommended patterns?`))return;
@@ -2652,6 +2860,7 @@ function randomizeKey(){
 let condMode=false;
 function toggleCondMode(){
   condMode=!condMode;
+  if(condMode&&noteMode){noteMode=false;updateNoteModeBtn();}
   const btn=document.getElementById('condModeBtn');
   if(btn)btn.classList.toggle('cond-on',condMode);
   renderStepGrid();
@@ -2682,10 +2891,17 @@ let midiAccess = null;
 function setText(id,value){const el=document.getElementById(id);if(el)el.textContent=value;}
 
 function updateMidiDiagnostics(outputCount){
-  setText("diagWebMidi",navigator.requestMIDIAccess?"ready":"unsupported");
+  const supported=!!navigator.requestMIDIAccess;
+  setText("diagWebMidi",supported?"ready":"unsupported");
   setText("diagSecure",window.isSecureContext||location.hostname==="localhost"?"ok":"required");
   setText("diagSysex","disabled");
   if(outputCount!==undefined)setText("diagOutputs",String(outputCount));
+  // Mirror a one-line live status into the header chip.
+  const chip=document.getElementById("headerMidiChip");
+  const dot=chip&&chip.querySelector("i");
+  const state=document.getElementById("headerMidiState");
+  if(state)state.textContent=!supported?"unsupported":(outputCount>0?`${outputCount} out`:"no devices");
+  if(dot)dot.style.color=!supported?"#f43f5e":(outputCount>0?"#34d399":"#64748b");
 }
 
 async function initMidi(){
@@ -2753,10 +2969,12 @@ function buildMidiEvents(tracks,bpm,loops,startAt,rng){
         if(rng()*100>=prob)return;
         const cond=track.lanes&&track.lanes.condition&&track.lanes.condition[step];
         if(cond&&!evalCondition(cond,loop))return;
+        const noteOff=track.lanes&&track.lanes.note&&track.lanes.note[step]!=null?track.lanes.note[step]:0;
+        const stepNote=clamp(note+noteOff,0,127);
         const onset=startAt+lo+(step-1)*msPerStep;
         const tgt=track.target||"digitakt-audio";
-        events.push({bytes:[0x90|ch,note,velocity],at:onset,target:tgt});
-        events.push({bytes:[0x80|ch,note,0],at:onset+msPerStep*0.45,target:tgt});
+        events.push({bytes:[0x90|ch,stepNote,velocity],at:onset,target:tgt});
+        events.push({bytes:[0x80|ch,stepNote,0],at:onset+msPerStep*0.45,target:tgt});
       });
     });
   }
