@@ -1995,6 +1995,40 @@ function moveArrangementSection(idx,dir){
   save();
 }
 
+// Generalized reorder (vs. moveArrangementSection's single-step swap) — used by drag-to-reorder.
+function moveSectionToIndex(from,to){
+  const secs=S.arrangement.sections;
+  if(from<0||from>=secs.length)return;
+  to=clamp(to,0,secs.length-1);
+  if(from===to)return;
+  const[item]=secs.splice(from,1);
+  secs.splice(to,0,item);
+  const a=S.arrangement.activeIdx;
+  if(a===from)S.arrangement.activeIdx=to;
+  else if(from<a&&to>=a)S.arrangement.activeIdx--;
+  else if(from>a&&to<=a)S.arrangement.activeIdx++;
+}
+
+let dragSectionIdx=null;
+function sectionDragStart(e,idx){
+  dragSectionIdx=idx;
+  e.dataTransfer.effectAllowed="move";
+  try{e.dataTransfer.setData("text/plain",String(idx));}catch(err){}
+  e.currentTarget.style.opacity=".4";
+}
+function sectionDragEnd(e){
+  e.currentTarget.style.opacity="";
+  dragSectionIdx=null;
+}
+function sectionDrop(e,dropIdx){
+  e.preventDefault();
+  const from=dragSectionIdx;
+  if(from==null||from===dropIdx)return;
+  pushArrangementUndo();
+  moveSectionToIndex(from,dropIdx);
+  renderArrangementBar();renderTrackGrid();save();
+}
+
 function duplicateArrangementSection(idx,evt){
   if(evt)evt.stopPropagation();
   ensureArrangement();
@@ -2130,7 +2164,7 @@ function renderArrangementBar(){
     const nowPlaying=songPlaying&&songPlayIdx===i;
     const col=energyColor(sec.energy);
     const prog=nowPlaying?`<span style="position:absolute;left:0;bottom:0;height:2px;width:${Math.round(songSectionProgress*100)}%;background:${col};border-radius:2px;transition:width .1s linear"></span>`:"";
-    return`<button onclick="selectArrangementSection(${i})" class="sg-pill${on?' sg-on':''}" style="position:relative;padding-left:.95rem;padding-right:1.4rem;overflow:hidden;${nowPlaying?`box-shadow:0 0 0 1px ${col},0 0 10px ${col}66;`:''}" title="${escapeHtml(sec.label)} · ${sec.energy}% energy · ${sec.trackIds.length} tracks · ${sec.repeats}×">
+    return`<button onclick="selectArrangementSection(${i})" draggable="true" ondragstart="sectionDragStart(event,${i})" ondragend="sectionDragEnd(event)" ondragover="event.preventDefault()" ondrop="sectionDrop(event,${i})" class="sg-pill${on?' sg-on':''}" style="position:relative;padding-left:.95rem;padding-right:1.4rem;overflow:hidden;cursor:grab;${nowPlaying?`box-shadow:0 0 0 1px ${col},0 0 10px ${col}66;`:''}" title="${escapeHtml(sec.label)} · ${sec.energy}% energy · ${sec.trackIds.length} tracks · ${sec.repeats}× — drag to reorder">
       <span style="position:absolute;left:.35rem;top:50%;transform:translateY(-50%);width:6px;height:6px;border-radius:50%;background:${col}"></span>
       ${nowPlaying?'<i class="fas fa-play" style="font-size:.5rem;margin-right:.25rem;color:'+col+'"></i>':''}${escapeHtml(sec.label)}
       ${total>1?`<span onclick="removeArrangementSection(${i},event)" style="position:absolute;right:.3rem;top:50%;transform:translateY(-50%);opacity:.5;font-weight:700" title="Remove section">×</span>`:""}
@@ -2223,8 +2257,9 @@ function applyRecommendedLabel(){
   pushArrangementUndo();
   const activeIds=currentTracks().filter(t=>t.steps&&t.steps.length).map(t=>t.id);
   const def=SECTION_KINDS[s.kind];
-  S.arrangement.sections.push({id:`${s.kind}-${Date.now()}`,kind:s.kind,label:def.label,energy:s.energy,repeats:s.kind==="drop"||s.kind==="chorus"?6:4,trackIds:activeIds.length?activeIds:currentTracks().map(t=>t.id)});
-  S.arrangement.activeIdx=S.arrangement.sections.length-1;
+  const at=suggestPlacementIndex(s.energy);
+  S.arrangement.sections.splice(at,0,{id:`${s.kind}-${Date.now()}`,kind:s.kind,label:def.label,energy:s.energy,repeats:s.kind==="drop"||s.kind==="chorus"?6:4,trackIds:activeIds.length?activeIds:currentTracks().map(t=>t.id)});
+  S.arrangement.activeIdx=at;
   renderArrangementBar();renderTrackGrid();save();
   closeAideModal();
 }
@@ -2549,8 +2584,21 @@ function aideNudgeAfterEdit(trackId){
   const track=getTrack(trackId);
   if(!track||!track.steps||!track.steps.length){nudge.classList.add("hidden");return;}
   const s=suggestSectionLabel([track]);
-  nudge.innerHTML=`<i class="fas fa-lightbulb text-purple-400 mr-1"></i> <b>${escapeHtml(track.name)}</b> reads like a <b>${escapeHtml(s.label)}</b> element — ${escapeHtml(s.reason)} <button onclick="addTrackAsNewSection(${track.id})" class="ml-1 px-2 py-0.5 text-[11px] bg-purple-900/50 hover:bg-purple-800/60 border border-purple-700/50 rounded text-purple-100">Start a ${escapeHtml(s.label)} section with it</button>`;
+  const secs=S.arrangement.sections;
+  const at=suggestPlacementIndex(s.energy);
+  const placeNote=secs.length?(at>=secs.length?` after ${escapeHtml(secs[secs.length-1].label)}`:` before ${escapeHtml(secs[at].label)}`):"";
+  nudge.innerHTML=`<i class="fas fa-lightbulb text-purple-400 mr-1"></i> <b>${escapeHtml(track.name)}</b> reads like a <b>${escapeHtml(s.label)}</b> element — ${escapeHtml(s.reason)} <button onclick="addTrackAsNewSection(${track.id})" class="ml-1 px-2 py-0.5 text-[11px] bg-purple-900/50 hover:bg-purple-800/60 border border-purple-700/50 rounded text-purple-100">Start a ${escapeHtml(s.label)} section${placeNote}</button>`;
   nudge.classList.remove("hidden");
+}
+
+// Where, not just what: slot the new section in next to the existing
+// section whose energy it's closest to, on the side that keeps the arc smooth.
+function suggestPlacementIndex(energyPct){
+  const secs=S.arrangement.sections;
+  if(!secs.length)return 0;
+  let bestI=0,bestDiff=Infinity;
+  secs.forEach((sec,i)=>{const diff=Math.abs(sec.energy-energyPct);if(diff<bestDiff){bestDiff=diff;bestI=i;}});
+  return energyPct>=secs[bestI].energy?bestI+1:bestI;
 }
 
 function addTrackAsNewSection(trackId){
@@ -2558,8 +2606,9 @@ function addTrackAsNewSection(trackId){
   const s=suggestSectionLabel([track]);
   pushArrangementUndo();
   const def=SECTION_KINDS[s.kind];
-  S.arrangement.sections.push({id:`${s.kind}-${Date.now()}`,kind:s.kind,label:def.label,energy:s.energy,repeats:(s.kind==="drop"||s.kind==="chorus")?6:4,trackIds:[trackId]});
-  S.arrangement.activeIdx=S.arrangement.sections.length-1;
+  const at=suggestPlacementIndex(s.energy);
+  S.arrangement.sections.splice(at,0,{id:`${s.kind}-${Date.now()}`,kind:s.kind,label:def.label,energy:s.energy,repeats:(s.kind==="drop"||s.kind==="chorus")?6:4,trackIds:[trackId]});
+  S.arrangement.activeIdx=at;
   document.getElementById("aideNudge").classList.add("hidden");
   renderArrangementBar();renderTrackGrid();save();
 }
