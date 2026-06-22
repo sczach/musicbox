@@ -268,6 +268,7 @@ select,input,textarea{box-shadow:none}
         </div>
         <div id="arrangementChips" class="flex gap-1.5 flex-wrap"></div>
         <div id="arrangementPanel" class="hidden"></div>
+        <div id="aideNudge" class="hidden text-xs text-purple-300/90 bg-purple-950/20 border border-purple-900/40 rounded-lg p-2.5 leading-relaxed mt-2"></div>
       </div>
 
       <div id="trackGrid" class="track-grid grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2"></div>
@@ -2525,8 +2526,42 @@ function syncRoutingSummary(target){
 }
 
 function closeModal(){
+  const trackId=S.editId;
   document.getElementById("modal").classList.add("hidden");
-  renderTrackGrid();save();
+  renderTrackGrid();
+  aideNudgeAfterEdit(trackId);
+  save();
+}
+
+// Fires the Aide's label/placement read on whatever track was just edited:
+// refresh the active section's coaching if one's selected, otherwise offer
+// to start a new section around this track's content.
+function aideNudgeAfterEdit(trackId){
+  ensureArrangement();
+  const nudge=document.getElementById("aideNudge");
+  const idx=S.arrangement.activeIdx;
+  if(idx>=0&&idx<S.arrangement.sections.length){
+    if(nudge)nudge.classList.add("hidden");
+    suggestForSection(idx);
+    return;
+  }
+  if(!nudge)return;
+  const track=getTrack(trackId);
+  if(!track||!track.steps||!track.steps.length){nudge.classList.add("hidden");return;}
+  const s=suggestSectionLabel([track]);
+  nudge.innerHTML=`<i class="fas fa-lightbulb text-purple-400 mr-1"></i> <b>${escapeHtml(track.name)}</b> reads like a <b>${escapeHtml(s.label)}</b> element — ${escapeHtml(s.reason)} <button onclick="addTrackAsNewSection(${track.id})" class="ml-1 px-2 py-0.5 text-[11px] bg-purple-900/50 hover:bg-purple-800/60 border border-purple-700/50 rounded text-purple-100">Start a ${escapeHtml(s.label)} section with it</button>`;
+  nudge.classList.remove("hidden");
+}
+
+function addTrackAsNewSection(trackId){
+  const track=getTrack(trackId);if(!track)return;
+  const s=suggestSectionLabel([track]);
+  pushArrangementUndo();
+  const def=SECTION_KINDS[s.kind];
+  S.arrangement.sections.push({id:`${s.kind}-${Date.now()}`,kind:s.kind,label:def.label,energy:s.energy,repeats:(s.kind==="drop"||s.kind==="chorus")?6:4,trackIds:[trackId]});
+  S.arrangement.activeIdx=S.arrangement.sections.length-1;
+  document.getElementById("aideNudge").classList.add("hidden");
+  renderArrangementBar();renderTrackGrid();save();
 }
 
 function updateTrackName(v){
