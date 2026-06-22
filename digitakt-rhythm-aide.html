@@ -25,9 +25,18 @@ body{font-family:'Space Grotesk',system-ui,sans-serif;background:#09111f;color:#
 .step-btn.active.p75 .step-cond{color:#fcd34d}
 .step-btn.active.p50 .step-cond{color:#fb923c}
 .step-btn.active.p25 .step-cond{color:#f87171}
+.step-note{font-size:.38rem;font-weight:700;color:#34d399;line-height:1;display:block;letter-spacing:0}
+.step-btn.active.p75 .step-note{color:#fde68a}
+.step-btn.active.p50 .step-note{color:#fdba74}
+.step-btn.active.p25 .step-note{color:#fca5a5}
+.step-page{grid-column:1/-1;font-size:.62rem;font-weight:700;letter-spacing:.08em;color:#3a5070;text-transform:uppercase;padding:.3rem .1rem .15rem;margin-top:.2rem;border-top:1px solid #1a2540}
+.step-page:first-child{margin-top:0;border-top:none;padding-top:0}
 .cond-mode-btn{padding:.2rem .6rem;font-size:.68rem;font-weight:600;border-radius:4px;border:1px solid #1a2540;background:#0e1828;color:#3a5070;cursor:pointer;transition:all .1s;font-family:'JetBrains Mono',monospace}
 .cond-mode-btn:hover:not(.cond-on){background:#182234;color:#a78bfa}
 .cond-mode-btn.cond-on{background:#1e0a4a;border-color:#7c3aed;color:#a78bfa}
+.note-mode-btn{padding:.2rem .6rem;font-size:.68rem;font-weight:600;border-radius:4px;border:1px solid #1a2540;background:#0e1828;color:#3a5070;cursor:pointer;transition:all .1s;font-family:'JetBrains Mono',monospace}
+.note-mode-btn:hover:not(.note-on){background:#182234;color:#34d399}
+.note-mode-btn.note-on{background:#062e22;border-color:#059669;color:#34d399}
 .mini-step{flex-shrink:0;width:5px;height:10px;border-radius:2px;background:#111e30}
 .mini-step.on{background:#22d3ee}
 @keyframes mIn{from{opacity:0;transform:scale(.97) translateY(8px)}to{opacity:1;transform:scale(1) translateY(0)}}
@@ -530,34 +539,40 @@ select,input,textarea{box-shadow:none}
         <div id="mDesc" class="text-xs text-slate-400 leading-relaxed mb-4"></div>
         <div id="mSubNote" class="hidden text-xs text-cyan-700 bg-cyan-950/30 border border-cyan-900/40 rounded-lg p-2.5 leading-relaxed mb-4"></div>
 
-        <!-- Routing inspector -->
+        <!-- Routing inspector — collapsed by default; only matters once you route off the default DT audio output -->
         <div class="border-t border-slate-800 pt-4">
-          <div class="lbl mb-2.5">Routing</div>
-          <div class="space-y-2.5">
-            <div>
-              <div class="lbl mb-1 text-slate-600">Target</div>
-              <select id="routeTarget" onchange="updateRouting()" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-cyan-600">
-                <option value="digitakt-audio">DT Audio (tracks 1–16)</option>
-                <option value="digitakt-midi">DT MIDI track</option>
-                <option value="pro3-usb">Pro 3 USB</option>
-                <option value="external-midi">External MIDI</option>
-              </select>
+          <button onclick="toggleSect('routingBody','routingChev')" class="sect-trigger text-left w-full flex items-center justify-between" style="border-radius:8px;background:transparent;border:none;padding:0">
+            <span id="routingSummary" class="lbl">Routing · DT Audio</span>
+            <i id="routingChev" class="fas fa-chevron-down chevron text-slate-700 text-xs"></i>
+          </button>
+          <div id="routingBody" class="collapse-body mt-2.5">
+            <div class="space-y-2.5">
+              <div>
+                <div class="lbl mb-1 text-slate-600">Target</div>
+                <select id="routeTarget" onchange="updateRouting()" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-cyan-600">
+                  <option value="digitakt-audio">DT Audio (tracks 1–16)</option>
+                  <option value="digitakt-midi">DT MIDI track</option>
+                  <option value="pro3-usb">Pro 3 USB</option>
+                  <option value="external-midi">External MIDI</option>
+                </select>
+              </div>
+              <div class="grid grid-cols-3 gap-2">
+                <div>
+                  <div class="lbl mb-1 text-slate-600">CH</div>
+                  <input id="routeChannel" type="number" min="1" max="16" onchange="updateRouting()" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-center text-white focus:outline-none focus:border-cyan-600 mono">
+                </div>
+                <div>
+                  <div class="lbl mb-1 text-slate-600">Note</div>
+                  <input id="routeNote" type="number" min="0" max="127" onchange="updateRouting()" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-center text-white focus:outline-none focus:border-cyan-600 mono">
+                </div>
+                <div>
+                  <div class="lbl mb-1 text-slate-600">Vel</div>
+                  <input id="routeVelocity" type="number" min="1" max="127" onchange="updateRouting()" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-center text-white focus:outline-none focus:border-cyan-600 mono">
+                </div>
+              </div>
+              <div id="routeNoteName" class="mono text-cyan-400 text-xs text-center"></div>
+              <p class="text-[10px] text-slate-700 leading-relaxed">Only needed if this track plays through a MIDI target (DT MIDI track, Pro 3, or external gear). DT audio tracks can ignore this.</p>
             </div>
-            <div class="grid grid-cols-3 gap-2">
-              <div>
-                <div class="lbl mb-1 text-slate-600">CH</div>
-                <input id="routeChannel" type="number" min="1" max="16" onchange="updateRouting()" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-center text-white focus:outline-none focus:border-cyan-600 mono">
-              </div>
-              <div>
-                <div class="lbl mb-1 text-slate-600">Note</div>
-                <input id="routeNote" type="number" min="0" max="127" onchange="updateRouting()" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-center text-white focus:outline-none focus:border-cyan-600 mono">
-              </div>
-              <div>
-                <div class="lbl mb-1 text-slate-600">Vel</div>
-                <input id="routeVelocity" type="number" min="1" max="127" onchange="updateRouting()" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-center text-white focus:outline-none focus:border-cyan-600 mono">
-              </div>
-            </div>
-            <div id="routeNoteName" class="mono text-cyan-400 text-xs text-center"></div>
           </div>
         </div>
       </div>
@@ -600,6 +615,7 @@ select,input,textarea{box-shadow:none}
             <div class="flex items-center gap-2">
               <div class="lbl">Steps</div>
               <button id="condModeBtn" class="cond-mode-btn" onclick="toggleCondMode()" title="Enable condition mode: click steps to cycle trig conditions (1:2, 1:4, etc.)">Cond</button>
+              <button id="noteModeBtn" class="note-mode-btn hidden" onclick="toggleNoteMode()" title="Enable note mode: click steps to cycle the pitch for that trig">Note</button>
             </div>
             <div class="flex gap-3">
               <span id="stepCountDisplay" class="text-xs text-slate-500 mono"></span>
@@ -1183,6 +1199,7 @@ function normalizeTrack(track){
   const lanes={
     probability:{...((track.lanes&&track.lanes.probability)||{})},
     condition:{...((track.lanes&&track.lanes.condition)||{})},
+    note:{...((track.lanes&&track.lanes.note)||{})},
   };
   return {...track,roleType:role,target,midiChannel,note,velocity,lanes};
 }
@@ -2362,8 +2379,17 @@ function openModal(trackId){
   document.getElementById("routeNote").value=track.note||60;
   document.getElementById("routeVelocity").value=track.velocity||100;
   document.getElementById("routeNoteName").textContent=midiNoteName(track.note||60);
+  syncRoutingSummary(track.target||"digitakt-audio");
+  const rBody=document.getElementById("routingBody"),rChev=document.getElementById("routingChev");
+  const wantOpen=(track.target||"digitakt-audio")!=="digitakt-audio";
+  rBody.classList.toggle("open",wantOpen);rChev.classList.toggle("open",wantOpen);
   document.getElementById("modal").classList.remove("hidden");
-  syncLenBtns();renderStepGrid();
+  syncLenBtns();updateNoteModeBtn();renderStepGrid();
+}
+
+function syncRoutingSummary(target){
+  const labels={"digitakt-audio":"DT Audio","digitakt-midi":"DT MIDI","pro3-usb":"Pro 3 USB","external-midi":"External MIDI"};
+  document.getElementById("routingSummary").textContent=`Routing · ${labels[target]||target}`;
 }
 
 function closeModal(){
@@ -2385,6 +2411,7 @@ function updateRouting(){
   document.getElementById("routeNote").value=t.note;
   document.getElementById("routeVelocity").value=t.velocity;
   document.getElementById("routeNoteName").textContent=midiNoteName(t.note);
+  syncRoutingSummary(t.target);
   save();
 }
 
@@ -2393,27 +2420,66 @@ function updateRouting(){
 // ================================================================
 function probClass(p){return p>=100?'':(p>=75?' p75':p>=50?' p50':' p25');}
 
+// Digitakt hardware shows 16 physical step keys per page — mirror that instead
+// of counting steps continuously across the whole pattern.
+function localStepNum(step){return ((step-1)%16)+1;}
+function pageOfStep(step){return Math.floor((step-1)/16)+1;}
+
+const PITCHED_ROLES=['melody','harmonic','bass','midi'];
+function isPitchedTrack(track){
+  const role=track.roleType||inferTrackRole(track);
+  return PITCHED_ROLES.includes(role);
+}
+
+function stepBadgeHtml(track,step,cond){
+  const noteOff=track.lanes&&track.lanes.note?track.lanes.note[step]:null;
+  const noteHtml=noteOff?`<span class="step-note">${midiNoteName(clamp((track.note||60)+noteOff,0,127))}</span>`:'';
+  const condHtml=cond?`<span class="step-cond">${cond}</span>`:'';
+  return noteHtml+condHtml;
+}
+
+function updateNoteModeBtn(){
+  const track=getTrack(S.editId);
+  const btn=document.getElementById("noteModeBtn");
+  if(!btn)return;
+  const pitched=track&&isPitchedTrack(track);
+  btn.classList.toggle("hidden",!pitched);
+  if(!pitched&&noteMode){noteMode=false;}
+  btn.classList.toggle("note-on",noteMode);
+}
+
 function renderStepGrid(){
   const g=document.getElementById("stepGrid");g.innerHTML="";
   const track=getTrack(S.editId);if(!track)return;
   const active=track.steps||[];
   const prob=track.lanes&&track.lanes.probability?track.lanes.probability:{};
   const conds=track.lanes&&track.lanes.condition?track.lanes.condition:{};
+  const pitched=isPitchedTrack(track);
   for(let i=1;i<=S.patLen;i++){
+    if((i-1)%16===0){
+      const page=document.createElement("div");
+      page.className="step-page";
+      page.textContent=`Page ${pageOfStep(i)} · steps 1–16`;
+      g.appendChild(page);
+    }
+    const local=localStepNum(i);
     const isOn=active.includes(i);
     const p=isOn?(prob[i]??100):100;
     const cond=isOn?conds[i]:null;
     const btn=document.createElement("div");
-    btn.className="step-btn"+(isOn?" active"+probClass(p):"")+((i-1)%4===0?" bar-s":"");
-    const mainLabel=(isOn&&p<100)?String(p):String(i);
-    btn.innerHTML=mainLabel+(cond?`<span class="step-cond">${cond}</span>`:'');
+    btn.className="step-btn"+(isOn?" active"+probClass(p):"")+((local-1)%4===0?" bar-s":"");
+    const mainLabel=(isOn&&p<100)?String(p):String(local);
+    btn.innerHTML=mainLabel+(isOn?stepBadgeHtml(track,i,cond):'');
     btn.dataset.step=String(i);
-    if(condMode){
+    if(noteMode&&pitched){
+      btn.onclick=()=>{if(isOn)cycleStepNote(i,btn);};
+      btn.title=isOn?`Step ${i} (page ${pageOfStep(i)}, key ${local}) — click to cycle pitch`:`Step ${i} (inactive)`;
+    } else if(condMode){
       btn.onclick=()=>{if(isOn)cycleStepCond(i,btn);};
       btn.title=isOn?(cond?`Step ${i} · ${cond} — click to cycle condition`:`Step ${i} — click to add condition`):`Step ${i} (inactive)`;
     } else {
       btn.onclick=()=>toggleStep(i,btn);
-      btn.title=isOn?(cond?`Step ${i}${p<100?' · '+p+'%':''} · ${cond} (condition)`:(p<100?`Step ${i} · ${p}% probability — right-click to cycle`:`Step ${i} — right-click: probability | enable Cond mode for conditions`)):`Step ${i}`;
+      btn.title=isOn?(cond?`Step ${i} (page ${pageOfStep(i)}, key ${local})${p<100?' · '+p+'%':''} · ${cond} (condition)`:(p<100?`Step ${i} (page ${pageOfStep(i)}, key ${local}) · ${p}% probability — right-click to cycle`:`Step ${i} (page ${pageOfStep(i)}, key ${local}) — right-click: probability | enable Cond/Note mode for more`)):`Step ${i} (page ${pageOfStep(i)}, key ${local})`;
     }
     btn.oncontextmenu=(e)=>{e.preventDefault();if(isOn)cycleStepProb(i,btn);};
     g.appendChild(btn);
@@ -2425,16 +2491,18 @@ function toggleStep(step,btn){
   const track=getTrack(S.editId);if(!track)return;
   if(!track.steps)track.steps=[];
   const idx=track.steps.indexOf(step);
+  const local=localStepNum(step);
   if(idx>-1){
     track.steps.splice(idx,1);
     if(track.lanes&&track.lanes.probability)delete track.lanes.probability[step];
     if(track.lanes&&track.lanes.condition)delete track.lanes.condition[step];
+    if(track.lanes&&track.lanes.note)delete track.lanes.note[step];
     btn.className=btn.className.replace(/\s*(active|p75|p50|p25)/g,"");
-    btn.innerHTML=String(step);
+    btn.innerHTML=String(local);
   } else {
     track.steps.push(step);track.steps.sort((a,b)=>a-b);
     btn.classList.add("active");
-    btn.innerHTML=String(step);
+    btn.innerHTML=String(local);
   }
   updateStepInfo(track.steps);
 }
@@ -2446,12 +2514,13 @@ function cycleStepProb(step,btn){
   const cur=track.lanes.probability[step]??100;
   const next=cur>=100?75:cur>=75?50:cur>=50?25:100;
   if(next>=100)delete track.lanes.probability[step];else track.lanes.probability[step]=next;
-  const barS=(step-1)%4===0?' bar-s':'';
+  const local=localStepNum(step);
+  const barS=(local-1)%4===0?' bar-s':'';
   btn.className=`step-btn active${probClass(next)}${barS}`;
   const cond=track.lanes&&track.lanes.condition&&track.lanes.condition[step];
-  const mainLabel=next<100?String(next):String(step);
-  btn.innerHTML=mainLabel+(cond?`<span class="step-cond">${cond}</span>`:'');
-  btn.title=next<100?`Step ${step} · ${next}% probability — right-click to cycle`:`Step ${step} · right-click to set probability`;
+  const mainLabel=next<100?String(next):String(local);
+  btn.innerHTML=mainLabel+stepBadgeHtml(track,step,cond);
+  btn.title=next<100?`Step ${step} (key ${local}) · ${next}% probability — right-click to cycle`:`Step ${step} (key ${local}) · right-click to set probability`;
 }
 
 function cycleStepCond(step,btn){
@@ -2464,11 +2533,41 @@ function cycleStepCond(step,btn){
   if(next==null)delete track.lanes.condition[step];else track.lanes.condition[step]=next;
   // Rebuild button content
   const prob=track.lanes.probability&&track.lanes.probability[step]!=null?track.lanes.probability[step]:100;
-  const mainLabel=prob<100?String(prob):String(step);
-  const barS=(step-1)%4===0?' bar-s':'';
+  const local=localStepNum(step);
+  const mainLabel=prob<100?String(prob):String(local);
+  const barS=(local-1)%4===0?' bar-s':'';
   btn.className=`step-btn active${probClass(prob)}${barS}`;
-  btn.innerHTML=mainLabel+(next?`<span class="step-cond">${next}</span>`:'');
-  btn.title=next?`Step ${step}${prob<100?' · '+prob+'%':''} · ${next} — click to cycle condition`:`Step ${step} — click to add condition`;
+  btn.innerHTML=mainLabel+stepBadgeHtml(track,step,next);
+  btn.title=next?`Step ${step} (key ${local})${prob<100?' · '+prob+'%':''} · ${next} — click to cycle condition`:`Step ${step} (key ${local}) — click to add condition`;
+}
+
+let noteMode=false;
+function toggleNoteMode(){
+  noteMode=!noteMode;
+  if(noteMode&&condMode){condMode=false;const cb=document.getElementById('condModeBtn');if(cb)cb.classList.remove('cond-on');}
+  const btn=document.getElementById('noteModeBtn');
+  if(btn)btn.classList.toggle('note-on',noteMode);
+  renderStepGrid();
+}
+
+const NOTE_OFFSET_CYCLE=[0,1,2,3,4,5,6,-6,-5,-4,-3,-2,-1];
+function cycleStepNote(step,btn){
+  const track=getTrack(S.editId);if(!track)return;
+  if(!track.lanes)track.lanes={probability:{},condition:{},note:{}};
+  if(!track.lanes.note)track.lanes.note={};
+  const cur=track.lanes.note[step]??0;
+  const idx=NOTE_OFFSET_CYCLE.indexOf(cur);
+  const next=NOTE_OFFSET_CYCLE[(idx+1)%NOTE_OFFSET_CYCLE.length];
+  if(next===0)delete track.lanes.note[step];else track.lanes.note[step]=next;
+  const prob=track.lanes.probability&&track.lanes.probability[step]!=null?track.lanes.probability[step]:100;
+  const cond=track.lanes.condition&&track.lanes.condition[step];
+  const local=localStepNum(step);
+  const mainLabel=prob<100?String(prob):String(local);
+  const barS=(local-1)%4===0?' bar-s':'';
+  btn.className=`step-btn active${probClass(prob)}${barS}`;
+  btn.innerHTML=mainLabel+stepBadgeHtml(track,step,cond);
+  const noteName=next?midiNoteName(clamp((track.note||60)+next,0,127)):'root';
+  btn.title=`Step ${step} (key ${local}) · pitch ${noteName} — click to cycle`;
 }
 
 function resetStepProb(){
@@ -2479,7 +2578,7 @@ function resetStepProb(){
 
 function resetAllLanes(){
   const t=getTrack(S.editId);if(!t)return;
-  if(t.lanes){t.lanes.probability={};t.lanes.condition={};}
+  if(t.lanes){t.lanes.probability={};t.lanes.condition={};t.lanes.note={};}
   renderStepGrid();
 }
 
@@ -2490,7 +2589,43 @@ function updateStepInfo(steps){
   document.getElementById("activeSteps").textContent=steps.length?steps.join(", "):"None";
 }
 
-function setPatLen(len){S.patLen=len;syncLenBtns();renderStepGrid();}
+function setPatLen(len){
+  const track=getTrack(S.editId);
+  const old=S.patLen;
+  if(track&&len!==old)rescalePatternLength(track,old,len);
+  S.patLen=len;syncLenBtns();renderStepGrid();
+}
+
+// Changing pattern length should change the sequence, not just the visible step
+// count: growing repeats the existing groove into the new pages, shrinking
+// truncates whatever falls outside the new length.
+function rescalePatternLength(track,oldLen,newLen){
+  if(!track.steps)track.steps=[];
+  if(!track.lanes)track.lanes={probability:{},condition:{},note:{}};
+  const lanes=track.lanes;
+  if(newLen<oldLen){
+    track.steps=track.steps.filter(s=>s<=newLen);
+    ['probability','condition','note'].forEach(k=>{
+      if(!lanes[k])return;
+      Object.keys(lanes[k]).forEach(s=>{if(Number(s)>newLen)delete lanes[k][s];});
+    });
+    return;
+  }
+  if(!oldLen||oldLen<=0)return;
+  const baseSteps=track.steps.filter(s=>s<=oldLen);
+  if(!baseSteps.length)return;
+  for(let offset=oldLen;offset<newLen;offset+=oldLen){
+    baseSteps.forEach(s=>{
+      const ns=s+offset;
+      if(ns>newLen)return;
+      if(!track.steps.includes(ns))track.steps.push(ns);
+      ['probability','condition','note'].forEach(k=>{
+        if(lanes[k]&&lanes[k][s]!=null)lanes[k][ns]=lanes[k][s];
+      });
+    });
+  }
+  track.steps.sort((a,b)=>a-b);
+}
 
 function syncLenBtns(){
   document.querySelectorAll(".len-btn").forEach(b=>b.classList.toggle("lon",parseInt(b.dataset.len)===S.patLen));
@@ -2510,7 +2645,7 @@ function resetToRecommended(){
   const rec=getRecommended(S.genre,S.subgenre).find(t=>t.id===S.editId);
   const curr=getTrack(S.editId);if(!rec||!curr)return;
   curr.steps=[...rec.steps];curr.name=rec.name;curr.desc=rec.desc;
-  if(curr.lanes){curr.lanes.probability={};curr.lanes.condition={};}else curr.lanes={probability:{},condition:{}};
+  if(curr.lanes){curr.lanes.probability={};curr.lanes.condition={};curr.lanes.note={};}else curr.lanes={probability:{},condition:{},note:{}};
   document.getElementById("mTrackName").value=curr.name;
   document.getElementById("mDesc").textContent=curr.desc;
   const maxS=curr.steps.length?Math.max(...curr.steps):0;
@@ -2518,7 +2653,7 @@ function resetToRecommended(){
   syncLenBtns();renderStepGrid();
 }
 
-function clearPattern(){const t=getTrack(S.editId);if(t){t.steps=[];if(t.lanes){t.lanes.probability={};t.lanes.condition={};}renderStepGrid();}}
+function clearPattern(){const t=getTrack(S.editId);if(t){t.steps=[];if(t.lanes){t.lanes.probability={};t.lanes.condition={};t.lanes.note={};}renderStepGrid();}}
 
 function loadRecommendedDefaults(){
   if(!confirm(`Reset all ${S.genre}${S.subgenre?` (${currentSG().name})`:"" } tracks to recommended patterns?`))return;
@@ -2652,6 +2787,7 @@ function randomizeKey(){
 let condMode=false;
 function toggleCondMode(){
   condMode=!condMode;
+  if(condMode&&noteMode){noteMode=false;updateNoteModeBtn();}
   const btn=document.getElementById('condModeBtn');
   if(btn)btn.classList.toggle('cond-on',condMode);
   renderStepGrid();
@@ -2753,10 +2889,12 @@ function buildMidiEvents(tracks,bpm,loops,startAt,rng){
         if(rng()*100>=prob)return;
         const cond=track.lanes&&track.lanes.condition&&track.lanes.condition[step];
         if(cond&&!evalCondition(cond,loop))return;
+        const noteOff=track.lanes&&track.lanes.note&&track.lanes.note[step]!=null?track.lanes.note[step]:0;
+        const stepNote=clamp(note+noteOff,0,127);
         const onset=startAt+lo+(step-1)*msPerStep;
         const tgt=track.target||"digitakt-audio";
-        events.push({bytes:[0x90|ch,note,velocity],at:onset,target:tgt});
-        events.push({bytes:[0x80|ch,note,0],at:onset+msPerStep*0.45,target:tgt});
+        events.push({bytes:[0x90|ch,stepNote,velocity],at:onset,target:tgt});
+        events.push({bytes:[0x80|ch,stepNote,0],at:onset+msPerStep*0.45,target:tgt});
       });
     });
   }
