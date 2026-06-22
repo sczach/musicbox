@@ -175,6 +175,27 @@ select,input,textarea{box-shadow:none}
         </button>
       </div>
 
+      <!-- Arrangement / Song Structure bar -->
+      <div id="arrangementBar" class="ccard p-2.5 space-y-2">
+        <div class="flex items-center gap-2 flex-wrap">
+          <div class="lbl flex items-center gap-1.5"><i class="fas fa-timeline text-purple-500"></i> Arrangement</div>
+          <select id="arrangementStyleSel" onchange="changeArrangementStyle(this.value)"
+            class="text-xs bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-slate-300 focus:outline-none focus:border-cyan-600"></select>
+          <button onclick="regenerateArrangement()" title="Suggest a new structure from the current tracks"
+            class="px-2 py-1 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg flex items-center gap-1.5 transition-colors">
+            <i class="fas fa-wand-magic-sparkles text-purple-400 text-xs"></i> Suggest
+          </button>
+          <button onclick="addArrangementSection()" title="Insert a section after the selected one"
+            class="px-2 py-1 text-xs bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg text-slate-500 transition-colors">
+            <i class="fas fa-plus text-xs"></i>
+          </button>
+          <div class="flex-1 min-w-[1rem]"></div>
+          <span class="text-[10px] text-slate-600">Click a section to preview/edit its pattern set</span>
+        </div>
+        <div id="arrangementChips" class="flex gap-1.5 flex-wrap"></div>
+        <div id="arrangementPanel" class="hidden"></div>
+      </div>
+
       <div id="trackGrid" class="track-grid grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2"></div>
 
       <!-- Export Panel -->
@@ -914,6 +935,46 @@ pro3:"Gate Pro 3 on backbeat positions (5, 13, 21, 29) for a lush warm lead. Slo
 }
 };
 // ================================================================
+// SECTION 3b — ARRANGEMENT / SONG STRUCTURE
+// Highest-order labels above the 16-track pattern: each section names
+// a role in the composition (Intro, Build, Drop, Bridge, Outro, ...)
+// and carries the subset of tracks that should be active there.
+// Structural vocabulary draws on two reference traditions:
+//  - Pop songcraft (Taylor Swift et al.): verse tells the story, the
+//    pre-chorus lifts, the chorus is the hook, the bridge is the twist.
+//  - Electronic arc-building (Four Tet, CloZee, Sara Landry, Fred again,
+//    ZHU/"zero cult"-style, of the trees, Subtronics/Suduaya-adjacent
+//    bass acts): intro establishes a loop/found-sound, builds raise
+//    density and filter tension, drops are the peak payoff, breakdowns
+//    strip back to texture/melody before rebuilding.
+// ================================================================
+const SECTION_KINDS={
+  intro:{label:"Intro",energy:0.12,note:"One establishing element only. Cold-open hook fragment (pop) or a single found loop (Four Tet) before anything else enters."},
+  verse:{label:"Verse",energy:0.38,note:"Groove established, room to breathe — carries the story under the hook."},
+  prechorus:{label:"Pre-Chorus",energy:0.55,note:"Lift one notch and signal the turn into the hook."},
+  chorus:{label:"Chorus",energy:0.85,note:"The full hook — most memorable, most danceable point of the song."},
+  build:{label:"Build",energy:0.65,note:"Rising tension into a peak — risers, filtered density, fewer competing elements."},
+  drop:{label:"Drop",energy:1.0,note:"Peak density and weight — the payoff the build promised."},
+  breakdown:{label:"Breakdown",energy:0.28,note:"Strip back, expose texture or melody before rebuilding."},
+  bridge:{label:"Bridge",energy:0.5,note:"Contrast section — a new harmonic or textural idea, the twist before the final hook."},
+  reprise:{label:"Reprise",energy:0.6,note:"Return of an earlier idea, recontextualized rather than repeated."},
+  outro:{label:"Outro",energy:0.1,note:"Recede to one or two elements and fade."}
+};
+const SECTION_KIND_ORDER=["intro","verse","prechorus","chorus","build","drop","breakdown","bridge","reprise","outro"];
+const ARRANGEMENT_STYLES={
+  "Electronic Arc":["intro","build","drop","breakdown","build","drop","outro"],
+  "Pop Verse/Chorus":["intro","verse","prechorus","chorus","verse","prechorus","chorus","bridge","chorus","outro"],
+  "Ambient Arc":["intro","verse","bridge","reprise","outro"]
+};
+function arrangementStyleForGenre(genre){
+  if(["Ambient","Dark Ambient","Ambient Dub","Downtempo"].includes(genre))return"Ambient Arc";
+  return"Electronic Arc";
+}
+// Lower tier = present even at low energy (foundational); higher tier = needs more energy to earn a slot.
+const ROLE_ENERGY_TIER={kick:0.12,bass:0.18,snare:0.3,hat:0.32,shaker:0.32,percussion:0.34,harmonic:0.46,melody:0.5,midi:0.5,texture:0.08};
+function trackEnergyTier(track){return ROLE_ENERGY_TIER[track.roleType||inferTrackRole(track)]??0.4;}
+
+// ================================================================
 // SECTION 4 — HARMONIC / KEY DATA
 // Modes: root semitone offsets from root, chord progressions, mood
 // ================================================================
@@ -1023,7 +1084,7 @@ const LEGACY_STORAGE_KEY="dt2aide_v4";
 const TARGET_LABELS={"digitakt-audio":"DT Audio","digitakt-midi":"DT MIDI","pro3-usb":"Pro 3","external-midi":"MIDI"};
 const ROLE_SHORT={kick:'KICK',snare:'SNARE',hat:'HAT',shaker:'SHAKER',bass:'BASS',harmonic:'CHORD',melody:'LEAD',texture:'TEXTURE',midi:'MIDI',percussion:'PERC'};
 const ROUTE_SHORT={'digitakt-audio':'DT','digitakt-midi':'DT MIDI','pro3-usb':'PRO 3','external-midi':'EXT'};
-let S={genre:"Ambient",subgenre:null,trackData:{},editId:null,patLen:64,keyIdx:0,previewMuted:{},seed:0,lockedTracks:{}};
+let S={genre:"Ambient",subgenre:null,trackData:{},editId:null,patLen:64,keyIdx:0,previewMuted:{},seed:0,lockedTracks:{},arrangement:null,arrangementSeed:0};
 
 function clamp(n,min,max){return Math.max(min,Math.min(max,n));}
 function escapeHtml(value){return String(value??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch]));}
@@ -1128,9 +1189,11 @@ function init(){
       S.trackData=migrateTrackData(raw);
       if(parsed.seed!==undefined)S.seed=parsed.seed;
       if(parsed.lockedTracks&&typeof parsed.lockedTracks==="object")S.lockedTracks=parsed.lockedTracks;
+      if(parsed.arrangement&&Array.isArray(parsed.arrangement.sections))S.arrangement=parsed.arrangement;
+      if(parsed.arrangementSeed!==undefined)S.arrangementSeed=parsed.arrangementSeed;
     }
   }catch(e){S.trackData=migrateTrackData({});}
-  loadGenre("Ambient");
+  loadGenre("Ambient",!!S.arrangement);
   updateSeedDisplay();
   initMidi();
   populateAudioOutputs();
@@ -1150,7 +1213,7 @@ function init(){
 // ================================================================
 // SECTION 7 — GENRE / SUBGENRE LOADING
 // ================================================================
-function loadGenre(genre){
+function loadGenre(genre,keepArrangement){
   S.genre=genre;S.subgenre=null;S.keyIdx=0;
   const gd=GENRES[genre];
   document.getElementById("bpmDisplay").textContent=gd.bpm;
@@ -1161,7 +1224,9 @@ function loadGenre(genre){
   const bpmEl=document.getElementById("midiBpm");
   if(bpmEl){const m=gd.bpm.match(/\d+/);if(m)bpmEl.value=m[0];}
   renderSubgenreBar();
+  if(!keepArrangement){S.arrangementSeed=mkSeed();S.arrangement=null;}
   renderTrackGrid();
+  renderArrangementBar();
   renderCompositionGuide();
   renderHarmonicPanel();
   save();
@@ -1171,7 +1236,9 @@ function selectSubgenre(id){
   S.subgenre=(S.subgenre===id)?null:id;
   S.trackData[S.genre]=getRecommended(S.genre,S.subgenre);
   renderSubgenreBar();
+  S.arrangementSeed=mkSeed();S.arrangement=null;
   renderTrackGrid();
+  renderArrangementBar();
   const sg=currentSG();
   document.getElementById("subgenreNote").textContent=sg?sg.note:"";
   if(sg&&sg.bpm)document.getElementById("bpmDisplay").textContent=sg.bpm;
@@ -1627,8 +1694,10 @@ function renderTrackGrid(){
     viz+='</div>';
     const isMuted=S.previewMuted&&S.previewMuted[track.id];
     const isLocked=S.lockedTracks&&S.lockedTracks[track.id];
+    const activeSec=activeArrangementSection();
+    const inSection=!activeSec||activeSec.trackIds.includes(track.id);
     const card=document.createElement("div");
-    card.className=`track-card tc-${role} border p-2.5 select-none cursor-pointer${isLocked?' border-amber-700/40':' border-slate-800/80'}${isMuted?' pv-muted':''}`;
+    card.className=`track-card tc-${role} border p-2.5 select-none cursor-pointer${isLocked?' border-amber-700/40':' border-slate-800/80'}${isMuted?' pv-muted':''}${activeSec&&!inSection?' pv-muted':''}`;
     card.innerHTML=`<div class="flex items-center justify-between mb-1.5"><span class="mono text-[10px] text-slate-700 leading-none">${String(track.id).padStart(2,'0')}</span><div class="flex items-center gap-1"><button class="pvtog" onclick="toggleTrackLock(${track.id},event)" title="${isLocked?'Locked — regenerate skips this track':'Click to lock'}"><i class="fas fa-${isLocked?'lock text-amber-400':'lock-open text-slate-700'} text-[10px]"></i></button><button class="pvtog" onclick="event.stopPropagation();togglePreviewMute(${track.id})" title="${isMuted?'Excluded from preview':'In preview — click to mute'}"><i class="fas fa-${isMuted?'volume-xmark text-slate-700':'volume-low text-slate-600'} text-[10px]"></i></button></div></div><div class="font-semibold text-[11px] text-slate-100 leading-tight truncate mb-0.5">${escapeHtml(track.name)}</div><div class="text-[9px] tracking-widest font-bold text-slate-700 uppercase mb-1.5">${ROLE_SHORT[role]||role}</div>${viz}<div class="mt-1.5 rounded-full overflow-hidden" style="height:2px;background:rgba(148,163,184,.07)"><div style="width:${density}%;height:100%;background:var(--tc-rc,#475569);opacity:.55;border-radius:9999px"></div></div><div class="flex items-center justify-between mt-1.5"><span class="text-[9px] font-bold tracking-wide uppercase" style="color:var(--tc-rc,#475569);opacity:.55">${ROUTE_SHORT[track.target]||'MIDI'}</span><span class="text-[9px] mono text-slate-700">ch${track.midiChannel}</span></div>`;
     card.onclick=()=>openModal(track.id);
     grid.appendChild(card);
@@ -1647,6 +1716,177 @@ function toggleTrackLock(id,evt){
   S.lockedTracks[id]=!S.lockedTracks[id];
   renderTrackGrid();
   save();
+}
+
+// ================================================================
+// SECTION 7c — ARRANGEMENT / SONG STRUCTURE
+// Generates and edits the highest-order section labels (Intro, Build,
+// Drop, Bridge, Outro, ...) above the 16-track pattern, each carrying
+// its own subset of active tracks ("the pattern set" for that section).
+// ================================================================
+function generateArrangement(styleKey){
+  styleKey=styleKey||S.arrangement?.style||arrangementStyleForGenre(S.genre);
+  const kinds=ARRANGEMENT_STYLES[styleKey]||ARRANGEMENT_STYLES["Electronic Arc"];
+  const tracks=currentTracks();
+  const rng=mulberry32((S.arrangementSeed^0x9E3779B9)>>>0);
+  const seen={};
+  const sections=kinds.map((kind,i)=>{
+    const def=SECTION_KINDS[kind];
+    const energy=clamp(def.energy+(rng()-0.5)*0.12,0.05,1);
+    const trackIds=tracks.filter(t=>{
+      const role=t.roleType||inferTrackRole(t);
+      if(role==="texture")return energy<0.55||rng()<0.3;
+      return trackEnergyTier(t)<=energy+0.05;
+    }).map(t=>t.id);
+    if(!trackIds.length&&tracks.length)trackIds.push(tracks[0].id);
+    seen[kind]=(seen[kind]||0)+1;
+    const label=seen[kind]>1?`${def.label} ${seen[kind]}`:def.label;
+    const repeats=kind==="intro"||kind==="outro"?4:(kind==="drop"||kind==="chorus")?6:4;
+    return{id:`${kind}-${i}-${Math.floor(rng()*1e6)}`,kind,label,energy:Math.round(energy*100),repeats,trackIds};
+  });
+  return{style:styleKey,sections,activeIdx:0};
+}
+
+function ensureArrangement(force){
+  if(force||!S.arrangement||!S.arrangement.sections||!S.arrangement.sections.length){
+    if(!S.arrangementSeed)S.arrangementSeed=mkSeed();
+    S.arrangement=generateArrangement(S.arrangement?.style);
+  }
+}
+
+function regenerateArrangementForNewTracks(){
+  S.arrangementSeed=mkSeed();
+  S.arrangement=generateArrangement(S.arrangement?.style);
+  renderArrangementBar();
+  renderTrackGrid();
+  save();
+}
+
+function regenerateArrangement(){
+  S.arrangementSeed=mkSeed();
+  S.arrangement=generateArrangement(S.arrangement?.style);
+  renderArrangementBar();
+  renderTrackGrid();
+  save();
+}
+
+function changeArrangementStyle(styleKey){
+  S.arrangementSeed=mkSeed();
+  S.arrangement=generateArrangement(styleKey);
+  renderArrangementBar();
+  renderTrackGrid();
+  save();
+}
+
+function selectArrangementSection(idx){
+  ensureArrangement();
+  S.arrangement.activeIdx=(S.arrangement.activeIdx===idx)?-1:idx;
+  renderArrangementBar();
+  renderTrackGrid();
+}
+
+function activeArrangementSection(){
+  ensureArrangement();
+  const idx=S.arrangement.activeIdx;
+  return(idx>=0&&idx<S.arrangement.sections.length)?S.arrangement.sections[idx]:null;
+}
+
+function toggleArrangementTrack(trackId){
+  const sec=activeArrangementSection();
+  if(!sec)return;
+  const i=sec.trackIds.indexOf(trackId);
+  if(i>=0)sec.trackIds.splice(i,1);
+  else sec.trackIds.push(trackId);
+  renderArrangementBar();
+  renderTrackGrid();
+  save();
+}
+
+function renameArrangementSection(kind){
+  const sec=activeArrangementSection();
+  if(!sec)return;
+  sec.kind=kind;
+  sec.label=SECTION_KINDS[kind]?.label||kind;
+  renderArrangementBar();
+  save();
+}
+
+function setArrangementRepeats(val){
+  const sec=activeArrangementSection();
+  if(!sec)return;
+  sec.repeats=clamp(parseInt(val)||1,1,16);
+  save();
+}
+
+function addArrangementSection(){
+  ensureArrangement();
+  const insertAt=S.arrangement.activeIdx>=0?S.arrangement.activeIdx+1:S.arrangement.sections.length;
+  const kind="verse";
+  const def=SECTION_KINDS[kind];
+  S.arrangement.sections.splice(insertAt,0,{id:`${kind}-${Date.now()}`,kind,label:def.label,energy:Math.round(def.energy*100),repeats:4,trackIds:currentTracks().map(t=>t.id)});
+  S.arrangement.activeIdx=insertAt;
+  renderArrangementBar();
+  renderTrackGrid();
+  save();
+}
+
+function removeArrangementSection(idx,evt){
+  if(evt)evt.stopPropagation();
+  if(!S.arrangement||S.arrangement.sections.length<=1)return;
+  S.arrangement.sections.splice(idx,1);
+  if(S.arrangement.activeIdx>=S.arrangement.sections.length)S.arrangement.activeIdx=S.arrangement.sections.length-1;
+  renderArrangementBar();
+  renderTrackGrid();
+  save();
+}
+
+function renderArrangementBar(){
+  ensureArrangement();
+  const styleSel=document.getElementById("arrangementStyleSel");
+  if(styleSel&&!styleSel.options.length){
+    Object.keys(ARRANGEMENT_STYLES).forEach(k=>{const o=document.createElement("option");o.value=k;o.textContent=k;styleSel.appendChild(o);});
+  }
+  if(styleSel)styleSel.value=S.arrangement.style;
+  const chips=document.getElementById("arrangementChips");
+  if(!chips)return;
+  chips.innerHTML=S.arrangement.sections.map((sec,i)=>{
+    const on=S.arrangement.activeIdx===i;
+    return`<button onclick="selectArrangementSection(${i})" class="sg-pill${on?' sg-on':''}" style="position:relative;padding-right:1.4rem" title="${sec.energy}% energy · ${sec.trackIds.length} tracks">
+      ${escapeHtml(sec.label)}
+      ${S.arrangement.sections.length>1?`<span onclick="removeArrangementSection(${i},event)" style="position:absolute;right:.3rem;top:50%;transform:translateY(-50%);opacity:.5;font-weight:700" title="Remove section">×</span>`:""}
+    </button>`;
+  }).join("");
+  const panel=document.getElementById("arrangementPanel");
+  const sec=activeArrangementSection();
+  if(!sec){panel.classList.add("hidden");panel.innerHTML="";return;}
+  panel.classList.remove("hidden");
+  const kindOptions=SECTION_KIND_ORDER.map(k=>`<option value="${k}" ${sec.kind===k?"selected":""}>${SECTION_KINDS[k].label}</option>`).join("");
+  panel.className="ccard p-3 space-y-2.5";
+  panel.innerHTML=`
+    <div class="flex items-center gap-2 flex-wrap">
+      <select onchange="renameArrangementSection(this.value)" class="text-xs bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-slate-300 focus:outline-none focus:border-cyan-600">${kindOptions}</select>
+      <span class="text-[10px] text-slate-600">${escapeHtml(SECTION_KINDS[sec.kind]?.note||"")}</span>
+      <div class="flex-1 min-w-[1rem]"></div>
+      <div class="flex items-center gap-1.5">
+        <span class="lbl">Repeats</span>
+        <input type="number" min="1" max="16" value="${sec.repeats}" onchange="setArrangementRepeats(this.value)" class="w-12 bg-slate-800 border border-slate-700 rounded-lg px-1.5 py-1 text-xs text-center text-white mono focus:outline-none focus:border-cyan-600">
+      </div>
+      <span class="text-[10px] text-purple-400 mono">${sec.energy}% energy</span>
+    </div>
+    <div class="lbl">Pattern set — click a track to include/exclude it from "${escapeHtml(sec.label)}"</div>
+    <div class="flex gap-1.5 flex-wrap">${currentTracks().map(t=>{
+      const on=sec.trackIds.includes(t.id);
+      return`<button onclick="toggleArrangementTrack(${t.id})" class="px-2 py-1 rounded text-xs mono font-semibold border transition-colors ${on?"bg-cyan-900/50 border-cyan-700/50 text-cyan-300":"bg-slate-900 border-slate-800 text-slate-600"}">${t.icon} ${String(t.id).padStart(2,"0")}</button>`;
+    }).join("")}</div>`;
+}
+
+function currentSongSteps(){
+  ensureArrangement();
+  return S.arrangement.sections.map((sec,i)=>({
+    l:`A${String(i+1).padStart(2,"0")}`,
+    a:`${sec.label} — ${sec.trackIds.length} tracks active, ${sec.energy}% energy. ${sec.repeats} repeats.`,
+    trks:sec.trackIds
+  }));
 }
 
 function renderCompositionGuide(){
@@ -1862,7 +2102,8 @@ function clearPattern(){const t=getTrack(S.editId);if(t){t.steps=[];if(t.lanes){
 function loadRecommendedDefaults(){
   if(!confirm(`Reset all ${S.genre}${S.subgenre?` (${currentSG().name})`:"" } tracks to recommended patterns?`))return;
   S.trackData[S.genre]=getRecommended(S.genre,S.subgenre);
-  renderTrackGrid();save();
+  S.arrangementSeed=mkSeed();S.arrangement=null;
+  renderTrackGrid();renderArrangementBar();save();
 }
 
 // ================================================================
@@ -1885,7 +2126,9 @@ function exportAllPatterns(){
     }
     out+=`${thin}\n\n`;
   });
-  out+=`${bar}\n Digitakt II Notes\n${bar}\n • FUNC+COPY / FUNC+PASTE to duplicate patterns\n • Hold TRIG to add parameter locks per step\n • Hold TRIG + right arrow for conditional trigs\n • Song Mode: chain patterns for long-form composition\n • Track 16 as MIDI: gate the Sequential Pro 3\n${bar}\n`;
+  out+=`${bar}\n Arrangement — ${S.arrangement?S.arrangement.style:""}\n${bar}\n`;
+  currentSongSteps().forEach(s=>{out+=` ${s.l}  ${s.a}\n   Tracks: ${s.trks.length?s.trks.join(", "):"none"}\n`;});
+  out+=`\n${bar}\n Digitakt II Notes\n${bar}\n • FUNC+COPY / FUNC+PASTE to duplicate patterns\n • Hold TRIG to add parameter locks per step\n • Hold TRIG + right arrow for conditional trigs\n • Song Mode: chain patterns for long-form composition\n • Track 16 as MIDI: gate the Sequential Pro 3\n${bar}\n`;
   document.getElementById("exportOut").value=out;
   document.getElementById("exportGenreLabel").textContent=S.genre+(S.subgenre&&currentSG()?` › ${currentSG().name}`:"");
   document.getElementById("exportPanel").classList.remove("hidden");
@@ -1951,7 +2194,9 @@ function regenerateComposition(newSeed){
     let next=rng()<0.5||keys.length<2?S.keyIdx:Math.floor(rng()*keys.length);
     S.keyIdx=next;
   }
+  S.arrangementSeed=mkSeed();S.arrangement=null;
   renderTrackGrid();
+  renderArrangementBar();
   renderHarmonicPanel();
   save();
 }
@@ -2152,8 +2397,7 @@ function sendToDigitakt(){
 let songStepIdx=0;
 
 function openSongSend(){
-  const comp=COMPOSITION[S.genre];
-  if(!comp||!comp.song){alert("No song guide for this genre yet.");return;}
+  if(!currentTracks().length){alert("No tracks to arrange yet.");return;}
   songStepIdx=0;
   document.getElementById("songModalGenre").textContent=S.genre;
   document.getElementById("songBpm").value=document.getElementById("midiBpm").value||120;
@@ -2166,7 +2410,7 @@ function openSongSend(){
 function closeSongModal(){document.getElementById("songModal").classList.add("hidden");}
 
 function renderSongStep(){
-  const steps=COMPOSITION[S.genre].song;
+  const steps=currentSongSteps();
   const step=steps[songStepIdx];
   document.getElementById("songProgress").innerHTML=steps.map((_,i)=>
     `<div class="flex-1 h-1.5 rounded-full ${i<songStepIdx?"bg-cyan-700":i===songStepIdx?"bg-cyan-400":"bg-slate-700"}"></div>`
@@ -2187,7 +2431,7 @@ function renderSongStep(){
 }
 
 function moveSongStep(dir){
-  const steps=COMPOSITION[S.genre].song;
+  const steps=currentSongSteps();
   const next=songStepIdx+dir;
   if(next>=steps.length){showSongSummary();return;}
   if(next<0)return;
@@ -2198,7 +2442,7 @@ function moveSongStep(dir){
 function showSongSummary(){
   document.getElementById("songStepView").classList.add("hidden");
   document.getElementById("songSummaryView").classList.remove("hidden");
-  document.getElementById("songChainDisplay").innerHTML=COMPOSITION[S.genre].song.map(s=>{
+  document.getElementById("songChainDisplay").innerHTML=currentSongSteps().map(s=>{
     const rm=s.a.match(/(\d+)\s*repeat/);
     const rep=rm?rm[1]:"?";
     return`<div class="flex items-baseline gap-2 border-b border-slate-800/50 py-1.5 last:border-0">
@@ -2216,7 +2460,7 @@ function sendCurrentSongStep(){
   const outputMap=getMidiOutputMap();
   const anyConnected=Object.values(outputMap).some(Boolean);
   if(!anyConnected){statusEl.textContent="Select MIDI output in main panel first";return;}
-  const step=COMPOSITION[S.genre].song[songStepIdx];
+  const step=currentSongSteps()[songStepIdx];
   const activeTrkIds=step.trks||[];
   const filteredTracks=currentTracks().map(t=>({
     ...t,steps:activeTrkIds.includes(t.id)?(t.steps||[]):[]
@@ -2237,7 +2481,7 @@ function sendCurrentSongStep(){
 // ================================================================
 // SECTION 15 — PERSISTENCE
 // ================================================================
-function save(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify({trackData:S.trackData,seed:S.seed,lockedTracks:S.lockedTracks}));}catch(e){}}
+function save(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify({trackData:S.trackData,seed:S.seed,lockedTracks:S.lockedTracks,arrangement:S.arrangement,arrangementSeed:S.arrangementSeed}));}catch(e){}}
 
 window.onload=init;
 </script>
