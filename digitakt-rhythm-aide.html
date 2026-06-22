@@ -902,6 +902,60 @@ const GENRES = {
 {id:14,icon:"🌫️",name:"Atmosphere",role:"Ambient bed",steps:[],desc:"Looping atmospheric pad or field recording. No trigs — loop it continuously. Rain, vinyl crackle, or a distant pad."},
 {id:15,icon:"🎵",name:"Lead Melody",role:"Soulful hook",steps:[1,7,13,21],desc:"Simple, soulful lead melody. Four notes at syncopated positions. Minimal and expressive — fewer notes, more feeling."},
 {id:16,icon:"🎹",name:"MIDI: Pro 3",role:"Lead synth",steps:[5,13,21,29],desc:"Drive Pro 3 on backbeats for lush warm lead or pad. Pro 3's filter envelope adds expression per hit. Perfect for downtempo warmth."}
+]},
+"Dubstep":{bpm:"138–142",defaultLen:32,tracks:[
+{id:1,icon:"🥁",name:"Kick",role:"Half-time anchor",steps:[1,17],desc:"Half-time kick — only beat 1 of each half-bar. Everything else orbits this single anchor point. Punchy and short, no sustain to fight the bass."},
+{id:2,icon:"👏",name:"Snare / Clap",role:"Beat 3 snare",steps:[9,25],desc:"Single heavy snare or clap on beat 3 of each half-bar — the half-time backbeat that defines dubstep's lurching feel."},
+{id:3,icon:"🎩",name:"Closed Hat",role:"8th note grid",steps:[1,5,9,13,17,21,25,29],desc:"Sparse eighth-note hat grid. Keep it minimal — dubstep hats are texture, not a groove driver like house or techno."},
+{id:4,icon:"🎩",name:"Open Hat",role:"Syncopated accent",steps:[7,23],desc:"Open hat on the off-beat before the snare. Short and crisp — a small push into the backbeat hit."},
+{id:5,icon:"🔊",name:"Wobble Bass",role:"LFO bass",steps:[1,5,9,13,17,21,25,29],desc:"The signature wobble — square or saw bass with LFO-modulated filter cutoff. P-lock the filter per step to carve the wobble rhythm independent of the note."},
+{id:6,icon:"🌀",name:"Growl Bass",role:"Reese-style layer",steps:[1,9,17,25],desc:"Detuned Reese-style growl layered under the wobble. Heavily distorted, compressed hard. Reinforces the half-time hits with harmonic grit."},
+{id:7,icon:"💥",name:"Sub Drop",role:"Drop impact",steps:[1],desc:"Single massive sub hit at the very top of the pattern — the moment the drop lands. Pure sine, maximum level, no competing low end elsewhere."},
+{id:8,icon:"👻",name:"Ghost Snare",role:"Pre-drop tension",steps:[15,16,31,32],desc:"Quiet ghost snare rolls just before each half-bar resets. Low velocity, builds anticipation into the next hit."},
+{id:9,icon:"🪘",name:"Percussion",role:"Texture fill",steps:[3,11,19,27],desc:"Metallic or processed percussion hits filling the space between kick and snare. Keeps the half-time groove from feeling too empty."},
+{id:10,icon:"🌊",name:"Vocal Chop",role:"Hook fragment",steps:[1,17],desc:"Pitched or time-stretched vocal chop at the start of each half-bar. Often the most memorable hook in a dubstep drop."},
+{id:11,icon:"🎹",name:"Synth Stab",role:"Tension chord",steps:[9,25],desc:"Dissonant synth stab landing with the snare. Minor 2nds or tritones work well — adds harmonic aggression to the drop."},
+{id:12,icon:"🌫️",name:"Pad",role:"Harmonic bed",steps:[1],desc:"Sustained pad under the whole pattern, LOOP on. Provides the harmonic glue between the wobble and growl basses."},
+{id:13,icon:"⚡",name:"FX Riser",role:"Build tension",steps:[29,30,31,32],desc:"Riser or noise sweep in the final 4 steps. P-lock velocity crescendo 70→90→110→127 leading into the next drop."},
+{id:14,icon:"🌬️",name:"Noise Sweep",role:"Filter sweep",steps:[1],desc:"Long noise sweep, LOOP on with a slow filter LFO. Adds constant low-level motion under the half-time hits."},
+{id:15,icon:"🎭",name:"Glitch FX",role:"Stutter accent",steps:[16,32],desc:"Short stutter or bitcrush hit at the very end of each half-bar — a glitchy punctuation mark before the loop resets."},
+{id:16,icon:"🎹",name:"MIDI: Pro 3",role:"Bass / growl ext.",steps:[1,9,17,25],desc:"Gate Pro 3 on the half-time hits for an extra growl layer. Self-oscillating filter pushed hard gives an analogue edge against the digital wobble."}
+]},
+"Synthwave":{bpm:"80–115",defaultLen:16,tracks:[
+{id:1,icon:"🥁",name:"Kick",role:"Four-on-the-floor",steps:[1,5,9,13],desc:"Gated, punchy 80s kick. Short decay, strong transient. Should sound like a drum machine, not an acoustic kit."},
+{id:2,icon:"💥",name:"Gated Snare",role:"80s gated accent",steps:[5,13],desc:"Huge gated-reverb snare on beats 2 and 4 — the signature 80s sound. Heavy reverb cut abruptly by a noise gate."},
+{id:3,icon:"🎩",name:"Closed Hat",role:"8th note driver",steps:[1,3,5,7,9,11,13,15],desc:"Clean eighth-note hat pattern. Bright and even — synthwave hats are precise, not swung."},
+{id:4,icon:"🎩",name:"Open Hat",role:"Groove accent",steps:[7,15],desc:"Open hat on the and-of-2 and and-of-4. Short, metallic, classic drum-machine character."},
+{id:5,icon:"🪘",name:"Rim / Clave",role:"Syncopated accent",steps:[3,11],desc:"Rimshot or clave hit for syncopation. Dry and tight — contrasts with the wash of reverb elsewhere."},
+{id:6,icon:"🔊",name:"Bass",role:"Arpeggiated bass",steps:[1,3,5,7,9,11,13,15],desc:"Driving arpeggiated synth bass — classic sawtooth or square wave. P-lock pitch for a repeating arpeggio pattern across all 8 hits."},
+{id:7,icon:"🎹",name:"Arp Synth",role:"Rhythmic arpeggio",steps:[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16],desc:"Fast 16th-note arpeggiator pattern. P-lock pitch per step to outline the chord progression — the driving rhythmic engine of synthwave."},
+{id:8,icon:"🌫️",name:"Pad / Strings",role:"Harmonic bed",steps:[1,9],desc:"Lush analog-style string pad, two hits per pattern. Long attack, wide stereo, heavy chorus for that 80s shimmer."},
+{id:9,icon:"🎵",name:"Lead Synth",role:"Melodic hook",steps:[1,5,9,13],desc:"Soaring lead synth melody on the beat. Detuned unison oscillators, long reverb tail — the emotional centerpiece of the track."},
+{id:10,icon:"🔔",name:"Bell / Chime",role:"Sparkle accent",steps:[3,11],desc:"DX7-style bell or chime hit. Bright, short, and slightly metallic. A signature 80s sparkle layered above the pad."},
+{id:11,icon:"🥁",name:"Perc Layer",role:"Rimshot texture",steps:[2,4,6,8,10,12,14,16],desc:"Steady electronic percussion layer on every 16th — woodblock or rim sample. Mixed low, adds drive without crowding the hats."},
+{id:12,icon:"🌀",name:"FX Sweep",role:"Transition accent",steps:[15,16],desc:"Filter sweep or whoosh into the next bar. Classic synthwave transition effect — should feel cinematic, like a scene change."},
+{id:13,icon:"🌊",name:"Vocoder / Vocal",role:"Robotic vocal hook",steps:[1,9],desc:"Vocoded or talkbox vocal fragment. Two hits per pattern — feels like a transmission from an 80s sci-fi film."},
+{id:14,icon:"🔊",name:"Sub Bass",role:"Low reinforcement",steps:[1,5,9,13],desc:"Pure sine sub layer doubling the arpeggiated bass root notes. Adds modern low-end weight under the vintage synth tones."},
+{id:15,icon:"🌬️",name:"Noise Riser",role:"Build tension",steps:[15,16],desc:"White noise riser in the final two steps. Pairs with the FX sweep for a dramatic push into the next section."},
+{id:16,icon:"🎹",name:"MIDI: Pro 3",role:"Lead / arp ext.",steps:[1,5,9,13],desc:"Gate Pro 3 on the beat for a second analog lead or arpeggio voice. Detune slightly against the Digitakt's internal synth for width."}
+]},
+"UK Garage":{bpm:"130–138",defaultLen:16,tracks:[
+{id:1,icon:"🥁",name:"Kick",role:"2-step syncopation",steps:[1,9,11],desc:"Classic 2-step kick placement — beat 1, then a syncopated push around beat 3. Never four-on-the-floor; the gaps define the genre."},
+{id:2,icon:"👏",name:"Snare / Clap",role:"Off-grid backbeat",steps:[7,15],desc:"Snare sits slightly ahead of the expected backbeat — the 2-step shuffle. Crisp and dry, minimal reverb."},
+{id:3,icon:"🎩",name:"Shuffled Hats",role:"Swung 16ths",steps:[1,3,4,6,7,9,11,12,14,15],desc:"Heavily swung 16th-note hat pattern with irregular gaps. Use Digitakt swing plus manual gaps for the bouncing garage shuffle."},
+{id:4,icon:"🎩",name:"Open Hat",role:"Skip accent",steps:[5,13],desc:"Open hat skip accent — short and bright, landing just off the main groove to add lift."},
+{id:5,icon:"🔊",name:"Sub Bass",role:"Wobbly bassline",steps:[1,5,9,11],desc:"Deep, slightly wobbly sub bassline. P-lock pitch for a rolling, syncopated bass figure that interlocks with the kick gaps."},
+{id:6,icon:"🎸",name:"Bassline",role:"Mid bass groove",steps:[3,9,13],desc:"Mid-range bass layer adding harmonic movement above the sub. Short and plucky — garage bass is rhythmic, not sustained."},
+{id:7,icon:"🌊",name:"Vocal Chop",role:"Pitched vocal hook",steps:[1,9],desc:"Pitched-up soulful vocal chop — the garage signature. Short fragments, often a single word or syllable, repeated with variation."},
+{id:8,icon:"🎹",name:"Rhodes / Chord",role:"Soulful stab",steps:[7,15],desc:"Warm Rhodes or organ chord stab. Jazzy extended chords (9ths, 11ths) typical of 2-step and speed garage."},
+{id:9,icon:"🪘",name:"Percussion",role:"Shaker / conga",steps:[2,4,6,10,12,14],desc:"Light hand percussion filling the shuffle. Shaker or conga, mixed low — reinforces the bounce without adding weight."},
+{id:10,icon:"🥁",name:"Rim Shot",role:"Syncopated click",steps:[4,12],desc:"Dry rimshot click on the skipped beats. Very light velocity — felt more than heard, but essential to the bounce."},
+{id:11,icon:"🌫️",name:"Pitched Vocal Ad-lib",role:"Texture vocal",steps:[5],desc:"Single rare pitched ad-lib or vocal stutter. Sparse — should feel like a found fragment from a garage pirate-radio tape."},
+{id:12,icon:"⚡",name:"FX Riser",role:"Transition build",steps:[15,16],desc:"Short riser or sweep into the next bar. Brief — garage transitions are quick, not drawn out like dubstep or techno."},
+{id:13,icon:"🎻",name:"Strings",role:"Harmonic wash",steps:[1],desc:"Sustained string pad, LOOP on. Warm and soulful — provides harmonic context behind the busy rhythm section."},
+{id:14,icon:"🔔",name:"Bell",role:"Garage sparkle",steps:[9],desc:"Single bell or pluck hit, often pitched to match the vocal chop. Adds a bright melodic touch without crowding the groove."},
+{id:15,icon:"🎭",name:"Skip Fill",role:"Hat roll fill",steps:[14,15,16],desc:"Quick hat or perc fill in the last three steps. P-lock velocity for a small crescendo into the next bar's downbeat."},
+{id:16,icon:"🎹",name:"MIDI: Pro 3",role:"Bass / chord ext.",steps:[1,7,9,15],desc:"Gate Pro 3 on key garage hits for a warm analog bass or chord layer. Pro 3's filter envelope adds the soulful 'wah' garage producers love."}
 ]}
 };
 // ================================================================
@@ -975,6 +1029,24 @@ const SUBGENRES={
 {id:"nujazz",name:"Nu Jazz",bpm:"85–105",note:"Jazz harmony over electronic rhythm. Complex bass and chord movements are essential.",ov:{6:{steps:[1,3,5,7,9,13,17,21,25]},7:{steps:[3,9,21]},10:{steps:[3,9,13,19,27]},9:{steps:[5,13,25]}}},
 {id:"psychill",name:"Psychill",bpm:"80–100",note:"Psychedelic chill — textural and evolving. Atmosphere track is always active.",ov:{14:{steps:[1]},13:{steps:[1,9,17,25]},3:{steps:[1,3,5,7,9,11,13,15,17,19,21,23,25,27,29,31]},8:{steps:[1,9,17,25]}}},
 {id:"chillout",name:"Chillout / Lounge",bpm:"90–105",defaultLen:16,note:"Relaxed and polished lounge feel. Shaker, bass, and chord are the main elements.",ov:{4:{steps:[3,11]},10:{steps:[]},11:{steps:[3,9,13]},13:{steps:[]}}}
+],
+"Dubstep":[
+{id:"melodic",name:"Melodic Dubstep",bpm:"138–142",note:"Emotional and uplifting. Lead pad and synth stab prominent; wobble bass is smoother and less aggressive.",ov:{5:{steps:[1,9,17,25]},6:{steps:[]},11:{steps:[1,9,17,25]},12:{steps:[1,17]}}},
+{id:"brostep",name:"Brostep",bpm:"138–142",note:"Maximally aggressive. Growl bass and FX riser are dense; everything is louder and harsher.",ov:{6:{steps:[1,3,9,11,17,19,25,27]},13:{steps:[27,28,29,30,31,32]},15:{steps:[8,16,24,32]}}},
+{id:"riddim",name:"Riddim",bpm:"140–150",note:"Repetitive, triplet-driven bass patterns. Wobble locks into a tight triplet grid rather than free modulation.",ov:{5:{steps:[1,4,7,10,13,16,19,22,25,28,31]},6:{steps:[1,4,7,10,13,16,19,22,25,28,31]}}},
+{id:"chillstep",name:"Chillstep",bpm:"70–100",note:"Half-tempo, atmospheric. Pad and noise sweep dominate; drums are sparse and soft.",ov:{1:{steps:[1]},2:{steps:[17]},5:{steps:[]},6:{steps:[]},9:{steps:[]},13:{steps:[]}}}
+],
+"Synthwave":[
+{id:"outrun",name:"Outrun",bpm:"95–115",note:"Fast, driving, neon-lit. Arp synth and bass stay busy throughout; energy never drops.",ov:{6:{steps:[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]},9:{steps:[1,3,5,7,9,11,13,15]}}},
+{id:"darksynth",name:"Darksynth",bpm:"85–105",note:"Aggressive and horror-tinged. Bass is distorted, pad turns dissonant, percussion hits harder.",ov:{6:{steps:[1,3,5,7,9,11,13,15]},8:{steps:[1,9]},11:{steps:[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]}}},
+{id:"dreamwave",name:"Dreamwave",bpm:"75–95",note:"Slower and nostalgic. Pad and lead lead; arpeggio thins out, more space between hits.",ov:{7:{steps:[1,2,3,4,5,6,7,8]},8:{steps:[1,5,9,13]},14:{steps:[1,9]}}},
+{id:"vaporwave",name:"Vaporwave",bpm:"60–85",note:"Slowed, warped, nostalgic samples. Strip back to pad, bell, and lead — remove arp and gated snare.",ov:{2:{steps:[]},6:{steps:[]},7:{steps:[]},10:{steps:[1,9]},8:{steps:[1]}}}
+],
+"UK Garage":[
+{id:"2step",name:"Classic 2-Step",bpm:"130–136",note:"The original 2-step blueprint. Sparse kick, off-grid snare, soulful vocal chops.",ov:{}},
+{id:"speed",name:"Speed Garage",bpm:"136–140",note:"Faster and bassier. Sub bass and bassline are dense; pitched-up vocal stabs are prominent.",ov:{5:{steps:[1,3,5,7,9,11,13,15]},6:{steps:[1,3,5,7,9,11,13,15]},7:{steps:[1,5,9,13]}}},
+{id:"grime",name:"Grime-Influenced",bpm:"138–142",note:"Darker and sparser. Strip melodic elements; sub bass and percussion become more aggressive.",ov:{8:{steps:[]},13:{steps:[]},5:{steps:[1,9]},9:{steps:[2,6,10,14]}}},
+{id:"bassline",name:"Bassline House",bpm:"136–142",note:"Bass-forward and four-to-the-floor leaning. Sub bass becomes the lead instrument, hats simplify.",ov:{1:{steps:[1,5,9,13]},5:{steps:[1,3,5,7,9,11,13,15]},3:{steps:[1,5,9,13]}}}
 ]
 };
 // ================================================================
@@ -1040,6 +1112,24 @@ setup:["32-step patterns with heavy swing. The shuffle setting is the most impor
 song:[{l:"A01",a:"Kick + hats only. 4 repeats.",trks:[1,3]},{l:"A02",a:"Add bass + snare. 4 repeats.",trks:[1,2,3,6]},{l:"A03",a:"Add chord + shaker. 4 repeats — groove established.",trks:[1,2,3,5,6,7]},{l:"A04",a:"Add piano riff + vocal sample. 4 repeats — main.",trks:[1,2,3,5,6,7,8,9]},{l:"A05",a:"Drop to bass + pad only. 4 repeats — breakdown.",trks:[6,12]},{l:"A06",a:"Full groove returns. 8 repeats.",trks:[1,2,3,5,6,7,8,9]}],
 variations:"The trip-hop variation: copy the main pattern, replace the kick sample with a reversed version of itself (Digitakt sample reverse). Creates that signature Portishead-style unsettled feel.",
 pro3:"Gate Pro 3 on backbeat positions (5, 13, 21, 29) for a lush warm lead. Slow filter attack on Pro 3 — the note blooms into the reverb tail after the hit."
+},
+"Dubstep":{
+setup:["32-step patterns at half-time tempo — only program on beat 1 and beat 3 of each half-bar to get the lurch right.","The wobble is rhythm, not just timbre. Treat the filter LFO p-locks as a second drum pattern layered onto the bass.","Save the sub drop for the actual drop. Nothing else should touch that frequency range until it lands."],
+song:[{l:"A01",a:"Pad + sub bass intro. 4 repeats.",trks:[7,12]},{l:"A02",a:"Add vocal chop + synth stab. 4 repeats — building.",trks:[7,10,11,12]},{l:"A03",a:"Add riser + noise sweep. 2 repeats — final tension.",trks:[7,10,11,12,13,14]},{l:"A04",a:"DROP: full kick/snare/wobble/growl. 8 repeats.",trks:[1,2,3,4,5,6,7,9]},{l:"A05",a:"Strip to pad + vocal chop. 4 repeats — breather.",trks:[7,10,12]},{l:"A06",a:"Second drop, full pattern. 8 repeats.",trks:[1,2,3,4,5,6,7,9]}],
+variations:"Copy the drop pattern, swap the wobble bass for the growl bass as the dominant element, and reduce kick to just beat 1. The same drop feels completely different with the bass roles swapped.",
+pro3:"Gate Pro 3 on the half-time hits (1, 9, 17, 25). Push the filter to self-oscillation and resonate it hard for an extra analog growl layer under the digital wobble."
+},
+"Synthwave":{
+setup:["16-step patterns at a relaxed 80–115 BPM — the arpeggio and gated snare define the era more than tempo does.","Get the gated snare reverb tail right first — it's the single most recognizable synthwave sound.","Layer the arpeggio and bass so they interlock rhythmically rather than play the same pattern."],
+song:[{l:"A01",a:"Pad + arp only. 4 repeats — intro.",trks:[7,8]},{l:"A02",a:"Add kick + gated snare. 4 repeats.",trks:[1,2,7,8]},{l:"A03",a:"Add bass + hats. 4 repeats — groove established.",trks:[1,2,3,6,7,8]},{l:"A04",a:"Add lead synth. 4 repeats — main hook.",trks:[1,2,3,6,7,8,9]},{l:"A05",a:"Drop to pad + lead only. 2 repeats — breakdown.",trks:[7,9]},{l:"A06",a:"Full pattern returns with bell + vocoder. 4 repeats.",trks:[1,2,3,6,7,8,9,10,13]}],
+variations:"Copy the main pattern, double the arpeggio speed (use a 32-step pattern instead) for a more urgent Outrun feel, or halve it for Dreamwave — the same chords, completely different mood.",
+pro3:"Gate Pro 3 on the beat (1, 5, 9, 13) for a second detuned analog lead. Slight pitch drift against the Digitakt voice creates the lush unison width synthwave leads are known for."
+},
+"UK Garage":{
+setup:["16-step patterns with heavy, irregular swing — the shuffle amount and the gaps in the kick pattern ARE the genre.","Never default to four-on-the-floor. The kick should always have at least one unexpected gap or push.","Vocal chops carry the hook. Spend as much care p-locking their pitch and timing as you would a melody."],
+song:[{l:"A01",a:"Sub bass + vocal chop only. 4 repeats — intro.",trks:[5,7]},{l:"A02",a:"Add kick + snare. 4 repeats.",trks:[1,2,5,7]},{l:"A03",a:"Add shuffled hats + bassline. 4 repeats — groove established.",trks:[1,2,3,5,6,7]},{l:"A04",a:"Add Rhodes + percussion. 4 repeats — main groove.",trks:[1,2,3,5,6,7,8,9]},{l:"A05",a:"Drop to sub bass + Rhodes. 2 repeats — breakdown.",trks:[5,8]},{l:"A06",a:"Full pattern returns. 8 repeats.",trks:[1,2,3,5,6,7,8,9]}],
+variations:"Copy the main pattern, nudge the snare one step earlier and the kick's syncopated hit one step later — small timing shifts completely change which 2-step variant the groove feels like.",
+pro3:"Gate Pro 3 on the kick/snare hits (1, 7, 9, 15) for a warm analog bass or chord layer. Pro 3's filter envelope adds the soulful filter-sweep garage producers are known for."
 }
 };
 // ================================================================
@@ -1078,7 +1168,10 @@ const ARRANGEMENT_STYLES={
   "landry":{label:"Sara Landry — driving techno arc",blurb:"Relentless low-end foundation. Long filtered build, full-weight drop, a breakdown to breathe, then a second harder peak.",arc:["intro","build","drop","breakdown","build","drop","outro"]},
   "fred":{label:"Fred again.. — emotional release",blurb:"Intimate, sample-driven arc. Tender intro, gathering energy, cathartic drop, a stripped human breakdown, then a bigger release.",arc:["intro","verse","build","drop","breakdown","build","drop","outro"]},
   "psychill":{label:"Suduaya / Zero Cult — immersive trip",blurb:"Long downtempo journey. Hypnotic groove that evolves gradually through contrast and reprise rather than tension/release spikes.",arc:["intro","verse","bridge","verse","reprise","outro"]},
-  "ambient":{label:"Ambient — slow bloom",blurb:"Minimal additive arc. Drone, gradual entrances, a single textural twist, recede to silence.",arc:["intro","verse","bridge","reprise","outro"]}
+  "ambient":{label:"Ambient — slow bloom",blurb:"Minimal additive arc. Drone, gradual entrances, a single textural twist, recede to silence.",arc:["intro","verse","bridge","reprise","outro"]},
+  "skrillex":{label:"Skrillex — drop architecture",blurb:"Bass-music build/drop engineering. Short pads-only intro, a tightly wound build, a maximum-density drop, a quick breather, then a harder second drop.",arc:["intro","build","drop","breakdown","build","drop","outro"]},
+  "kavinsky":{label:"Kavinsky — retro cruise",blurb:"Synthwave storytelling. Cold-open arpeggio, a driving verse, a soaring chorus hook, a darker bridge detour, then one last triumphant pass.",arc:["intro","verse","chorus","verse","bridge","chorus","outro"]},
+  "burial":{label:"Burial — nocturnal garage",blurb:"UK garage/2-step atmosphere over narrative. Vocal-led intro, a sparse groove verse, a hookier chorus, a stripped breakdown, then the groove returns changed.",arc:["intro","verse","chorus","breakdown","reprise","outro"]}
 };
 // Legacy keys saved by earlier builds → new style ids.
 const ARRANGEMENT_STYLE_ALIASES={"Electronic Arc":"landry","Pop Verse/Chorus":"swift","Ambient Arc":"ambient"};
@@ -1092,6 +1185,9 @@ function arrangementStyleForGenre(genre){
   if(["Ambient Dub","Downtempo"].includes(genre))return"psychill";
   if(["House","Techno"].includes(genre))return"landry";
   if(["DnB","Jungle / Breakbeat","Trap","IDM / Glitch"].includes(genre))return"fred";
+  if(genre==="Dubstep")return"skrillex";
+  if(genre==="Synthwave")return"kavinsky";
+  if(genre==="UK Garage")return"burial";
   return"fourtet";
 }
 // Lower tier = present even at low energy (foundational); higher tier = needs more energy to earn a slot.
@@ -1160,6 +1256,24 @@ const HARMONIC = {
   {name:"Eb Major",root:"Eb",mode:"Major",notes:["Eb","F","G","Ab","Bb","C","D"],prog:"Ebmaj7 — Cm7 — Ab — Bb",mood:"jazz-influenced, warm, sophisticated",semitones:[0,2,4,5,7,9,11,12],midi:63,pro3:"Nu jazz territory. Major 7th chords (Ebmaj7) give the smooth, sophisticated lounge feel."},
   {name:"G Minor",root:"G",mode:"Natural Minor",notes:["G","A","Bb","C","D","Eb","F"],prog:"Gm7 — Cm7 — Fsus4 — Gm7",mood:"chill, lo-fi, classic",semitones:[0,2,3,5,7,8,10,12],midi:55,pro3:"Lo-fi hip-hop classic key. Bass at G1 (MIDI 31). Suspended chords (sus4) give the unresolved lo-fi feel."},
   {name:"A Minor Pentatonic",root:"A",mode:"Minor Pentatonic",notes:["A","C","D","E","G"],prog:"Am — G — Dm — Am",mood:"accessible, soulful, direct",semitones:[0,3,5,7,10,12],midi:57,pro3:"Most accessible downtempo scale. All 5 notes work as melody and bass. Great for live improvisation on Pro 3."}
+],
+"Dubstep":[
+  {name:"D Minor",root:"D",mode:"Natural Minor",notes:["D","E","F","G","A","Bb","C"],prog:"Dm — Bb — C — Dm",mood:"heavy, dark, aggressive",semitones:[0,2,3,5,7,8,10,12],midi:62,pro3:"Standard dubstep key. Wobble bass tuned to D1 (MIDI 26). Bb (flat-6) gives the genre's signature menace."},
+  {name:"E Phrygian",root:"E",mode:"Phrygian",notes:["E","F","G","A","B","C","D"],prog:"Em — F — Em — F",mood:"exotic, tense, brostep",semitones:[0,1,3,5,7,8,10,12],midi:64,pro3:"The flat-2 (F) semitone clash is great for aggressive growl-bass tension. Tune growl root to E1."},
+  {name:"F# Minor",root:"F#",mode:"Natural Minor",notes:["F#","G#","A","B","C#","D","E"],prog:"F#m — D — E — C#m",mood:"melodic, emotional, uplifting",semitones:[0,2,3,5,7,8,10,12],midi:66,pro3:"Common in melodic dubstep. F#1 (MIDI 30) sub root. Pair with a major-leaning lead for the emotional contrast."},
+  {name:"Chromatic / Atonal",root:"—",mode:"Chromatic",notes:["All 12"],prog:"No progression — wobble carries motion",mood:"riddim, mechanical, relentless",semitones:[0,1,2,3,4,5,6,7,8,9,10,11,12],midi:57,pro3:"Riddim-style dubstep often drops the key center entirely. Use the filter LFO rate as the 'melody' instead."}
+],
+"Synthwave":[
+  {name:"A Minor",root:"A",mode:"Natural Minor",notes:["A","B","C","D","E","F","G"],prog:"Am — F — C — G",mood:"nostalgic, driving, cinematic",semitones:[0,2,3,5,7,8,10,12],midi:57,pro3:"Classic outrun key. Tune OSC1 to A3 for the arp, OSC2 -12 for sub-bass doubling."},
+  {name:"E Minor",root:"E",mode:"Natural Minor",notes:["E","F#","G","A","B","C","D"],prog:"Em — C — G — D",mood:"bright, nostalgic, anthemic",semitones:[0,2,3,5,7,8,10,12],midi:64,pro3:"Bright and anthemic — popular for outrun leads. Tune lead to E4, detune second voice +7 cents for width."},
+  {name:"F Lydian",root:"F",mode:"Lydian",notes:["F","G","A","B","C","D","E"],prog:"Fmaj — G — Am — Fmaj",mood:"dreamy, uplifting, retro-futuristic",semitones:[0,2,4,6,7,9,11,12],midi:65,pro3:"The raised 4th (B) gives Lydian its dreamy sci-fi lift. Great for dreamwave leads and pads."},
+  {name:"D Minor",root:"D",mode:"Natural Minor",notes:["D","E","F","G","A","Bb","C"],prog:"Dm — Bb — Gm — A",mood:"dark, horror, darksynth",semitones:[0,2,3,5,7,8,10,12],midi:62,pro3:"Darksynth key. Detune OSC2 hard against OSC1 for a horror-movie synth growl. Bb (flat-6) is the key dread note."}
+],
+"UK Garage":[
+  {name:"G Minor",root:"G",mode:"Dorian",notes:["G","A","Bb","C","D","E","F"],prog:"Gm7 — F — Gm7 — C",mood:"soulful, bouncy, classic 2-step",semitones:[0,2,3,5,7,9,10,12],midi:55,pro3:"Classic garage key. Dorian's raised 6th (E) gives the soulful lift over the sub bass. Tune sub to G1."},
+  {name:"A Minor",root:"A",mode:"Natural Minor",notes:["A","B","C","D","E","F","G"],prog:"Am7 — Dm7 — G — C",mood:"warm, soulful, speed garage",semitones:[0,2,3,5,7,8,10,12],midi:57,pro3:"Speed garage favourite. Extended 7th chords on Rhodes/organ. Sub bass root at A0 (MIDI 21)."},
+  {name:"D Minor",root:"D",mode:"Natural Minor",notes:["D","E","F","G","A","Bb","C"],prog:"Dm — Bb — F — C",mood:"dark, grime-influenced",semitones:[0,2,3,5,7,8,10,12],midi:62,pro3:"Darker grime-leaning garage key. Strip chord extensions; keep bass and percussion sparse and tense."},
+  {name:"C Minor Pentatonic",root:"C",mode:"Minor Pentatonic",notes:["C","Eb","F","G","Bb"],prog:"Cm — Bb — Cm — Bb",mood:"direct, bassline house",semitones:[0,3,5,7,10,12],midi:60,pro3:"Bassline house favourite — pentatonic keeps the sub bass melody safe and punchy at fast tempos."}
 ]
 };
 
@@ -1179,7 +1293,10 @@ const GEN_PARAMS = {
 "Trap":       {pLen:32, kick:[1,3],snare:[1,2],hat:[8,16],shaker:[0,4],bass:[2,3],harmonic:[1,2],melody:[2,4],texture:"loop",percussion:[1,3],midi:[2,4],  rules:"Sparse kick, heavy 808, dense hi-hat rolls. Melody and 808 pitch are the main expression."},
 "Jungle / Breakbeat":{pLen:32,kick:[3,6],snare:[3,5],hat:[12,16],shaker:[2,5],bass:[4,7],harmonic:[1,2],melody:[1,2],texture:"loop",percussion:[3,6],midi:[2,4], rules:"Maximum rhythmic complexity. All break tracks are dense and irregular. Euclidean spacing creates natural-sounding irregularity."},
 "IDM / Glitch":{pLen:32,kick:[1,4],snare:[2,5],hat:[8,16],shaker:[0,4],bass:[2,5],harmonic:[1,3],melody:[1,3],texture:"loop",percussion:[3,6],midi:[2,5],  rules:"Irregular everything. Wide pulse range for all tracks creates unpredictable but mathematically distributed results."},
-"Downtempo":  {pLen:32, kick:[2,3],snare:[2,2],hat:[8,16],shaker:[6,8],bass:[4,6],harmonic:[2,3],melody:[2,3],texture:"loop",percussion:[2,4],midi:[2,4],  rules:"Swung 16ths with heavy shuffle. Medium density — 6–8 active tracks. Space is important but groove must lock."}
+"Downtempo":  {pLen:32, kick:[2,3],snare:[2,2],hat:[8,16],shaker:[6,8],bass:[4,6],harmonic:[2,3],melody:[2,3],texture:"loop",percussion:[2,4],midi:[2,4],  rules:"Swung 16ths with heavy shuffle. Medium density — 6–8 active tracks. Space is important but groove must lock."},
+"Dubstep":    {pLen:32, kick:[1,2],snare:[1,1],hat:[4,8],shaker:[0,3],bass:[6,10],harmonic:[1,2],melody:[1,3],texture:"loop",percussion:[2,4],midi:[2,4],  rules:"Half-time skeleton — kick/snare are sparse, bass and wobble carry the density. Sub drop reserved for the peak."},
+"Synthwave":  {pLen:16, kick:[4,4],snare:[2,2],hat:[6,8],shaker:[0,0],bass:[6,8],harmonic:[1,2],melody:[2,4],texture:"loop",percussion:[4,8],midi:[2,4],  rules:"Steady, even grid — gated snare and arpeggio define the feel. Bass and arp share the rhythmic load evenly."},
+"UK Garage":  {pLen:16, kick:[2,3],snare:[1,2],hat:[8,12],shaker:[0,2],bass:[3,5],harmonic:[1,2],melody:[1,2],texture:"loop",percussion:[3,6],midi:[2,3],  rules:"Irregular, shuffled grid — never four-on-the-floor. Gaps in the kick pattern are as important as the hits."}
 };
 
 // ================================================================
@@ -1858,6 +1975,7 @@ function renderTrackGrid(){
           <div class="font-semibold text-[11px] text-slate-100 leading-tight truncate">${escapeHtml(track.name)}</div>
         </div>
         <div class="tc-ctl${ctlActive} flex items-center gap-1 flex-shrink-0">
+          <button class="pvtog" onclick="event.stopPropagation();openModal(${track.id})" title="Edit pattern"><i class="fas fa-sliders text-slate-600 text-[10px]"></i></button>
           <button class="pvtog" onclick="toggleTrackLock(${track.id},event)" title="${isLocked?'Locked — regenerate skips this track':'Click to lock'}"><i class="fas fa-${isLocked?'lock text-amber-400':'lock-open text-slate-600'} text-[10px]"></i></button>
           <button class="pvtog" onclick="event.stopPropagation();togglePreviewMute(${track.id})" title="${isMuted?'Excluded from preview':'In preview — click to mute'}"><i class="fas fa-${isMuted?'volume-xmark text-slate-500':'volume-low text-slate-600'} text-[10px]"></i></button>
         </div>
@@ -1865,8 +1983,11 @@ function renderTrackGrid(){
       <div class="text-[9px] tracking-widest font-bold uppercase mb-1.5" style="color:var(--tc-rc,#475569);opacity:.7">${ROLE_SHORT[role]||role}</div>
       ${viz}
       <div class="mt-2 rounded-full overflow-hidden" style="height:2px;background:rgba(148,163,184,.07)"><div style="width:${density}%;height:100%;background:var(--tc-rc,#475569);opacity:.5;border-radius:9999px"></div></div>
-      <div class="text-[9px] mono text-slate-700 mt-1.5">${ROUTE_SHORT[track.target]||'MIDI'} · ch${track.midiChannel}${hasVariation?' <span class="text-cyan-500">· variation</span>':''}</div>`;
-    card.onclick=()=>openModal(track.id);
+      <div class="text-[9px] mono text-slate-700 mt-1.5">${ROUTE_SHORT[track.target]||'MIDI'} · ch${track.midiChannel}${hasVariation?' <span class="text-cyan-500">· variation</span>':''}${activeSec?` <span class="${inSection?'text-cyan-500':'text-slate-600'}">· ${inSection?'in':'excluded from'} ${escapeHtml(activeSec.label)}</span>`:''}</div>`;
+    card.onclick=()=>{
+      if(activeSec){toggleArrangementTrack(track.id);}
+      else openModal(track.id);
+    };
     grid.appendChild(card);
   });
 }
@@ -2192,11 +2313,7 @@ function renderArrangementBar(){
       <span class="text-[10px] mono" style="color:${energyColor(sec.energy)}">${sec.energy}% energy</span>
       <button onclick="suggestForSection(${idx})" class="px-2 py-1 text-xs bg-purple-950/40 hover:bg-purple-900/40 border border-purple-800/40 rounded-lg text-purple-300 flex items-center gap-1" title="Ask the Aide about this section"><i class="fas fa-lightbulb text-[10px]"></i> Aide</button>
     </div>
-    <div class="lbl">Pattern set — click a track to include/exclude it from "${escapeHtml(sec.label)}"</div>
-    <div class="flex gap-1.5 flex-wrap">${currentTracks().map(t=>{
-      const on=sec.trackIds.includes(t.id);
-      return`<button onclick="toggleArrangementTrack(${t.id})" class="px-2 py-1 rounded text-xs mono font-semibold border transition-colors ${on?"bg-cyan-900/50 border-cyan-700/50 text-cyan-300":"bg-slate-900 border-slate-800 text-slate-600"}">${t.icon} ${String(t.id).padStart(2,"0")}</button>`;
-    }).join("")}</div>
+    <div class="text-[10px] text-slate-600">${sec.trackIds.length} of ${currentTracks().length} tracks active in "${escapeHtml(sec.label)}" — click a track card below to include or exclude it.</div>
     <div id="sectionSuggestion" class="hidden text-xs text-purple-300/90 bg-purple-950/20 border border-purple-900/40 rounded-lg p-2.5 leading-relaxed"></div>`;
 }
 
@@ -3198,6 +3315,7 @@ function openSongSend(){
   songStepIdx=0;
   document.getElementById("songModalGenre").textContent=S.genre;
   document.getElementById("songBpm").value=document.getElementById("midiBpm").value||120;
+  document.getElementById("songLoops").value=document.getElementById("midiLoops").value||2;
   document.getElementById("songSummaryView").classList.add("hidden");
   document.getElementById("songStepView").classList.remove("hidden");
   renderSongStep();
